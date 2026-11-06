@@ -5,11 +5,12 @@ const app = new Hono<{ Bindings: Env }>().basePath('/api');
 
 // Error shape from specs/001-realtime-room-board/contracts/openapi.yaml.
 app.notFound((c) => c.json({ code: 'not_found' }, 404));
+// Hono middleware (validator, bodyLimit, auth) reports 4xx by throwing HTTPException; anything else is bad input.
+const HTTP_CODES: Partial<Record<number, string>> = { 401: 'unauthorized', 404: 'not_found', 410: 'gone', 429: 'rate_limited' };
 app.onError((err, c) => {
-  // Hono middleware (validator, bodyLimit) reports bad input this way.
-  if (err instanceof HTTPException && err.status < 500) return c.json({ code: 'validation' }, err.status);
-  // Constitution II: name and stack frames only. Messages can echo request content (JSON.parse quotes the body).
-  console.error(err.name, err.stack?.split('\n').slice(1).join('\n'));
+  if (err instanceof HTTPException && err.status < 500) return c.json({ code: HTTP_CODES[err.status] ?? 'validation' }, err.status);
+  // Constitution II: name and "at ..." frames only. Messages, even multi-line ones, can echo request content (JSON.parse).
+  console.error(err.name, (err.stack ?? '').split('\n').filter((l) => /^\s+at /.test(l)).join('\n'));
   return c.json({ code: 'internal' }, 500);
 });
 
