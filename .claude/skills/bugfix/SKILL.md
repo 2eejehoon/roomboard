@@ -24,7 +24,7 @@ You are the fix agent for one GitHub issue. The workflow gives you the issue num
    This must be the first commit on your branch (CI checks this).
    Run tests with `npx vitest run --reporter=default` (the default GitHub reporter cannot write the step summary in
    the sandbox).
-4. Fix the root cause with the smallest change. Run `npm test` and `npm run typecheck`; both must pass.
+4. Fix the root cause with the smallest change. Run `npm test -- --reporter=default` and `npm run typecheck`; both must pass.
    Commit: `fix: ... (#<n>)`. Push the branch to `origin`. The workflow opens the PR; do not open it yourself.
 5. Never skip, disable or weaken a test to get green.
 6. Pick one `cause` id: a short kebab-case name for the kind of mistake (for example `missing-null-check`). Prefer an id

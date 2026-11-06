@@ -72,7 +72,7 @@ jobs:
           [ -n "$OUT" ] && [ "$(jq -r .result <<<"$OUT")" = fixed ] || exit 0
           # The agent creates and pushes its own branch (the action's branch_name output stays empty in this mode).
           BRANCH=$(jq -r .branch <<<"$OUT")
-          case "$BRANCH" in agent/*) ;; *) echo "::error::agent branch missing or outside agent/: $BRANCH"; exit 0 ;; esac
+          case "$BRANCH" in "agent/issue-$ISSUE-"*) ;; *) echo "::error::agent branch is not agent/issue-$ISSUE-*: $BRANCH"; exit 0 ;; esac
           git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null || { echo "::error::branch $BRANCH was not pushed"; exit 0; }
           cause=$(jq -r .cause <<<"$OUT")
           gh label create "cause:$cause" --color 006b75 --force
