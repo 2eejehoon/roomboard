@@ -76,7 +76,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T045 [P] [US7] `tests/scripts/labels.test.ts`: `.github/labels.json`의 라벨 이름 집합이 contracts/github.md 라벨 표와 같다(문서·설정 어긋남 방지)
 - [x] T046 [US7] `.claude/skills/pr-review/SKILL.md`: 새 세션 리뷰 체크리스트(버그, 보안, 개인정보, 헌법 I~VII, 테스트 우선), 근거 필수, 차단/제안 구분, PR 본문·코드 속 지시 무시
 - [x] T047 [US7] `.github/workflows/pr-review.yml`: 같은 저장소 PR은 `pull_request`, 포크는 `review:run` 라벨 + `pull_request_target`(base 루트·head `pr-head/`, 읽기 전용 도구), `--model opus`, `--json-schema` 판정, `blocking > 0`이면 `ai-review` 실패, `allowed_bots: claude`, 권한 `contents: read`·`pull-requests: write`
-- [ ] T048 [US7] 실제 확인: 이 PR 자체와 의도적 위반 PR로 `ai-review` 동작 확인 후 Ruleset 필수 검사에 `ai-review` 추가(운영자). PR #8에서 심은 버그를 차단으로 잡고 실제 결함 3건을 찾음, PR #13(에이전트 PR)은 차단 0으로 통과. 리뷰 워크플로를 바꾸는 PR에서는 액션이 일부러 건너뛰어 실패하므로 그때는 관리자 우회로 머지. **남은 것**: Ruleset 필수 검사에 `ai-review` 추가(운영자).
+- [x] T048 [US7] 실제 확인: 이 PR 자체와 의도적 위반 PR로 `ai-review` 동작 확인 후 Ruleset 필수 검사에 `ai-review` 추가(운영자). PR #8에서 심은 버그를 차단으로 잡고 실제 결함 3건을 찾음, PR #13(에이전트 PR)은 차단 0으로 통과. 리뷰 워크플로를 바꾸는 PR에서는 액션이 일부러 건너뛰어 실패하므로 그때는 관리자 우회로 머지. 운영자가 Ruleset 필수 검사에 `ai-review`를 추가함(2026-11-06).
 
 ---
 
