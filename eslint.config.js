@@ -15,7 +15,6 @@ export default tseslint.config(
   { languageOptions: { globals: { ...globals.node } } },
   {
     files: ['src/core/**'],
-    languageOptions: { globals: {} },
     rules: {
       'no-restricted-imports': [
         'error',
@@ -34,6 +33,7 @@ export default tseslint.config(
         'error',
         { selector: `JSXText[value=${KOREAN}]`, message: I18N },
         { selector: `JSXAttribute > Literal[value=${KOREAN}]`, message: I18N },
+        { selector: `JSXExpressionContainer > Literal[value=${KOREAN}]`, message: I18N },
       ],
     },
   },

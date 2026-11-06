@@ -27,6 +27,8 @@ describe('eslint boundary rules', () => {
     expect(msgs.join('\n')).toMatch(/t\(/);
     const attr = await lint('src/client/x.tsx', 'export const B = () => <input placeholder="닉네임" />;\n');
     expect(attr.join('\n')).toMatch(/t\(/);
+    const expr = await lint('src/client/x.tsx', "export const C = () => <p>{'안녕하세요'}</p>;\n");
+    expect(expr.join('\n')).toMatch(/t\(/);
   });
 
   it('client JSX may use t() and non-Korean literals', async () => {
