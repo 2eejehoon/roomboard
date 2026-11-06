@@ -16,7 +16,7 @@
 
 ## R2. 에이전트 실행 방식
 
-- **Decision**: `anthropics/claude-code-action@v1`(조사 시점 최신 v1.0.149, 워크플로에는 커밋 SHA로 고정).
+- **Decision**: `anthropics/claude-code-action@v1`(v1.0.268, 워크플로에는 커밋 SHA `c0949c50`로 고정).
   인증은 `claude_code_oauth_token`(운영자의 Claude 구독 사용량 = "토큰이 있는 만큼", 판례 agent-budget). 저장소 Secret
   `CLAUDE_CODE_OAUTH_TOKEN`.
 - 트리거(`issues: [opened, reopened, labeled]`) 조건:
@@ -30,6 +30,9 @@
   오래된 `agent:queued` 이슈 하나를 다시 실행한다.
 - **위험·대응 (헌법 VII)**:
   - 이슈 본문은 프롬프트에 "신뢰하지 않는 데이터" 블록으로만 넣는다. 액션의 하위 프로세스 환경 정리 기능(v1.0.77+)을 켠다.
+  - 에이전트는 자기가 고친 코드로 `npm test`를 돌린다. 이슈 본문이 공개 수집 경로에서 왔을 수 있으므로 액션의 하위 프로세스
+    비밀값 제거(`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`)를 켠다. 이 설정이 `allowed_non_write_users` 없이도 동작하는지는 첫 실행에서
+    확인한다(문서상 그 경우에 기본으로 켜짐). 남는 위험으로 기록한다.
   - `allowed_tools`를 좁힌다: 파일 편집, `git`, `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`만. `curl`·`wget`·임의
     네트워크 금지.
   - 워크플로 `permissions`: `contents: write`, `pull-requests: write`, `issues: write`만. 저장소 설정·Secrets·Actions 쓰기 없음.
@@ -37,8 +40,12 @@
     운영자 혼자인 저장소라 자기 PR을 승인할 수 없으므로 우회 목록에 Repository admin만 둔다(에이전트는 우회 불가라 승인 없이
     머지 못 함). CI 필수 검사는 GitHub가 최근 실행된 검사만 고를 수 있게 해서 CI 워크플로가 생긴 뒤 추가한다. 이게 있어야 FR-022가
     워크플로 설정 실수와 무관하게 보장된다.
-- **확인 필요**: 액션이 만든 PR에서 CI(`pull_request` 이벤트)가 도는지. 기본 `GITHUB_TOKEN`으로 만든 PR은 다른 워크플로를
-  트리거하지 않는다. Claude GitHub App 토큰을 쓰는 기본 설정에서는 돈다고 알려져 있으나 첫 실행에서 확인한다.
+- **PR 생성**: 액션은 기본적으로 브랜치만 push하고 PR은 만들지 않는다(액션 보안 문서). 워크플로의 다음 단계가 액션 출력
+  `branch_name`과 `github_token`(Claude App 토큰)으로 `gh pr create`를 실행한다. `GITHUB_TOKEN`으로 만든 PR은 다른 워크플로를
+  트리거하지 않으므로 App 토큰을 쓴다. CI가 실제로 도는지는 첫 실행(T020)에서 확인한다.
+- **모델**: 운영자의 역할별 모델 설정을 따른다. 수정 `opus`, 리뷰 `opus`, 장치 `sonnet`, 문서 정리 `opus`. `claude_args`에
+  별칭(`--model opus`)으로 넣어 새 모델이 나와도 따라간다.
+- 봇 계정 이벤트는 기본 차단이다. 리뷰 워크플로는 에이전트 PR을 리뷰해야 하므로 `allowed_bots: claude`만 명시한다(`*` 금지).
 - **Alternatives**: claude.ai 클라우드 세션 트리거(원격 세션 API) — GitHub 이벤트와 바로 이어지지 않고 권한 경계가 저장소
   밖에 있어서 기각. 자체 에이전트 러너 — 범위 초과.
 
@@ -98,8 +105,23 @@
 
 - D1 `user_bug_reports`에 가린 원문 저장, Worker Cron(매일)이 30일 지난 행 삭제. 운영자 "버리기"는 즉시 삭제.
 
+## R10. 독립 리뷰 (US7)
+
+- `pr-review.yml`: `pull_request`(opened, synchronize, reopened, ready_for_review)에서 같은 저장소 브랜치 PR만 실행. 외부 포크 PR은
+  `review:run` 라벨이 붙으면 `pull_request_target`으로 실행하되, 액션 보안 문서대로 base를 루트에, PR head를 `pr-head/`에
+  체크아웃하고 도구는 읽기 전용(`Read`, `Glob`, `Grep`, `gh pr diff/view`, 인라인 댓글)으로만 준다. PR 코드를 실행하지 않는다.
+- 새 세션에서 `.claude/skills/pr-review/SKILL.md`(체크리스트: 버그, 보안, 개인정보, 헌법 I~VII, 테스트 우선)를 따른다.
+  지적마다 파일·줄과 실패하는 상황을 요구하고, 근거 없는 지적은 버린다.
+- `--json-schema`로 `{blocking: 정수, suggestions: 정수, summary: 문자열}`을 받아, `blocking > 0`이면 `ai-review` 잡을 실패시킨다.
+  이 잡 이름을 Ruleset 필수 검사에 넣는다.
+- 권한: `contents: read`, `pull-requests: write`. push·승인·머지 도구 없음(FR-064).
+- 한계: 작성 에이전트와 같은 회사 모델이라 맹점이 겹칠 수 있다. 그래서 근거 필수, 차단 판정은 검사로만, 머지는 사람.
+
 ## Sources
 
+- claude-code-action 문서(입력·출력·보안): https://raw.githubusercontent.com/anthropics/claude-code-action/main/docs/usage.md ,
+  https://raw.githubusercontent.com/anthropics/claude-code-action/main/docs/security.md ,
+  https://raw.githubusercontent.com/anthropics/claude-code-action/main/action.yml
 - claude-code-action 릴리스(v1.0.149 최신, v1.0.77 하위 프로세스 환경 정리): https://newreleases.io/project/github/anthropics/claude-code-action/release/v1.0.149 ,
   https://newreleases.io/project/github/anthropics/claude-code-action/release/v1.0.77
 - npm 레지스트리(`npm view`, 2026-11-06): source-map 0.8.0, yaml 2.9.1

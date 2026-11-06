@@ -18,6 +18,7 @@
 | `kind:doc-garden` | doc-garden 워크플로 | 문서 정리 PR |
 | `cause:<id>` | 수정 PR 작성자(에이전트 포함) | 원인 분류(`.github/mistake-categories.yml`) |
 | `no-precedent` | 운영자 | 판례 존재 검사 건너뜀(형식·불변·길이 검사는 유지) |
+| `review:run` | 운영자 | 외부 포크 PR에 독립 리뷰 실행 허가 |
 
 에이전트 실행 조건: `agent:skip` 없음 AND (`agent:run` OR (`source:service` AND `agent:gated`) OR `source:user-report`) AND
 `agent:needs-human` 없음.
@@ -58,6 +59,8 @@
 | `.github/workflows/agent-queue.yml` | `schedule: 매시` | 가장 오래된 `agent:queued` 이슈 하나 재실행 |
 | `.github/workflows/mistake-tally.yml` | `pull_request: closed(merged)`, `pull_request_review_comment: created` | `cause:`/`[mistake:]` 집계, 2회째면 `kind:guardrail`+`agent:run` 이슈 |
 | `.github/workflows/doc-checks.yml` | `pull_request` | `scripts/check-docs.mjs` (contracts/doc-checks.md) |
+| `.github/workflows/pr-review.yml` | `pull_request`, `pull_request_target`(labeled `review:run`) | 독립 리뷰, 잡 `ai-review`가 차단 지적 시 실패 (research R10) |
+| `.github/workflows/labels-sync.yml` | `workflow_dispatch` | `.github/labels.json`의 라벨을 저장소에 생성·갱신 |
 | `.github/workflows/doc-garden.yml` | `schedule: 주 1회` | 사전 검사 → 할 일 있을 때만 에이전트로 정리 PR |
 
 ## 에이전트 결과 댓글
@@ -69,5 +72,6 @@
 
 ## 에이전트 PR 규칙
 
-- 브랜치 `agent/issue-<n>`, 본문에 `Fixes #<n>`, `cause:<id>` 라벨 필수.
+- 액션이 `agent/` 접두사 브랜치를 push하면, 워크플로가 액션 출력 `github_token`(Claude App 토큰)으로 PR을 만든다(research R2).
+- 본문에 `Fixes #<n>`, `cause:<id>` 라벨 필수.
 - 커밋 순서: 실패 테스트 커밋이 수정 커밋보다 먼저(FR-021). CI의 별도 검사가 첫 커밋에서 새 테스트가 실패했는지 확인한다.

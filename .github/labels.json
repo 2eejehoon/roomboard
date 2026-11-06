@@ -1,0 +1,77 @@
+[
+  {
+    "name": "source:service",
+    "color": "0e8a16",
+    "description": "오류 자동 수집으로 만든 이슈"
+  },
+  {
+    "name": "source:user-report",
+    "color": "0e8a16",
+    "description": "사용자 신고를 운영자가 이슈로 만든 것"
+  },
+  {
+    "name": "agent:gated",
+    "color": "5319e7",
+    "description": "FR-015 조건 충족"
+  },
+  {
+    "name": "agent:run",
+    "color": "5319e7",
+    "description": "에이전트 실행 허가 (운영자)"
+  },
+  {
+    "name": "agent:skip",
+    "color": "b60205",
+    "description": "에이전트 실행 안 함"
+  },
+  {
+    "name": "agent:working",
+    "color": "fbca04",
+    "description": "에이전트 실행 중"
+  },
+  {
+    "name": "agent:queued",
+    "color": "fbca04",
+    "description": "사용량 예산 소진으로 대기"
+  },
+  {
+    "name": "agent:attempt-1",
+    "color": "c5def5",
+    "description": "에이전트 시도 1회"
+  },
+  {
+    "name": "agent:attempt-2",
+    "color": "c5def5",
+    "description": "에이전트 시도 2회"
+  },
+  {
+    "name": "agent:needs-human",
+    "color": "b60205",
+    "description": "자동 수정 중단, 사람 확인 필요"
+  },
+  {
+    "name": "regressed",
+    "color": "d93f0b",
+    "description": "닫힌 오류가 재발"
+  },
+  {
+    "name": "kind:guardrail",
+    "color": "1d76db",
+    "description": "재발 방지 장치 이슈"
+  },
+  {
+    "name": "kind:doc-garden",
+    "color": "1d76db",
+    "description": "문서 정리 PR"
+  },
+  {
+    "name": "no-precedent",
+    "color": "cccccc",
+    "description": "판례 존재 검사 건너뜀"
+  },
+  {
+    "name": "review:run",
+    "color": "5319e7",
+    "description": "외부 포크 PR에 독립 리뷰 실행 허가"
+  }
+]
