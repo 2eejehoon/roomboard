@@ -46,6 +46,9 @@
 | III. 테스트 우선 | Vitest(core, worker) + Playwright(컨텍스트 2개 이상). tasks에서 각 스토리마다 테스트 작업이 구현보다 먼저 | ✅ | ✅ quickstart Q1~Q14가 테스트 목록 |
 | IV. 렌더링·상태 분리 | `src/core`는 React·three·DOM import 금지(린트 규칙으로 강제). 테스트 훅은 DEV 전용, 번들 검사 | ✅ | ✅ 구조와 websocket.md 테스트 훅 절 |
 | V. 2D 대체 화면 | 2D 컴포넌트가 입장·참가자·채팅·신고 전부 지원. WebGL 없으면 자동 2D, 3D 청크 미로딩. SEO용 HTMLRewriter | ✅ | ✅ research R8, Q4·Q5 |
+| VI. 재발 방지는 구조로 | 경계 규칙(`src/core` import 제한, i18n 문자열)을 문서가 아니라 린트로, 테스트 훅 제거를 번들 검사로 강제 | ✅ | ✅ tasks T007, T050 |
+| VII. 자동화 안전 경계 | 이 기능에는 에이전트 자동화 없음. 미리보기 배포 워크플로는 사람이 연 PR에서만 비밀값 사용 | ✅ | ✅ |
+| 문서 구조 | plan·research·tasks 등 각 400줄 이하, 계약 YAML은 상한 없음, 결정 경위는 판례 | ✅ | ✅ |
 | 제품·품질 제약 | CC0 에셋 + CREDITS.md, i18n `t()`(하드코딩 문자열 린트), PC·모바일 입력, 욕설 필터·신고·속도 제한·관리자 삭제 | ✅ | ✅ |
 | 개발 워크플로 | 브랜치 → PR, PR 미리보기 배포(DO 제약으로 PR마다 별도 Worker·D1, research R3), 화면정의서 | ✅ | ⚠️ 미리보기는 사용자의 Cloudflare Secrets 등록 대기(설계는 완료). 화면정의서는 `contracts/screens.md`, Claude Design 시안은 미작성 |
 
