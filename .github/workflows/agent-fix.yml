@@ -59,18 +59,21 @@ jobs:
             --model opus
             --max-turns 60
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(npm ci),Bash(npm test:*),Bash(npx vitest:*),Bash(npm run typecheck),Bash(gh issue view:*)"
-            --json-schema '{"type":"object","required":["result","title","body","cause","summary"],"properties":{"result":{"enum":["fixed","not_reproduced"]},"title":{"type":"string"},"body":{"type":"string"},"cause":{"type":"string","pattern":"^[a-z0-9-]{1,40}$"},"summary":{"type":"string"}}}'
+            --json-schema '{"type":"object","required":["result","title","body","cause","summary","branch"],"properties":{"result":{"enum":["fixed","not_reproduced"]},"branch":{"type":"string","pattern":"^(agent/[A-Za-z0-9._/-]+)?$"},"title":{"type":"string"},"body":{"type":"string"},"cause":{"type":"string","pattern":"^[a-z0-9-]{1,40}$"},"summary":{"type":"string"}}}'
       - id: pr
-        if: steps.claude.outputs.conclusion == 'success' && steps.claude.outputs.branch_name != ''
+        if: steps.claude.outputs.conclusion == 'success'
         env:
           # Claude App token: PRs opened with GITHUB_TOKEN would not trigger CI or review.
           GH_TOKEN: ${{ steps.claude.outputs.github_token }}
           ISSUE: ${{ steps.gate.outputs.issue }}
-          BRANCH: ${{ steps.claude.outputs.branch_name }}
           BASE: ${{ github.event.repository.default_branch }}
           OUT: ${{ steps.claude.outputs.structured_output }}
         run: |
           [ -n "$OUT" ] && [ "$(jq -r .result <<<"$OUT")" = fixed ] || exit 0
+          # The agent creates and pushes its own branch (the action's branch_name output stays empty in this mode).
+          BRANCH=$(jq -r .branch <<<"$OUT")
+          case "$BRANCH" in agent/*) ;; *) echo "::error::agent branch missing or outside agent/: $BRANCH"; exit 0 ;; esac
+          git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null || { echo "::error::branch $BRANCH was not pushed"; exit 0; }
           cause=$(jq -r .cause <<<"$OUT")
           gh label create "cause:$cause" --color 006b75 --force
           url=$(gh pr create --head "$BRANCH" --base "$BASE" --title "$(jq -r .title <<<"$OUT")" \
@@ -87,6 +90,9 @@ jobs:
           gh issue edit "$ISSUE" --remove-label agent:working
           if [ -n "$PR_URL" ]; then
             gh issue comment "$ISSUE" --body "PR을 열었습니다: $PR_URL"
+          elif [ "$result" = fixed ]; then
+            gh issue edit "$ISSUE" --add-label agent:needs-human
+            gh issue comment "$ISSUE" --body "$(printf '수정은 했지만 PR을 만들지 못했습니다(브랜치: %s). 워크플로 로그를 확인하세요.' "$(jq -r .branch <<<"$OUT")")"
           elif [ "$result" = not_reproduced ]; then
             gh issue comment "$ISSUE" --body "$(printf '재현하지 못해 PR을 열지 않았습니다.\n\n'; jq -r .summary <<<"$OUT")"
           elif [ "$ATTEMPT" = 2 ]; then

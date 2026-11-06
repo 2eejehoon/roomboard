@@ -24,6 +24,7 @@
 | [2026-11-06-doc-structure-table-globs](2026-11-06-doc-structure-table-globs.md) | 문서 구조 표를 경로 패턴으로 다시 씀 (헌법 1.1.1) | 유효 |
 | [2026-11-06-independent-pr-review](2026-11-06-independent-pr-review.md) | 모든 PR에 독립 리뷰 에이전트, 모델은 운영자 설정대로 | 유효 |
 | [2026-11-06-agent-one-run-per-trigger](2026-11-06-agent-one-run-per-trigger.md) | 이슈 하나에 에이전트 실행 하나: opened 제외, 현재 라벨 기준 | 유효 |
+| [2026-11-06-agent-pushes-own-branch](2026-11-06-agent-pushes-own-branch.md) | 수정 에이전트가 브랜치를 직접 만들고 이름을 결과로 돌려준다 | 유효 |
 
 ## 판례 쓰는 법
 
