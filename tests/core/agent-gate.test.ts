@@ -8,7 +8,7 @@ describe('shouldRunAgent (contracts/github.md 실행 조건)', () => {
 
   it('runs on a gated service issue, not an ungated one', () => {
     expect(shouldRunAgent({ action: 'labeled', addedLabel: 'agent:gated', labels: ['source:service', 'agent:gated'] }).run).toBe(true);
-    expect(shouldRunAgent({ action: 'labeled', addedLabel: 'source:service', labels: ['source:service'] }).run).toBe(false);
+    expect(shouldRunAgent({ action: 'reopened', labels: ['source:service'] })).toEqual({ run: false, reason: 'no-trigger-label' });
   });
 
   it('runs on an operator-made user report issue', () => {

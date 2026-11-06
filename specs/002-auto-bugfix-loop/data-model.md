@@ -65,7 +65,7 @@
 ```text
 Fingerprint: new --(client: count≥3 & manifest 일치 → gated) / (server: 즉시)--> 이슈 생성 → open
              open --이슈 닫힘--> closed --fixed_version 이후 재발--> regressed → 이슈 재오픈 → open
-Issue(agent): opened/reopened → [gate] → agent:working → (PR | agent:needs-human | agent:queued)
+Issue(agent): labeled/reopened/dispatch → [gate, 현재 라벨 기준] → agent:working → (PR | agent:needs-human | agent:queued)
               agent:queued --매시 큐--> agent:working
               같은 이슈 실패 2회 → agent:needs-human (자동 실행 중단)
 UserReport:   pending --운영자 이슈화--> issued / --버리기--> (삭제) / 30일 --> (삭제)
