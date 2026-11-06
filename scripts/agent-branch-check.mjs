@@ -1,23 +1,16 @@
 #!/usr/bin/env node
-// Usage: node scripts/agent-branch-check.mjs <issue> <branch>
-// Exit 0 only if <branch> is agent/issue-<issue>-* and the remote branch is exactly this run's local branch.
-import { execFileSync } from 'node:child_process';
-
-const [issue, branch] = process.argv.slice(2);
+// Usage: node scripts/agent-branch-check.mjs <issue> <branch> <sha-before> <sha-after>
+// Exit 0 only if <branch> is agent/issue-<issue>-* and this run moved it: <sha-after> exists and differs from
+// <sha-before> (empty when the branch did not exist before the agent ran). Both SHAs come from the GitHub API on a
+// fresh runner, never from the agent's working tree.
+const [issue, branch, before, after] = process.argv.slice(2);
 const fail = (/** @type {string} */ msg) => {
   console.log(`agent-branch-check: ${msg}`);
   process.exit(1);
 };
+const sha = /^[0-9a-f]{40}$/;
 if (!/^\d+$/.test(issue ?? '') || !branch?.startsWith(`agent/issue-${issue}-`)) fail(`${branch} is not agent/issue-${issue}-*`);
-
-const git = (/** @type {string[]} */ ...args) => {
-  try {
-    return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return '';
-  }
-};
-const remote = git('ls-remote', '--heads', 'origin', `refs/heads/${branch}`).split('\t')[0];
-const local = git('rev-parse', '--verify', '-q', `refs/heads/${branch}`);
-if (!remote || remote !== local) fail(`${branch} on origin is not what this run pushed`);
-console.log(`agent-branch-check: ok ${branch} ${local.slice(0, 7)}`);
+if (!sha.test(after ?? '')) fail(`${branch} does not exist on GitHub`);
+if (before && !sha.test(before)) fail(`bad sha-before: ${before}`);
+if (before === after) fail(`${branch} was not pushed by this run (unchanged since before the agent ran)`);
+console.log(`agent-branch-check: ok ${branch} ${after.slice(0, 7)}`);

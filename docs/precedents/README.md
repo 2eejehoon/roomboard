@@ -18,7 +18,7 @@
 | [2026-11-06-chat-report-signed-snapshot](2026-11-06-chat-report-signed-snapshot.md) | 채팅 신고 스냅샷은 서버 서명으로 검증 | 유효 |
 | [2026-11-06-preview-per-pr-worker](2026-11-06-preview-per-pr-worker.md) | PR 미리보기는 PR마다 별도 Worker·D1 | 유효 |
 | [2026-11-06-tooling-version-pins](2026-11-06-tooling-version-pins.md) | Vitest 4.1, TypeScript 6.0 고정 | 유효 |
-| [2026-11-06-agent-runner-action](2026-11-06-agent-runner-action.md) | 수정 에이전트는 GitHub Actions의 claude-code-action | 유효 |
+| [2026-11-06-agent-runner-action](2026-11-06-agent-runner-action.md) | 수정 에이전트는 GitHub Actions의 claude-code-action | 일부 대체됨(권한) |
 | [2026-11-06-issue-token-pat](2026-11-06-issue-token-pat.md) | 자동 이슈 생성은 fine-grained PAT | 유효 |
 | [2026-11-06-doc-checks-first](2026-11-06-doc-checks-first.md) | 002는 문서 검사(US5)부터 구현 | 유효 |
 | [2026-11-06-doc-structure-table-globs](2026-11-06-doc-structure-table-globs.md) | 문서 구조 표를 경로 패턴으로 다시 씀 (헌법 1.1.1) | 유효 |

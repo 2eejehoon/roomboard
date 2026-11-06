@@ -56,7 +56,7 @@
 
 | 파일 | 이벤트 | 하는 일 |
 |---|---|---|
-| `.github/workflows/agent-fix.yml` | `issues: [reopened, labeled]`, `workflow_dispatch` | 실행 조건 확인 → 소스 위치 해석(비용 0 사전 단계, client만) → claude-code-action 실행 → 결과 댓글·라벨 |
+| `.github/workflows/agent-fix.yml` | `issues: [reopened, labeled]`, `workflow_dispatch` | 잡 `fix`: 실행 조건 확인 → 소스 위치 해석(비용 0 사전 단계, client만) → claude-code-action 실행. 잡 `finish`(새 실행기): 브랜치 검사 → PR → 결과 댓글·라벨 |
 | `.github/workflows/agent-queue.yml` | `schedule: 매시` | 가장 오래된 `agent:queued` 이슈 하나 재실행 |
 | `.github/workflows/mistake-tally.yml` | `pull_request: closed(merged)`, `pull_request_review_comment: created` | `cause:`/`[mistake:]` 집계, 2회째면 `kind:guardrail`+`agent:run` 이슈 |
 | `.github/workflows/doc-checks.yml` | `pull_request` | `scripts/check-docs.mjs` (contracts/doc-checks.md) |
@@ -75,7 +75,7 @@
 ## 에이전트 PR 규칙
 
 - 에이전트가 `agent/issue-<n>-<slug>` 브랜치를 직접 만들어 push하고 결과의 `branch`에 이름을 담는다. 워크플로는 브랜치가 `agent/issue-<이 이슈 번호>-`로
-  시작하고 원격 SHA가 이번 실행의 로컬 브랜치와 같은지(`scripts/agent-branch-check.mjs`) 확인한 뒤 PR 전용 토큰 `AGENT_PR_TOKEN`으로
+  시작하고 원격 SHA가 에이전트 실행 전과 달라졌는지(`scripts/agent-branch-check.mjs`, 별도 잡에서 API로 조회) 확인한 뒤 PR 전용 토큰 `AGENT_PR_TOKEN`으로
   PR을 만든다(research R2). 액션의 `branch_name` 출력은 이 방식에서 비어 있고, 액션 토큰은 이 단계 전에 폐기된다.
 - 본문에 `Fixes #<n>`, `cause:<id>` 라벨 필수.
 - 커밋 순서: 실패 테스트 커밋이 수정 커밋보다 먼저(FR-021). CI의 별도 검사가 첫 커밋에서 새 테스트가 실패했는지 확인한다.
