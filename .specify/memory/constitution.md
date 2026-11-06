@@ -116,6 +116,7 @@
 | `.specify/memory/constitution.md` | 현재 유효한 원칙과 거버넌스 | 200줄 |
 | `specs/<feature>/spec.md` | 현재 요구사항(무엇을, 왜) | 400줄 |
 | `specs/<feature>/plan.md`, `research.md` 등 | 현재 설계(어떻게)와 그 근거 자료 | 파일당 400줄 |
+| `specs/<feature>/contracts/*.yaml` | 기계가 읽는 계약(스키마 린트로 검사) | 없음 |
 | `docs/precedents/*.md` | 결정 하나의 경위(판례), 머지 후 불변 | 파일당 40줄 |
 | `CLAUDE.md`, `.claude/skills/*` | 에이전트가 매번 읽는 작업 규칙. 원칙 VI의 장치로 대체된 내용은 삭제 | `CLAUDE.md` 100줄 |
 
