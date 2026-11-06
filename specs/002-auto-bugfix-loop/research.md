@@ -33,7 +33,9 @@
   - 에이전트는 자기가 고친 코드로 `npm test`를 돌린다. 이슈 본문이 공개 수집 경로에서 왔을 수 있으므로 액션의 하위 프로세스
     비밀값 제거(`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`)를 켠다. 이 설정이 `allowed_non_write_users` 없이도 동작하는지는 첫 실행에서
     확인한다(문서상 그 경우에 기본으로 켜짐). 남는 위험으로 기록한다.
-  - 에이전트 단계에는 토큰을 주지 않는다. 이슈 본문은 앞 단계가 `.agent/issue.md`로 써 두고 에이전트는 그 파일만 읽는다.
+  - 에이전트 단계에는 워크플로 토큰·PR 토큰을 주지 않는다. 이슈 본문은 앞 단계가 `.agent/issue.md`로 써 두고 에이전트는 그
+    파일만 읽는다. **남는 위험**: 액션이 브랜치 push용으로 자기 App 토큰(이 저장소 한정, Contents·PR·Issues 쓰기, 실행이 끝나면
+    폐기)을 `.git/config`의 `origin` URL에 넣으므로 에이전트는 실행 중 이 토큰을 읽을 수 있다. main은 Ruleset으로 막혀 있다.
     에이전트가 끝난 뒤 토큰을 쓰는 단계는 `$RUNNER_TEMP`에서 `GH_REPO`로만 동작해 에이전트가 바꿀 수 있는 파일을 실행하거나
     읽지 않는다. 브랜치 검사 스크립트는 에이전트 실행 전에 복사한 사본을 토큰 없는 단계에서 돌린다(PR #12 리뷰 지적).
   - `allowed_tools`를 좁힌다: 파일 편집, `git`, `npm ci`, `npm test`, `npm run typecheck`만(`gh` 없음). `curl`·`wget`·임의

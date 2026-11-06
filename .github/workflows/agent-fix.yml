@@ -21,7 +21,8 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # No job-level tokens: the agent step must not see any. Steps that run after the agent use tokens only from
+    # No job-level tokens. The agent step gets only the action's short-lived App token (written into .git/config so it can
+    # push its branch; revoked when the action ends; main is protected). Steps that run after the agent use tokens only from
     # $RUNNER_TEMP with GH_REPO set, so they never run or read files the agent could have changed.
     steps:
       - uses: actions/checkout@v4
