@@ -1,4 +1,5 @@
 import { exports } from 'cloudflare:workers';
+import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import app from '../../src/worker/index.ts';
 
@@ -9,6 +10,13 @@ const headers = { 'cf-connecting-ip': IP, 'x-forwarded-for': IP, 'x-real-ip': IP
 
 app.get('/__test/throw', () => {
   throw new Error('boom');
+});
+app.post('/__test/json', async (c) => c.json(await c.req.json()));
+app.get('/__test/http-400', () => {
+  throw new HTTPException(400);
+});
+app.get('/__test/http-413', () => {
+  throw new HTTPException(413);
 });
 
 describe('worker app', () => {
@@ -27,6 +35,24 @@ describe('worker app', () => {
     const body = (await res.json()) as { code: string };
     expect(body).toEqual({ code: 'internal' });
     expect(ERROR_CODES).toContain(body.code);
+  });
+
+  it('HTTPException 4xx from Hono middleware keeps its status as a validation error', async () => {
+    for (const status of [400, 413]) {
+      const res = await app.request(`/api/__test/http-${status}`);
+      expect(res.status).toBe(status);
+      expect(await res.json()).toEqual({ code: 'validation' });
+    }
+  });
+
+  it('logs the error without its message, so request content never reaches the logs', async () => {
+    const logged: unknown[] = [];
+    for (const m of ['log', 'info', 'warn', 'error', 'debug'] as const) vi.spyOn(console, m).mockImplementation((...a) => void logged.push(...a));
+    const res = await app.request('/api/__test/json', { method: 'POST', body: 'hunter2' });
+    expect(res.status).toBe(500);
+    const text = logged.map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : String(a))).join('\n');
+    expect(text).toContain('SyntaxError');
+    expect(text).not.toContain('hunter2');
   });
 
   it('never writes the client IP to responses or logs', async () => {
