@@ -93,7 +93,7 @@ src/
 │   ├── room-do.ts        # RoomDurableObject: Hibernation 소켓 ↔ room-session 연결
 │   ├── rooms.ts          # 방 CRUD (D1)
 │   ├── reports.ts        # 신고·관리자
-│   ├── password.ts       # PBKDF2
+│   ├── password.ts       # PBKDF2. CPU 10ms 한도 때문에 방 DO 안에서 실행(research R5)
 │   ├── turnstile.ts
 │   └── rate-limit.ts     # Rate Limiting 바인딩 래핑
 ├── client/

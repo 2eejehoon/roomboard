@@ -27,6 +27,7 @@
 | [2026-11-06-agent-pushes-own-branch](2026-11-06-agent-pushes-own-branch.md) | 수정 에이전트가 브랜치를 직접 만들고 이름을 결과로 돌려준다 | 일부 대체됨(PR 토큰) |
 | [2026-11-06-agent-pr-token](2026-11-06-agent-pr-token.md) | 에이전트 PR은 PR 전용 토큰으로 연다 | 유효 |
 | [2026-11-06-vitest-plugin](2026-11-06-vitest-plugin.md) | Worker 테스트는 @cloudflare/vitest-plugin, Vitest 5.1 | 유효 |
+| [2026-11-06-password-hash-in-do](2026-11-06-password-hash-in-do.md) | 글 비밀번호 해시는 방 DO 안에서 계산 | 유효 |
 
 ## 판례 쓰는 법
 

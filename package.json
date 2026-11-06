@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "check:docs": "node scripts/check-docs.mjs"
+    "check:docs": "node scripts/check-docs.mjs",
+    "seed:dev": "node scripts/seed-dev.ts"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.67.0",

@@ -24,7 +24,7 @@ description: "Task list for 001-realtime-room-board"
 
 - [x] T001 `package.json` 생성: research R1 버전 고정(vite 8.3, @cloudflare/vite-plugin 1.67, wrangler 4.158, react/react-dom 19.3, three 0.187, @react-three/fiber 9.8, @react-three/drei 10.7, @react-three/rapier 2.2, ecctrl 2.0, hono 4.13, zod 4.6, vitest 5.1, @cloudflare/vitest-plugin 1.6, @playwright/test 1.65, typescript 6.0), `"engines": {"node": ">=22.18"}`, 스크립트 `dev`, `build`, `typecheck`, `lint`, `test`, `test:e2e`, `check:bundle` — 완료. `check:bundle`은 T050에서 추가. npm 11 설치 스크립트 허용: esbuild·workerd(`allowScripts`).
 - [x] T002 `tsconfig.json`(strict, ES2022, `src/core`·`src/client`·`src/worker`·`tests` 경로)과 `src/worker` 전용 `tsconfig.worker.json`(workers 타입) 생성 — 완료. Node/브라우저/Worker 세 tsconfig(`tsconfig.json`, `tsconfig.app.json`, `tsconfig.worker.json`), Worker 타입은 `wrangler types`로 생성(커밋 안 함).
-- [ ] T003 [P] `wrangler.jsonc` 생성: Worker `roomboard`, 정적 에셋(SPA fallback), D1 바인딩 `DB`(`roomboard`), DO 바인딩 `ROOM` 클래스 `RoomDurableObject`, migrations `new_sqlite_classes: ["RoomDurableObject"]`, Rate Limiting 바인딩 `RL_CREATE`(3/60s)·`RL_PASSWORD`(5/60s)·`RL_REPORT`(10/60s)·`RL_ADMIN`(5/60s), vars 없음(비밀값은 `.dev.vars`) — 부분 완료: 이름·main·호환 날짜·정적 에셋(SPA, `/api/*` 먼저 Worker). D1·DO·Rate Limit 바인딩은 그것을 쓰는 작업에서 추가.
+- [ ] T003 [P] `wrangler.jsonc` 생성: Worker `roomboard`, 정적 에셋(SPA fallback), D1 바인딩 `DB`(`roomboard`), DO 바인딩 `ROOM` 클래스 `RoomDurableObject`, migrations `new_sqlite_classes: ["RoomDurableObject"]`, Rate Limiting 바인딩 `RL_CREATE`(3/60s)·`RL_PASSWORD`(5/60s)·`RL_REPORT`(10/60s)·`RL_ADMIN`(5/60s), vars 없음(비밀값은 `.dev.vars`) — 부분 완료: 이름·main·호환 날짜·정적 에셋(SPA, `/api/*` 먼저 Worker). D1·DO·Rate Limit 바인딩은 그것을 쓰는 작업에서 추가. D1 `DB`는 F2(T013)에서 추가(`database_id` 없음, 첫 배포 때 wrangler가 만든다).
 - [x] T004 [P] `vite.config.ts`: `@vitejs/plugin-react` + `@cloudflare/vite-plugin`, 3D 코드 청크 분리 설정 — 완료(청크 분리는 3D 코드가 생기는 US1에서).
 - [x] T005 [P] `vitest.config.ts`: 프로젝트 2개 — `core`(Node, `tests/core/**`), `worker`(`@cloudflare/vitest-plugin`, `wrangler.jsonc` 사용, D1 마이그레이션 적용, `tests/worker/**`) — 완료(판례 2026-11-06-vitest-plugin). D1 마이그레이션 적용은 T013에서.
 - [x] T006 [P] `playwright.config.ts`: `webServer`로 `npm run dev`, Chromium 데스크톱 + 모바일(터치) 프로젝트, 기본 `trace: 'off'` — 완료. `PLAYWRIGHT_CHROMIUM_PATH`로 미리 설치된 Chromium 사용 가능(클라우드 세션).
@@ -41,13 +41,13 @@ description: "Task list for 001-realtime-room-board"
 
 ### 측정 먼저 (plan 구현 순서 메모)
 
-- [ ] T011 `tests/worker/perf-password.test.ts`: workerd에서 PBKDF2-SHA256 100,000회 해시 1회의 CPU 시간을 측정해 기록하고, 100,000회가 workerd에서 허용되는지 확인(research R5, 미확인 항목). 결과를 `research.md` R5에 적는다. 10ms를 넘으면 R5의 대안(해시를 방 DO 안에서 계산)으로 결정을 바꾸고 plan.md를 고친다
-- [ ] T012 `tests/worker/perf-html.test.ts`: `HTMLRewriter`로 `index.html`에 `<title>`·`<meta name="description">`·`<noscript>`를 넣는 처리의 CPU 시간을 측정해 `research.md` R8에 기록(목표 ≤ 2ms)
+- [x] T011 `tests/worker/perf-password.test.ts`: workerd에서 PBKDF2-SHA256 100,000회 해시 1회의 CPU 시간을 측정해 기록하고, 100,000회가 workerd에서 허용되는지 확인(research R5, 미확인 항목). 결과를 `research.md` R5에 적는다. 10ms를 넘으면 R5의 대안(해시를 방 DO 안에서 계산)으로 결정을 바꾸고 plan.md를 고친다 — 완료. 중앙값 19ms(로컬 workerd) > 10ms라서 해시는 방 DO 안에서 계산한다(research R5, plan.md, 판례 2026-11-06-password-hash-in-do). 로컬 workerd는 100,001회도 허용. 테스트는 측정값만 출력하고 기준을 단언하지 않는다(기계마다 다름).
+- [x] T012 `tests/worker/perf-html.test.ts`: `HTMLRewriter`로 `index.html`에 `<title>`·`<meta name="description">`·`<noscript>`를 넣는 처리의 CPU 시간을 측정해 `research.md` R8에 기록(목표 ≤ 2ms) — 완료. 평균 0.085ms.
 
 ### 데이터·스키마
 
-- [ ] T013 `migrations/0001_init.sql`: data-model.md 그대로 `rooms`(id TEXT PK "랜덤 10자 URL-safe", title "1~60자", description "0~300자" DEFAULT '', room_data, theme_id, password_hash, online_count DEFAULT 0, created_at, updated_at, deleted_at NULL, deleted_by NULL `owner`|`admin`, 인덱스 `(deleted_at, created_at DESC)`)와 `reports`(target_type `room`|`message`, room_id, message_id DEFAULT '', message_snapshot NULL, reason `spam`|`abuse`|`sexual`|`illegal`|`other`, reporter_hash, status DEFAULT 'open', created_at, resolved_at NULL, UNIQUE `(target_type, room_id, message_id, reporter_hash)`, 인덱스 `(status, created_at DESC)`)
-- [ ] T014 `scripts/seed-dev.ts`: 로컬·E2E용 방 1개(id `seedroom01`, 테마 첫 번째, 비밀번호 `seed-pass`)를 넣는 스크립트(`npm run seed:dev`). US1을 방 만들기(US3) 없이 검증하기 위함
+- [x] T013 `migrations/0001_init.sql`: data-model.md 그대로 `rooms`(id TEXT PK "랜덤 10자 URL-safe", title "1~60자", description "0~300자" DEFAULT '', room_data, theme_id, password_hash, online_count DEFAULT 0, created_at, updated_at, deleted_at NULL, deleted_by NULL `owner`|`admin`, 인덱스 `(deleted_at, created_at DESC)`)와 `reports`(target_type `room`|`message`, room_id, message_id DEFAULT '', message_snapshot NULL, reason `spam`|`abuse`|`sexual`|`illegal`|`other`, reporter_hash, status DEFAULT 'open', created_at, resolved_at NULL, UNIQUE `(target_type, room_id, message_id, reporter_hash)`, 인덱스 `(status, created_at DESC)`) — 완료. data-model 규칙을 CHECK 제약으로도 둔다(길이, enum 값). `vitest.config.ts` worker 프로젝트가 테스트마다 마이그레이션을 적용한다.
+- [x] T014 `scripts/seed-dev.ts`: 로컬·E2E용 방 1개(id `seedroom01`, 테마 첫 번째, 비밀번호 `seed-pass`)를 넣는 스크립트(`npm run seed:dev`). US1을 방 만들기(US3) 없이 검증하기 위함 — 완료. 마이그레이션 적용까지 같이 하고 `INSERT OR REPLACE`라 여러 번 돌려도 된다. 해시는 Node `pbkdf2Sync`로 같은 저장 형식. 실행 확인: 클라우드 세션에서 `npm run seed:dev` 두 번 실행, 로컬 D1에 `seedroom01`(테마 `cafe`, `pbkdf2-sha256$100000$…`) 1행.
 
 ### `src/core` — 테스트 먼저
 
@@ -71,12 +71,12 @@ description: "Task list for 001-realtime-room-board"
 
 ### Worker·클라이언트 공통 기반
 
-- [ ] T029 `tests/worker/app.test.ts`: 알 수 없는 `/api/*` 경로 404 JSON `{code:"not_found"}`, 오류 응답이 openapi `Error` 스키마를 따름, 응답·로그에 IP가 기록되지 않음(콘솔 출력 캡처 검사)
-- [ ] T030 `src/worker/index.ts`: Hono 앱, `/api` 라우터 뼈대, 공통 오류 처리(`Error` 스키마), 정적 에셋 위임, `RoomDurableObject` export
-- [ ] T031 [P] `src/worker/rate-limit.ts`: Rate Limiting 바인딩 래퍼 — 키는 `cf-connecting-ip`를 요청 중에만 사용하고 저장·로그 금지(research R9), 초과 시 429 + `Retry-After` + `retryAfterMs`
-- [ ] T032 [P] `src/client/i18n/ko.ts`, `src/client/i18n/t.ts`: 문구 객체와 `t(key, vars)`, 키 타입 추출(없는 키는 타입 오류) (research R10)
-- [ ] T033 [P] `src/client/device.ts`: `rb.deviceKey`(없으면 `crypto.randomUUID()` 생성), localStorage를 못 쓰면 메모리 키, `rb.view` 읽기·쓰기 (data-model 기기 localStorage)
-- [ ] T034 `src/client/main.tsx`, `src/client/App.tsx`: 라우터(`/`, `/new`, `/rooms/:id`, `/rooms/:id/edit`, `/admin`), 공통 상태 컴포넌트(로딩, 네트워크 오류, 429 안내) — contracts/screens.md "공통 상태"
+- [x] T029 `tests/worker/app.test.ts`: 알 수 없는 `/api/*` 경로 404 JSON `{code:"not_found"}`, 오류 응답이 openapi `Error` 스키마를 따름, 응답·로그에 IP가 기록되지 않음(콘솔 출력 캡처 검사) — 완료. 예상하지 못한 오류는 500 `{code:"internal"}`(openapi `Error` enum에 추가).
+- [x] T030 `src/worker/index.ts`: Hono 앱, `/api` 라우터 뼈대, 공통 오류 처리(`Error` 스키마), 정적 에셋 위임, `RoomDurableObject` export — 완료. 정적 에셋은 `run_worker_first: ["/api/*"]`라서 Worker를 거치지 않는다(`/rooms/:id` HTML은 T057). `RoomDurableObject` export와 DO 바인딩은 T040에서 같이 추가.
+- [x] T031 [P] `src/worker/rate-limit.ts`: Rate Limiting 바인딩 래퍼 — 키는 `cf-connecting-ip`를 요청 중에만 사용하고 저장·로그 금지(research R9), 초과 시 429 + `Retry-After` + `retryAfterMs` — 완료. Rate Limiting 바인딩(`RL_*`)은 쓰는 스토리에서 `wrangler.jsonc`에 추가.
+- [x] T032 [P] `src/client/i18n/ko.ts`, `src/client/i18n/t.ts`: 문구 객체와 `t(key, vars)`, 키 타입 추출(없는 키는 타입 오류) (research R10) — 완료. 테스트 `tests/client/i18n.test.ts`(테마 `nameKey` 전부 있음, 없는 키는 `@ts-expect-error`).
+- [x] T033 [P] `src/client/device.ts`: `rb.deviceKey`(없으면 `crypto.randomUUID()` 생성), localStorage를 못 쓰면 메모리 키, `rb.view` 읽기·쓰기 (data-model 기기 localStorage) — 완료. 저장소를 인자로 받아 Node에서 테스트(`tests/client/device.test.ts`).
+- [x] T034 `src/client/main.tsx`, `src/client/App.tsx`: 라우터(`/`, `/new`, `/rooms/:id`, `/rooms/:id/edit`, `/admin`), 공통 상태 컴포넌트(로딩, 네트워크 오류, 429 안내) — contracts/screens.md "공통 상태" — 완료. 라우터 의존성 없이 `history` + `popstate`(`matchRoute`), 공통 상태는 `src/client/Status.tsx`. 화면 내용은 각 스토리에서.
 
 **Checkpoint**: `npm test`의 core·worker 기반 테스트 통과, 측정 결과 기록 완료.
 
@@ -98,7 +98,7 @@ description: "Task list for 001-realtime-room-board"
 ### Implementation
 
 - [ ] T039 [US1] `src/core/room-session.ts`: T035를 통과하는 순수 상태 기계(입력: 참가자 집합 + 메시지 + 시각, 출력: 보낼 메시지 목록·닫을 소켓), `assignChannel`·`validateMove`·`RateBucket`·`nicknameFor` 사용
-- [ ] T040 [US1] `src/worker/room-do.ts`: `RoomDurableObject` — `acceptWebSocket`(Hibernation API), `setWebSocketAutoResponse("ping","pong")`, attachment `{peerId, nickname, avatarId, channel, pose, lastMoveAt}` 직렬화·복원(기기 키 원문 미포함), 메시지를 `RoomSession`에 넘기고 결과 전송, join 타임아웃 4000, 크기·바이너리 검사, `online_count` alarm 디바운스
+- [ ] T040 [US1] `src/worker/room-do.ts`: `RoomDurableObject` — RPC `hashPassword`·`verifyPassword`(research R5), `acceptWebSocket`(Hibernation API), `setWebSocketAutoResponse("ping","pong")`, attachment `{peerId, nickname, avatarId, channel, pose, lastMoveAt}` 직렬화·복원(기기 키 원문 미포함), 메시지를 `RoomSession`에 넘기고 결과 전송, join 타임아웃 4000, 크기·바이너리 검사, `online_count` alarm 디바운스
 - [ ] T041 [US1] `src/worker/index.ts`에 `GET /api/rooms/:roomId/ws` 추가: D1에서 방 확인(404/410), `Upgrade` 없으면 426, DO로 전달. 그리고 `GET /api/rooms/:roomId`(방 정보, 404/410) 추가
 - [ ] T042 [US1] `src/client/net/room-socket.ts`: 연결·join·ping 20초·재연결 백오프(1,2,4,8,이후 15초, ±20% 지터)·닫힘 코드별 동작(websocket.md 표), 이동 송신 throttle(변경 시에만, 초당 최대 5번, 멈추면 `idle` 1번)
 - [ ] T043 [US1] `src/client/state/room-store.ts`: 3D·2D가 같이 읽는 상태(you, channel, peers, chat, connection), 서버 메시지 적용 로직은 `src/core` 타입 사용
@@ -152,9 +152,9 @@ description: "Task list for 001-realtime-room-board"
 
 ### Implementation
 
-- [ ] T062 [P] [US3] `src/worker/password.ts`: PBKDF2-SHA256(T011 결과 반영), 16바이트 솔트, `pbkdf2-sha256$<반복>$<솔트>$<해시>`, 상수 시간 비교
+- [ ] T062 [P] [US3] `src/worker/password.ts`: 방 DO 안에서 부르는 PBKDF2-SHA256(T011: Worker CPU 10ms 초과), 16바이트 솔트, `pbkdf2-sha256$<반복>$<솔트>$<해시>`, 상수 시간 비교
 - [ ] T063 [P] [US3] `src/worker/turnstile.ts`: siteverify 호출, 실패 시 403 `turnstile_failed`
-- [ ] T064 [US3] `src/worker/rooms.ts`: `POST /api/rooms`(rate limit `RL_CREATE` → Turnstile → zod → 필터 → `createRoomData` → D1 insert, id 랜덤 10자 URL-safe), `GET /api/rooms`(커서 페이지)
+- [ ] T064 [US3] `src/worker/rooms.ts`: `POST /api/rooms`(rate limit `RL_CREATE` → Turnstile → zod → 필터 → `createRoomData` → 새 id의 DO RPC `hashPassword` → D1 insert, id 랜덤 10자 URL-safe), `GET /api/rooms`(커서 페이지)
 - [ ] T065 [US3] `src/client/board/BoardPage.tsx`: screens.md S1 — 최신순 카드, "지금 N명", 상대 시간, 무한 스크롤 + "더 보기" 버튼, 빈 상태
 - [ ] T066 [US3] `src/client/board/CreateRoomPage.tsx`: screens.md S2 — 입력, 남은 글자 수, 테마 카드 3개, 비밀번호 안내, Turnstile 위젯, 필드 오류, 성공 시 이동
 - [ ] T067 [P] [US3] 나머지 테마 2개분 CC0 에셋과 테마 미리보기 이미지를 `public/assets/`에 추가, `CREDITS.md` 갱신
@@ -218,7 +218,7 @@ description: "Task list for 001-realtime-room-board"
 
 ### Implementation
 
-- [ ] T082 [US6] `src/worker/rooms.ts`: `PATCH /api/rooms/:id`, `DELETE /api/rooms/:id`(rate limit `RL_PASSWORD` → 비밀번호 검증 → D1 → DO RPC `roomUpdated(room)` / `roomDeleted(by)`)
+- [ ] T082 [US6] `src/worker/rooms.ts`: `PATCH /api/rooms/:id`, `DELETE /api/rooms/:id`(rate limit `RL_PASSWORD` → DO RPC `verifyPassword` → D1 → DO RPC `roomUpdated(room)` / `roomDeleted(by)`)
 - [ ] T083 [US6] `src/worker/room-do.ts`: RPC `roomUpdated`(모든 채널에 `room_updated`), `roomDeleted`(`room_deleted` 후 4001로 전부 닫기)
 - [ ] T084 [US6] `src/client/board/EditRoomPage.tsx`: screens.md S4 — 현재 값, 테마 변경 안내, 삭제 확인 대화상자, 403 문구
 - [ ] T085 [US6] `src/client/room/RoomPage.tsx`: `room_updated` 시 장면 재구성·스폰 이동, `room_deleted` 모달 → 목록

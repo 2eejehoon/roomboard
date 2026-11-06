@@ -16,7 +16,7 @@ Codespaces는 `.devcontainer/devcontainer.json`이 Node 22와 Playwright Chromiu
 
 ```bash
 npm ci
-npx wrangler d1 migrations apply roomboard --local
+npm run seed:dev     # 로컬 D1 마이그레이션 적용 + 시드 방 seedroom01(비밀번호 seed-pass)
 npm run dev          # Vite + Cloudflare 플러그인, http://localhost:5173
 ```
 

@@ -26,10 +26,10 @@ describe('rooms', () => {
 
   it.each([
     ['id not 10 chars', room('short')],
-    ['empty title', room('aB3dE5fG7h', { title: '' })],
-    ['61-char title', room('aB3dE5fG7h', { title: '가'.repeat(61) })],
-    ['301-char description', room('aB3dE5fG7h', { description: 'a'.repeat(301) })],
-    ['unknown deleted_by', room('aB3dE5fG7h', { deleted_at: 1, deleted_by: 'someone' })],
+    ['empty title', room('bad0000001', { title: '' })],
+    ['61-char title', room('bad0000001', { title: '가'.repeat(61) })],
+    ['301-char description', room('bad0000001', { description: 'a'.repeat(301) })],
+    ['unknown deleted_by', room('bad0000001', { deleted_at: 1, deleted_by: 'someone' })],
   ])('rejects %s', async (_, stmt) => {
     await expect(stmt.run()).rejects.toThrow(/CHECK constraint/);
   });
@@ -54,10 +54,10 @@ describe('reports', () => {
   });
 
   it('one report per device and target', async () => {
-    await report('r1').run();
-    await expect(report('r1').run()).rejects.toThrow(/UNIQUE constraint/);
-    await report('r2').run();
-    await report('r1', { target_type: 'message', message_id: 'm_1' }).run();
+    await report('dup-1').run();
+    await expect(report('dup-1').run()).rejects.toThrow(/UNIQUE constraint/);
+    await report('dup-2').run();
+    await report('dup-1', { target_type: 'message', message_id: 'm_1' }).run();
   });
 
   it.each([
@@ -65,7 +65,7 @@ describe('reports', () => {
     ['unknown reason', { reason: 'boring' }],
     ['unknown status', { status: 'closed' }],
   ])('rejects %s', async (_, extra) => {
-    await expect(report('r1', extra).run()).rejects.toThrow(/CHECK constraint/);
+    await expect(report('bad', extra).run()).rejects.toThrow(/CHECK constraint/);
   });
 
   it('has the admin list index', async () => {
