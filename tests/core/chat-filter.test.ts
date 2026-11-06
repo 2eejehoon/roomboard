@@ -43,6 +43,16 @@ describe('chat filter', () => {
     for (const s of ['안녕하세요 반가워요', '오늘 날씨가 좋네요!', '병원 신호등 앞에서 만나요', 'see you soon', '']) expect(f(s)).toBe(s);
   });
 
+  it('does not join the end of one word to the start of the next', () => {
+    for (const s of ['몇 시 발표해?', 'push it', 'this hit', 'a bit chilly']) expect(filter(s), s).toBe(s);
+    expect(f('씨 발 진짜')).toBe('*** 진짜');
+    expect(f('아씨 발')).toBe('아씨 발');
+  });
+
+  it('leaves dictionary words that contain a banned word alone', () => {
+    expect(filter('시발점에서 출발')).toBe('시발점에서 출발');
+  });
+
   it('only matches on whole syllables, not jamo spanning syllables', () => {
     const g = createChatFilter(['좆', 'ㅅㅂ']);
     expect(g('볼륨 조절해 주세요')).toBe('볼륨 조절해 주세요');
