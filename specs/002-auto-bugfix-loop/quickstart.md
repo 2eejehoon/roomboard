@@ -11,7 +11,7 @@
 | `CLAUDE_CODE_OAUTH_TOKEN` | 저장소 Secrets (`claude setup-token`으로 발급, 클라우드 세션에서 실행) | 에이전트 인증, 구독 사용량 |
 | `AGENT_PR_TOKEN` | 저장소 Secrets (fine-grained PAT: 이 저장소, Pull requests·Issues 쓰기, Contents 읽기, 만료일 기록) | 에이전트가 고친 브랜치로 PR 열기(CI·리뷰가 돌게) |
 | `GITHUB_ISSUES_TOKEN` | Worker Secret (fine-grained PAT: 이 저장소, Issues RW, 만료일 기록) | 자동 이슈 생성 |
-| Claude GitHub App | 이미 설치됨 | 에이전트 PR에서 CI가 돌게 함 |
+| Claude GitHub App | 이미 설치됨 | 액션 실행(OIDC로 임시 토큰 발급). 에이전트 PR에서 CI·리뷰가 돌게 하는 건 `AGENT_PR_TOKEN` |
 | 라벨 생성 | `npm run labels:sync` (contracts/github.md 목록) | |
 
 ## 자동 검증

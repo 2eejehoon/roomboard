@@ -8,8 +8,9 @@
 ## 결정
 
 워크플로는 운영자가 만든 fine-grained 토큰 `AGENT_PR_TOKEN`(이 저장소, Pull requests·Issues 쓰기, Contents 읽기)으로
-에이전트 브랜치의 PR을 연다. 토큰은 PR 단계에만 주고 에이전트 단계에는 주지 않는다. 브랜치 검사는
-`scripts/agent-branch-check.mjs`(테스트 포함)로 옮겼다. 에이전트가 브랜치를 만들어 이름을 돌려주는 방식은 그대로다.
+에이전트 브랜치의 PR을 연다. 에이전트 단계에는 어떤 토큰도 주지 않는다(이슈 본문은 `.agent/issue.md`로 전달). 브랜치 검사
+`scripts/agent-branch-check.mjs`(테스트 포함)는 에이전트 실행 전에 복사한 사본을 토큰 없는 단계에서 돌리고, 토큰을 쓰는
+단계는 `$RUNNER_TEMP`에서 `GH_REPO`로만 동작한다. 에이전트가 브랜치를 만들어 이름을 돌려주는 방식은 그대로다.
 
 ## 이유
 
