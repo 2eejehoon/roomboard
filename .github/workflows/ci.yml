@@ -17,7 +17,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --trace off
   test-first:
     # FR-021: on fix-agent PRs the first commit must add a test that fails there and passes at head.
     if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/')

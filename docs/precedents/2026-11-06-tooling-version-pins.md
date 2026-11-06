@@ -16,3 +16,5 @@ Vitest는 최신 5.1 대신 4.1, TypeScript는 7.0 대신 6.0을 쓴다. 나머�
 ## 검토한 대안
 
 Vitest 5.1(DO 테스트 불가), TypeScript 7.0(호환 위험).
+
+대체됨: 2026-11-06-vitest-plugin.md

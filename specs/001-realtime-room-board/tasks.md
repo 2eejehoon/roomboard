@@ -22,16 +22,16 @@ description: "Task list for 001-realtime-room-board"
 
 **Purpose**: 저장소 기반. 클라우드 세션·Codespaces·Actions에서 같은 명령으로 돌아가야 한다(헌법 원칙 I).
 
-- [ ] T001 `package.json` 생성: research R1 버전 고정(vite 8.3, @cloudflare/vite-plugin 1.67, wrangler 4.158, react/react-dom 19.3, three 0.187, @react-three/fiber 9.8, @react-three/drei 10.7, @react-three/rapier 2.2, ecctrl 2.0, hono 4.13, zod 4.6, vitest 4.1, @cloudflare/vitest-pool-workers 0.23, @playwright/test 1.65, typescript 6.0), `"engines": {"node": ">=22.12"}`, 스크립트 `dev`, `build`, `typecheck`, `lint`, `test`, `test:e2e`, `check:bundle`
-- [ ] T002 `tsconfig.json`(strict, ES2022, `src/core`·`src/client`·`src/worker`·`tests` 경로)과 `src/worker` 전용 `tsconfig.worker.json`(workers 타입) 생성
-- [ ] T003 [P] `wrangler.jsonc` 생성: Worker `roomboard`, 정적 에셋(SPA fallback), D1 바인딩 `DB`(`roomboard`), DO 바인딩 `ROOM` 클래스 `RoomDurableObject`, migrations `new_sqlite_classes: ["RoomDurableObject"]`, Rate Limiting 바인딩 `RL_CREATE`(3/60s)·`RL_PASSWORD`(5/60s)·`RL_REPORT`(10/60s)·`RL_ADMIN`(5/60s), vars 없음(비밀값은 `.dev.vars`)
-- [ ] T004 [P] `vite.config.ts`: `@vitejs/plugin-react` + `@cloudflare/vite-plugin`, 3D 코드 청크 분리 설정
-- [ ] T005 [P] `vitest.config.ts`: 프로젝트 2개 — `core`(Node, `tests/core/**`), `worker`(`@cloudflare/vitest-pool-workers`, `wrangler.jsonc` 사용, D1 마이그레이션 적용, `tests/worker/**`)
-- [ ] T006 [P] `playwright.config.ts`: `webServer`로 `npm run dev`, Chromium 데스크톱 + 모바일(터치) 프로젝트, 기본 `trace: 'off'`
-- [ ] T007 [P] 린트 설정 `eslint.config.js`: `src/core/**`에서 `react`, `three`, `@react-three/*`, `ecctrl`, `hono`, `cloudflare:*`, DOM 전역 사용 금지(헌법 원칙 IV), `src/client/**` JSX 안 한글 문자열 리터럴 금지(i18n)
-- [ ] T008 [P] `.dev.vars.example`(`ADMIN_TOKEN`, `SERVER_SECRET`, `TURNSTILE_SECRET=1x0000000000000000000000000000000AA`)와 `.env.example`(`VITE_TURNSTILE_SITEKEY=1x00000000000000000000AA`), `.gitignore`에 `.dev.vars`·`.env`·`.wrangler/`·`test-results/` 추가
-- [ ] T009 [P] `.devcontainer/devcontainer.json`: Node 22, `postCreateCommand: npm ci && npx playwright install --with-deps chromium` (research R15)
-- [ ] T010 [P] `.github/workflows/ci.yml`: PR·main push마다 `npm ci` → `typecheck` → `lint` → `test` → `build` → `check:bundle` → Playwright 설치 → `test:e2e`, 실패 시 머지 차단
+- [x] T001 `package.json` 생성: research R1 버전 고정(vite 8.3, @cloudflare/vite-plugin 1.67, wrangler 4.158, react/react-dom 19.3, three 0.187, @react-three/fiber 9.8, @react-three/drei 10.7, @react-three/rapier 2.2, ecctrl 2.0, hono 4.13, zod 4.6, vitest 4.1, @cloudflare/vitest-pool-workers 0.23, @playwright/test 1.65, typescript 6.0), `"engines": {"node": ">=22.12"}`, 스크립트 `dev`, `build`, `typecheck`, `lint`, `test`, `test:e2e`, `check:bundle` — 완료. `check:bundle`은 T050에서 추가. npm 11 설치 스크립트 허용: esbuild·workerd(`allowScripts`).
+- [x] T002 `tsconfig.json`(strict, ES2022, `src/core`·`src/client`·`src/worker`·`tests` 경로)과 `src/worker` 전용 `tsconfig.worker.json`(workers 타입) 생성 — 완료. Node/브라우저/Worker 세 tsconfig(`tsconfig.json`, `tsconfig.app.json`, `tsconfig.worker.json`), Worker 타입은 `wrangler types`로 생성(커밋 안 함).
+- [ ] T003 [P] `wrangler.jsonc` 생성: Worker `roomboard`, 정적 에셋(SPA fallback), D1 바인딩 `DB`(`roomboard`), DO 바인딩 `ROOM` 클래스 `RoomDurableObject`, migrations `new_sqlite_classes: ["RoomDurableObject"]`, Rate Limiting 바인딩 `RL_CREATE`(3/60s)·`RL_PASSWORD`(5/60s)·`RL_REPORT`(10/60s)·`RL_ADMIN`(5/60s), vars 없음(비밀값은 `.dev.vars`) — 부분 완료: 이름·main·호환 날짜·정적 에셋(SPA, `/api/*` 먼저 Worker). D1·DO·Rate Limit 바인딩은 그것을 쓰는 작업에서 추가.
+- [x] T004 [P] `vite.config.ts`: `@vitejs/plugin-react` + `@cloudflare/vite-plugin`, 3D 코드 청크 분리 설정 — 완료(청크 분리는 3D 코드가 생기는 US1에서).
+- [x] T005 [P] `vitest.config.ts`: 프로젝트 2개 — `core`(Node, `tests/core/**`), `worker`(`@cloudflare/vitest-pool-workers`, `wrangler.jsonc` 사용, D1 마이그레이션 적용, `tests/worker/**`) — 완료. 도구는 `@cloudflare/vitest-plugin`(판례 2026-11-06-vitest-plugin). D1 마이그레이션 적용은 T013에서.
+- [x] T006 [P] `playwright.config.ts`: `webServer`로 `npm run dev`, Chromium 데스크톱 + 모바일(터치) 프로젝트, 기본 `trace: 'off'` — 완료. `PLAYWRIGHT_CHROMIUM_PATH`로 미리 설치된 Chromium 사용 가능(클라우드 세션).
+- [x] T007 [P] 린트 설정 `eslint.config.js`: `src/core/**`에서 `react`, `three`, `@react-three/*`, `ecctrl`, `hono`, `cloudflare:*`, DOM 전역 사용 금지(헌법 원칙 IV), `src/client/**` JSX 안 한글 문자열 리터럴 금지(i18n) — 완료. 규칙 자체를 `tests/scripts/lint-rules.test.ts`로 검증(원칙 VI).
+- [x] T008 [P] `.dev.vars.example`(`ADMIN_TOKEN`, `SERVER_SECRET`, `TURNSTILE_SECRET=1x0000000000000000000000000000000AA`)와 `.env.example`(`VITE_TURNSTILE_SITEKEY=1x00000000000000000000AA`), `.gitignore`에 `.dev.vars`·`.env`·`.wrangler/`·`test-results/` 추가 — 완료.
+- [x] T009 [P] `.devcontainer/devcontainer.json`: Node 22, `postCreateCommand: npm ci && npx playwright install --with-deps chromium` (research R15) — 완료.
+- [x] T010 [P] `.github/workflows/ci.yml`: PR·main push마다 `npm ci` → `typecheck` → `lint` → `test` → `build` → `check:bundle` → Playwright 설치 → `test:e2e`, 실패 시 머지 차단 — 완료(`check:bundle`은 T050에서 추가).
 
 ---
 

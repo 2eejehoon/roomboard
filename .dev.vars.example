@@ -1,0 +1,5 @@
+# Copy to .dev.vars for local `npm run dev` (never commit .dev.vars). Values below are local-only placeholders.
+ADMIN_TOKEN=dev-admin-token
+SERVER_SECRET=dev-server-secret
+# Cloudflare's official always-pass Turnstile test secret.
+TURNSTILE_SECRET=1x0000000000000000000000000000000AA
