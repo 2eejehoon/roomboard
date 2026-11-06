@@ -8,8 +8,9 @@ const ok = (schema: { safeParse: (v: unknown) => { success: boolean } }, v: unkn
 
 describe('createRoomRequest (openapi CreateRoomRequest)', () => {
   it('accepts a valid request, trims the title and defaults the description', () => {
-    const { description: _, ...noDesc } = room;
-    expect(createRoomRequest.parse({ ...noDesc, title: '  카페  ' })).toEqual({ ...room, title: '카페', description: '' });
+    const noDesc: Partial<typeof room> = { ...room, title: '  카페  ' };
+    delete noDesc.description;
+    expect(createRoomRequest.parse(noDesc)).toEqual({ ...room, title: '카페', description: '' });
   });
 
   it.each([
@@ -63,7 +64,8 @@ describe('createReportRequest (openapi CreateReportRequest)', () => {
   });
 
   it.each(Object.keys(message))('message report requires message.%s', (field) => {
-    const { [field]: _, ...rest } = message as Record<string, unknown>;
+    const rest: Record<string, unknown> = { ...message };
+    delete rest[field];
     expect(ok(createReportRequest, { ...report, target: { type: 'message', roomId: 'aB3dE5fG7h', message: rest } })).toBe(false);
   });
 });
