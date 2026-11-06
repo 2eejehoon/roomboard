@@ -49,6 +49,18 @@ describe('chat filter', () => {
     expect(f('아씨 발')).toBe('아씨 발');
   });
 
+  it('masks whole words split by one gap', () => {
+    expect(filter('개 새끼')).toBe('****');
+    expect(filter('저 미친 놈')).toBe('저 ****');
+    expect(f('fu ck')).toBe('*****');
+  });
+
+  it('masks NFD Hangul and full-width letters', () => {
+    expect(f('씨발'.normalize('NFD'))).toBe('*****');
+    expect(f('ｆｕｃｋ')).toBe('****');
+    expect(f('안녕'.normalize('NFD'))).toBe('안녕'.normalize('NFD'));
+  });
+
   it('leaves dictionary words that contain a banned word alone', () => {
     expect(filter('시발점에서 출발')).toBe('시발점에서 출발');
   });
