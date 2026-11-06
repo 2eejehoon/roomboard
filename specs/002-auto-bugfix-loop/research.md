@@ -33,16 +33,27 @@
   - 에이전트는 자기가 고친 코드로 `npm test`를 돌린다. 이슈 본문이 공개 수집 경로에서 왔을 수 있으므로 액션의 하위 프로세스
     비밀값 제거(`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`)를 켠다. 이 설정이 `allowed_non_write_users` 없이도 동작하는지는 첫 실행에서
     확인한다(문서상 그 경우에 기본으로 켜짐). 남는 위험으로 기록한다.
-  - `allowed_tools`를 좁힌다: 파일 편집, `git`, `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`만. `curl`·`wget`·임의
+  - **잡 분리**: 잡 `fix`는 에이전트까지만 실행하고 텍스트 출력만 넘긴다. 잡 `finish`는 새 실행기에서 신뢰된 기본 브랜치만
+    체크아웃해 브랜치 검사(실행 전후 원격 SHA를 API로 비교), PR 생성, 결과 댓글을 한다. 같은 잡 안이면 에이전트가 남긴
+    `.git/config`(예: `core.sshCommand`)나 `$GITHUB_ENV`·`$GITHUB_PATH`로 뒤 단계를 가로챌 수 있다(PR #12 독립 리뷰 지적).
+  - 에이전트 단계에는 워크플로 토큰·PR 토큰을 주지 않는다. 이슈 본문은 `.agent/issue.md`로 전달한다. **남는 위험**: 액션이
+    push용 App 토큰(이 저장소 한정, 실행이 끝나면 폐기)을 `.git/config`에 넣으므로 에이전트는 실행 중 이 토큰을 읽을 수 있다.
+    main은 Ruleset으로 막혀 있다.
+  - PAT로 연 PR은 운영자가 작성자로 표시되어 본인 승인이 안 된다. 머지는 관리자 우회로 하고, 독립 리뷰(`ai-review`)가 작성하지
+    않은 쪽의 검토 역할을 한다. 봇 계정 토큰으로 바꾸면 운영자가 승인할 수 있다(지금은 계정 관리 부담으로 보류).
+  - `allowed_tools`를 좁힌다: 파일 편집, `git`, `npm ci`, `npm test`, `npm run typecheck`만(`gh` 없음). `curl`·`wget`·임의
     네트워크 금지.
-  - 워크플로 `permissions`: `contents: write`, `pull-requests: write`, `issues: write`만. 저장소 설정·Secrets·Actions 쓰기 없음.
+  - 워크플로 `permissions`: 잡별 최소 권한. `fix`는 contents 읽기·issues 쓰기·id-token, `finish`는 contents 읽기·issues 쓰기.
+    PR은 `AGENT_PR_TOKEN`으로만 연다.
   - **기본 브랜치 보호(사용자 설정 필요)**: main 대상 Ruleset으로 PR 필수(승인 1명), CI 통과 필수, force push·삭제 차단.
     운영자 혼자인 저장소라 자기 PR을 승인할 수 없으므로 우회 목록에 Repository admin만 둔다(에이전트는 우회 불가라 승인 없이
     머지 못 함). CI 필수 검사는 GitHub가 최근 실행된 검사만 고를 수 있게 해서 CI 워크플로가 생긴 뒤 추가한다. 이게 있어야 FR-022가
     워크플로 설정 실수와 무관하게 보장된다.
-- **PR 생성**: 액션은 기본적으로 브랜치만 push하고 PR은 만들지 않는다(액션 보안 문서). 워크플로의 다음 단계가 액션 출력
-  `branch_name`과 `github_token`(Claude App 토큰)으로 `gh pr create`를 실행한다. `GITHUB_TOKEN`으로 만든 PR은 다른 워크플로를
-  트리거하지 않으므로 App 토큰을 쓴다. CI가 실제로 도는지는 첫 실행(T020)에서 확인한다.
+- **PR 생성**: 에이전트가 `agent/issue-<n>-<slug>` 브랜치를 push하고 이름을 결과로 돌려준다. 워크플로가 브랜치를 검사
+  (`scripts/agent-branch-check.mjs`)한 뒤 PR 전용 fine-grained 토큰 `AGENT_PR_TOKEN`(이 저장소, Pull requests·Issues 쓰기,
+  Contents 읽기)으로 PR을 연다. 액션 출력 `github_token`은 액션이 끝날 때 폐기되어 쓸 수 없었고(T020 3차, 401),
+  `GITHUB_TOKEN`으로 만든 PR은 CI·리뷰를 트리거하지 않는다. 이 토큰은 에이전트 단계에 노출되지 않고, Contents 쓰기가 없어
+  push·머지를 할 수 없다.
 - **모델**: 운영자의 역할별 모델 설정을 따른다. 수정 `opus`, 리뷰 `opus`, 장치 `sonnet`, 문서 정리 `opus`. `claude_args`에
   별칭(`--model opus`)으로 넣어 새 모델이 나와도 따라간다.
 - 봇 계정 이벤트는 기본 차단이다. 리뷰 워크플로는 에이전트 PR을 리뷰해야 하므로 `allowed_bots: claude`만 명시한다(`*` 금지).
