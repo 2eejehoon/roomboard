@@ -34,9 +34,9 @@
 | target_type | TEXT NOT NULL | `room` 또는 `message` |
 | room_id | TEXT NOT NULL | rooms.id |
 | message_id | TEXT NOT NULL DEFAULT '' | message일 때 메시지 id, room일 때 빈 문자열 |
-| message_snapshot | TEXT NULL | message일 때 JSON `{nickname, text, sentAt, channel}` (필터 적용 후 내용) |
+| message_snapshot | TEXT NULL | message일 때 JSON `{nickname, text, sentAt, channel}` (필터 적용 후 내용, 서버 서명 검증 후 저장) |
 | reason | TEXT NOT NULL | `spam` \| `abuse` \| `sexual` \| `illegal` \| `other` |
-| reporter_hash | TEXT NOT NULL | `SHA-256(기기 키 + REPORT_PEPPER)` hex. 중복 판별 전용 |
+| reporter_hash | TEXT NOT NULL | `HMAC-SHA256(SERVER_SECRET, "reporter\|" + 기기 키)` hex. 중복 판별 전용 |
 | status | TEXT NOT NULL DEFAULT 'open' | `open` → `resolved` |
 | created_at | INTEGER NOT NULL | Unix ms |
 | resolved_at | INTEGER NULL | |
@@ -104,10 +104,10 @@ AnimState = "idle" | "walk" | "run" | "jump"
 - 배정 규칙(순수 함수 `assignChannel(counts)`): 인원이 20 미만인 가장 작은 번호, 없으면 `max + 1`.
 - 빈 채널은 따로 지우지 않는다(소켓이 없으면 자연히 사라진다).
 
-### ChatBuffer (메모리, 저장 안 함)
+### 채팅
 
-- 채널별 최근 100개 `{messageId, nickname, text, sentAt}`. 메시지 신고 스냅샷 전용.
-- Hibernation으로 비워지면 그 전 메시지 신고는 410(research R6).
+- 서버는 채팅을 저장하지 않는다(메모리 버퍼도 없음). 브로드캐스트하는 `chat`에 서버 서명 `sig`를 붙이고, 신고 때 클라이언트가
+  그 메시지와 서명을 보내면 Worker가 검증해 스냅샷으로 저장한다(research R14).
 
 ### RateBucket (메모리)
 

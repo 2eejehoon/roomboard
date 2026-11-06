@@ -63,11 +63,15 @@
 - 사실: Durable Object를 구현한 Worker는 Preview/Version URL이 **생성되지 않는다**(공식 문서).
   `wrangler versions upload --preview-alias`는 쓸 수 없다.
 - **Decision**: PR마다 GitHub Actions에서 `wrangler deploy --name roomboard-pr-<번호>`로 별도 Worker를
-  배포한다(DO 포함, 데이터 격리). 미리보기 전용 D1 DB `roomboard-preview` 하나를 모든 PR이 같이 쓴다.
-  PR이 닫히면 `wrangler delete --name roomboard-pr-<번호>`로 정리한다. 배포 URL은 PR 댓글로 남긴다.
+  배포한다(DO 포함, 데이터 격리). D1도 PR마다 `roomboard-pr-<번호>` DB를 만들어 그 PR의
+  마이그레이션을 적용한다(PR끼리 스키마가 달라도 충돌 없음, 무료 DB 10개 한도 안에서 열린 PR 8개까지).
+  PR이 닫히면 `wrangler delete --name roomboard-pr-<번호>`와 `wrangler d1 delete`로 정리한다. DO 클래스를 가진
+  Worker가 `wrangler delete`로 지워지는지는 첫 미리보기 배포 때 확인한다(미확인). 배포 URL은 PR 댓글로 남긴다.
 - **Alternatives**: 앞단 Worker + DO 전용 Worker 분리(앞단만 미리보기 URL) — 미리보기가 운영 DO를
   같이 써서 데이터가 섞이므로 기각.
-- 필요한 것: 저장소 Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`(사용자가 등록).
+- **사용자 작업 필요**: 저장소 Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ADMIN_TOKEN`, `SERVER_SECRET`,
+  `TURNSTILE_SECRET`, `TURNSTILE_SITEKEY` 등록. 등록 전까지 미리보기 배포 워크플로는 건너뛴다(헌법의 미리보기 MUST는 이 의존성이
+  풀릴 때까지 미충족 상태로 추적).
 
 ## R4. 이동 동기화 방식
 
@@ -80,7 +84,7 @@
 
 ## R5. 글 비밀번호 해시
 
-- **Decision**: WebCrypto PBKDF2-SHA256, 반복 100,000회(workerd의 PBKDF2 반복 상한), 16바이트 랜덤 솔트.
+- **Decision**: WebCrypto PBKDF2-SHA256, 반복 100,000회(workerd의 PBKDF2 반복 상한으로 알려져 있으나 미확인, 측정 작업에서 같이 확인), 16바이트 랜덤 솔트.
   저장 형식 `pbkdf2-sha256$<반복>$<솔트 b64>$<해시 b64>`라서 나중에 방식을 바꿀 수 있다. 비교는
   상수 시간으로 한다.
 - **Risk**: 무료 플랜 CPU 10ms를 넘을 수 있다. 구현 첫 단계에서 workerd로 측정하고, 넘으면 해시 계산을
@@ -94,8 +98,8 @@
 - 소켓별 상태(참가자 id, 닉네임, 아바타, 채널, 마지막 위치)는 `serializeAttachment`에 저장해서
   Hibernation에서 깨어날 때 `getWebSockets()`로 복원한다.
 - 접속 인원은 DO가 D1 `rooms.online_count`에 2초 디바운스로 기록한다. 목록 조회 때 DO를 깨우지 않는다.
-- 채팅은 저장하지 않는다. 메시지 신고 스냅샷용으로 DO 메모리에 채널별 최근 100개만 둔다.
-  Hibernation 뒤에는 이 버퍼가 비므로, 그 전 메시지 신고는 `410 Gone`으로 답한다(제약으로 기록).
+- 접속 인원 디바운스는 DO **alarm**으로 한다. `setTimeout`은 DO를 깨어 있게 해서 실행 시간이 과금된다.
+- 채팅은 저장하지 않는다(서버 메모리 버퍼도 두지 않는다). 메시지 신고 스냅샷은 **서명된 메시지**로 처리한다(R14).
 - **Alternatives**: 채널마다 DO — 이슈 #1의 "방 1개 = DO 1개" 결정과 다르고 채널 배정에 조정이 필요해서
   기각.
 
@@ -105,7 +109,7 @@
   아바타는 서버(그리고 같은 순수 함수를 쓰는 클라이언트)가 기기 키 해시로 **결정적으로** 만든다
   (형용사 + 동물 단어 목록, 아바타 목록에서 선택). 클라이언트가 닉네임을 정하지 않으므로 사칭과 금칙어
   닉네임이 원천적으로 막히고, 재접속 시 같은 닉네임이 나온다.
-- 서버는 기기 키 원문을 저장하지 않는다. 신고 중복 판별에는 `SHA-256(기기 키 + 서버 비밀 pepper)`만
+- 서버는 기기 키 원문을 저장하지 않는다. 신고 중복 판별에는 `HMAC-SHA256(SERVER_SECRET, "reporter|" + 기기 키)`만
   저장한다.
 
 ## R8. 2D 화면과 SEO
@@ -154,3 +158,38 @@
 - **Decision**: Kenney(방·가구), Quaternius(애니메이션 캐릭터), Poly Haven(HDRI·텍스처), 모두 CC0.
   `public/assets/CREDITS.md`에 파일별 출처를 적는다. 테마 3개의 첫 로딩 용량 목표는 테마당 5MB 이하
   (SC-001의 4G 10초 목표). GLB는 Draco/Meshopt 압축, 텍스처는 KTX2를 검토한다.
+
+## R14. 메시지 신고 스냅샷 (채팅 미저장 유지)
+
+- 문제: Hibernation된 DO는 소켓이 열려 있어도 메모리에서 내려갈 수 있고, ping 자동 응답은 DO를 깨우지 않는다. 메모리
+  버퍼 방식이면 조용한 방에서 신고가 실패한다. 이는 clarify 답변("신고된 메시지 내용을 신고와 함께 저장")과 어긋난다.
+- **Decision**: DO가 `chat`을 보낼 때 `sig = HMAC-SHA256(SERVER_SECRET, "chat|" + roomId|messageId|nickname|text|sentAt|channel)`을
+  붙인다. 신고하는 클라이언트는 받은 메시지 필드와 `sig`를 그대로 보내고, Worker가 서명을 검증한 뒤 스냅샷으로 저장한다.
+  클라이언트는 내용을 위조할 수 없고, 서버는 채팅을 저장하지 않으며, Hibernation과 무관하게 동작한다.
+- 서명 유효 기간: `sentAt`에서 24시간. 지나면 400.
+- **Alternatives**: DO 메모리 버퍼 — 위 문제로 기각. DO 저장소에 최근 채팅 저장 — 채팅 미저장 결정과 어긋나서 기각.
+
+## R15. 개발 환경 재현 (Codespaces)
+
+- `.devcontainer/devcontainer.json`: Node 22 이미지, `postCreateCommand`로 `npm ci`와 `npx playwright install --with-deps chromium`.
+  웹 세션·Codespaces·Actions에서 같은 npm 스크립트로 개발·테스트한다(헌법 원칙 I).
+
+## Sources
+
+- Durable Objects 가격: https://developers.cloudflare.com/durable-objects/platform/pricing
+- Durable Objects FAQ(무료 1GB, SQLite 전용): https://developers.cloudflare.com/durable-objects/reference/faq
+- Durable Objects changelog(무료 플랜 SQLite DO): https://developers.cloudflare.com/durable-objects/changelog/
+- DO 무료 한도 요약(3자): https://flarecalc.com/ , https://agentdeals.dev/go/cloudflare-durable-objects
+- D1 가격: https://developers.cloudflare.com/d1/platform/pricing/
+- D1 한도: https://developers.cloudflare.com/d1/platform/limits
+- D1 무료 한도 강제(2026-09-01): https://developers.cloudflare.com/changelog/post/2026-09-01-d1-free-tier-limit-enforcement/
+- D1 무료 한도(3자): https://freetier.co/articles/cloudflare-d1-free-tier-limits-pricing-and-alternatives
+- Workers 한도: https://developers.cloudflare.com/workers/platform/limits
+- Workers 가격: https://developers.cloudflare.com/workers/platform/pricing/
+- Rate Limiting 바인딩: https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+- Rate Limiting 실험(3자): https://dev.classmethod.jp/en/articles/cloudflare-rate-limit-experiments/
+- Preview URL(DO Worker 미지원): https://developers.cloudflare.com/workers/versions-and-deployments/preview-urls/
+- Version URL: https://developers.cloudflare.com/workers/versions-and-deployments/version-urls/
+- npm 레지스트리(`npm view`, 2026-11-06 조회): 위 R1 버전
+
+developers.cloudflare.com은 이 세션 네트워크에서 막혀 있어 위 공식 문서는 검색 결과 요약으로만 확인했다.

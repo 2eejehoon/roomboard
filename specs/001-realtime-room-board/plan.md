@@ -42,12 +42,12 @@
 | 원칙 | 확인 내용 | Phase 0 전 | Phase 1 후 |
 |---|---|---|---|
 | I. 클라우드 전용 | 모든 도구가 npm 의존성. 로컬 개발도 workerd를 쓰는 `wrangler`로 세션 안에서 실행. 미리보기는 Actions에서 배포 | ✅ | ✅ quickstart가 세 환경 기준 |
-| II. 개인정보 미수집 | 로그인 없음. D1 컬럼에 PII 없음. IP는 rate limit 키로 요청 중에만 사용·미기록. 기기 키는 원문 미저장, 신고에는 pepper 해시만 | ✅ | ✅ data-model 컬럼 검토, Q14 감사 시나리오 |
+| II. 개인정보 미수집 | 로그인 없음. D1 컬럼에 PII 없음. IP는 rate limit 키로 요청 중에만 사용·미기록. 기기 키는 원문 미저장, 신고에는 HMAC 해시만. 채팅은 미저장(신고 스냅샷은 서명 검증) | ✅ | ✅ data-model 컬럼 검토, Q14 감사 시나리오 |
 | III. 테스트 우선 | Vitest(core, worker) + Playwright(컨텍스트 2개 이상). tasks에서 각 스토리마다 테스트 작업이 구현보다 먼저 | ✅ | ✅ quickstart Q1~Q14가 테스트 목록 |
 | IV. 렌더링·상태 분리 | `src/core`는 React·three·DOM import 금지(린트 규칙으로 강제). 테스트 훅은 DEV 전용, 번들 검사 | ✅ | ✅ 구조와 websocket.md 테스트 훅 절 |
 | V. 2D 대체 화면 | 2D 컴포넌트가 입장·참가자·채팅·신고 전부 지원. WebGL 없으면 자동 2D, 3D 청크 미로딩. SEO용 HTMLRewriter | ✅ | ✅ research R8, Q4·Q5 |
 | 제품·품질 제약 | CC0 에셋 + CREDITS.md, i18n `t()`(하드코딩 문자열 린트), PC·모바일 입력, 욕설 필터·신고·속도 제한·관리자 삭제 | ✅ | ✅ |
-| 개발 워크플로 | 브랜치 → PR, PR 미리보기 배포(DO 제약으로 PR마다 별도 Worker, research R3) | ✅ | ✅ |
+| 개발 워크플로 | 브랜치 → PR, PR 미리보기 배포(DO 제약으로 PR마다 별도 Worker·D1, research R3), 화면정의서 | ✅ | ⚠️ 미리보기는 사용자의 Cloudflare Secrets 등록 대기(설계는 완료). 화면정의서는 `contracts/screens.md`, Claude Design 시안은 미작성 |
 
 위반 없음. Complexity Tracking 비움.
 
@@ -64,7 +64,8 @@ specs/001-realtime-room-board/
 ├── quickstart.md        # Phase 1
 ├── contracts/
 │   ├── openapi.yaml     # HTTP API
-│   └── websocket.md     # WebSocket 메시지
+│   ├── websocket.md     # WebSocket 메시지
+│   └── screens.md       # 화면정의서
 ├── checklists/requirements.md
 └── tasks.md             # /speckit-tasks에서 생성
 ```
@@ -111,6 +112,7 @@ tests/
 ├── worker/               # Vitest workerd (D1, DO, API)
 └── e2e/                  # Playwright (Q1~Q14)
 .github/workflows/        # ci.yml, preview.yml, preview-cleanup.yml
+.devcontainer/devcontainer.json   # Codespaces: Node 22 + Playwright Chromium
 wrangler.jsonc, vite.config.ts, vitest.config.ts, playwright.config.ts
 ```
 

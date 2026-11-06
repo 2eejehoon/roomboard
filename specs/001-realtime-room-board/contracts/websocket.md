@@ -116,11 +116,12 @@ client                                   server (Room DO)
 ### `chat`
 
 ```json
-{ "t": "chat", "messageId": "m_k2P9", "peerId": "p_8Kx2", "nickname": "느긋한 수달", "text": "안녕하세요", "sentAt": 1762400000000, "nonce": "c-17" }
+{ "t": "chat", "messageId": "m_k2P9", "peerId": "p_8Kx2", "nickname": "느긋한 수달", "text": "안녕하세요", "sentAt": 1762400000000, "channel": 2, "sig": "Qm9…", "nonce": "c-17" }
 ```
 
 - `nonce`는 보낸 사람에게 가는 사본에만 있다.
-- `messageId`는 신고(`POST /api/reports`, target.type=message)에 쓴다.
+- `sig` = `HMAC-SHA256(SERVER_SECRET, "chat|" + roomId|messageId|nickname|text|sentAt|channel)`, base64url. 서버는 채팅을
+  저장하지 않으므로, 신고할 때 클라이언트가 이 메시지 필드와 `sig`를 그대로 `POST /api/reports`에 보낸다(research R14).
 
 ### `rate_limited`
 

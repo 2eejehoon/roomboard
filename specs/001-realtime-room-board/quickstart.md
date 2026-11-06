@@ -1,6 +1,7 @@
 # Quickstart: 실시간 3D 방 게시판 v1 검증 가이드
 
 모든 명령은 Claude Code 웹 세션, Codespaces, GitHub Actions에서만 실행한다(헌법 원칙 I). 로컬 Mac에서 실행하지 않는다.
+Codespaces는 `.devcontainer/devcontainer.json`이 Node 22와 Playwright Chromium을 준비한다.
 
 ## 준비
 
@@ -9,7 +10,7 @@
 - 로컬 개발에는 Cloudflare 계정이 필요 없다. `wrangler`가 workerd로 Worker·DO·D1을 흉내 낸다.
 - `.dev.vars`(커밋 금지, `.dev.vars.example` 복사):
   - `ADMIN_TOKEN=dev-admin-token`
-  - `REPORT_PEPPER=dev-pepper`
+  - `SERVER_SECRET=dev-server-secret` (신고자 해시, 채팅 서명)
   - `TURNSTILE_SECRET=1x0000000000000000000000000000000AA` (Cloudflare 공식 "항상 통과" 테스트 키)
   - 클라이언트 `VITE_TURNSTILE_SITEKEY=1x00000000000000000000AA`
 
@@ -48,13 +49,14 @@ npm run build && npm run check:bundle   # 프로덕션 번들에 테스트 훅(_
 | Q12 | US7 | 방 신고 2번(같은 기기) → 관리자 토큰으로 목록 조회 → 방 삭제 | 두 번째는 duplicate=true, 목록에 1건, 삭제 후 방 주소 410 |
 | Q13 | US7 | 토큰 없이 `/api/admin/reports` | 401 |
 | Q14 | 원칙 II | 테스트 실행 후 로컬 D1 전체 덤프 검사 | 이메일·전화번호·IP 형식 문자열 없음 |
+| Q15 | US7 | 받은 채팅을 신고 / `text`를 바꿔 신고 | 201, 관리자 목록에 스냅샷 / 400(서명 불일치) |
 
 ## 미리보기 배포 확인 (PR)
 
 - PR을 열면 Actions가 `roomboard-pr-<번호>` Worker를 배포하고 URL을 PR 댓글로 남긴다(research R3).
 - 실제 휴대폰으로 그 URL을 열어 Q1, Q3, Q8을 사람이 확인한다.
 - PR을 닫으면 그 Worker는 지워진다.
-- 필요한 저장소 Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Worker 비밀값(`ADMIN_TOKEN`, `REPORT_PEPPER`,
+- 필요한 저장소 Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Worker 비밀값(`ADMIN_TOKEN`, `SERVER_SECRET`,
   `TURNSTILE_SECRET`)은 배포 워크플로가 저장소 Secrets에서 넣는다.
 
 ## 참고

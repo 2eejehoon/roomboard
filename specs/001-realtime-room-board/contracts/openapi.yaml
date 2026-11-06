@@ -6,6 +6,7 @@ info:
     실시간 3D 방 게시판 HTTP API. 실시간 이동·채팅은 WebSocket(websocket.md)으로 한다.
     개인정보를 받지 않는다. 기기 키(deviceKey)는 랜덤 UUID이며 서버는 원문을 저장하지 않는다.
     모든 오류 응답은 Error 스키마를 따른다.
+security: []   # 공개 API. 관리자 경로만 operation 단위로 adminToken
 servers:
   - url: /api
 
@@ -136,7 +137,8 @@ paths:
       tags: [reports]
       summary: 방 또는 채팅 메시지 신고 (FR-040)
       description: |
-        메시지 신고는 서버가 방 DO의 최근 메시지 버퍼에서 스냅샷을 가져와 저장한다(클라이언트가 보낸 내용을 믿지 않는다).
+        메시지 신고는 클라이언트가 받은 chat 메시지 필드와 서버 서명(sig)을 그대로 보내고, 서버가 서명을 검증한 뒤 스냅샷으로 저장한다
+        (서버는 채팅을 저장하지 않는다, research R14). 서명이 틀리거나 sentAt에서 24시간이 지났으면 400.
         같은 기기·같은 대상의 중복 신고는 200 duplicate=true.
       requestBody:
         required: true
@@ -157,7 +159,7 @@ paths:
         '400': { $ref: '#/components/responses/Validation' }
         '404': { $ref: '#/components/responses/NotFound' }
         '410':
-          description: 방이 삭제됐거나 메시지가 더 이상 서버 버퍼에 없음
+          description: 방이 삭제됨
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Error' }
@@ -206,6 +208,7 @@ paths:
         '204': { description: 처리됨 }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 
   /admin/rooms/{roomId}:
     parameters:
@@ -220,6 +223,7 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '404': { $ref: '#/components/responses/NotFound' }
         '410': { $ref: '#/components/responses/Gone' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 
 components:
   securitySchemes:
@@ -331,11 +335,21 @@ components:
                 type: { const: room }
                 roomId: { $ref: '#/components/schemas/RoomId' }
             - type: object
-              required: [type, roomId, messageId]
+              required: [type, roomId, message]
               properties:
                 type: { const: message }
                 roomId: { $ref: '#/components/schemas/RoomId' }
-                messageId: { type: string }
+                message:
+                  type: object
+                  description: 받은 chat 메시지 그대로 (websocket.md)
+                  required: [messageId, nickname, text, sentAt, channel, sig]
+                  properties:
+                    messageId: { type: string }
+                    nickname: { type: string }
+                    text: { type: string }
+                    sentAt: { type: integer }
+                    channel: { type: integer }
+                    sig: { type: string, description: 'HMAC-SHA256 base64url' }
         reason: { $ref: '#/components/schemas/ReportReason' }
         deviceKey: { $ref: '#/components/schemas/DeviceKey' }
 
