@@ -27,8 +27,14 @@ describe('eslint boundary rules', () => {
     expect(msgs.join('\n')).toMatch(/t\(/);
     const attr = await lint('src/client/x.tsx', 'export const B = () => <input placeholder="닉네임" />;\n');
     expect(attr.join('\n')).toMatch(/t\(/);
-    const expr = await lint('src/client/x.tsx', "export const C = () => <p>{'안녕하세요'}</p>;\n");
-    expect(expr.join('\n')).toMatch(/t\(/);
+    for (const code of [
+      "export const C = () => <p>{'안녕하세요'}</p>;",
+      'export const D = () => <p>{`안녕하세요`}</p>;',
+      "declare const busy: boolean;\nexport const E = () => <p>{busy ? '잠시만요' : 'ok'}</p>;",
+      "declare const a: string;\nexport const F = () => <p>{a || '없음'}</p>;",
+    ]) {
+      expect((await lint('src/client/x.tsx', `${code}\n`)).join('\n'), code).toMatch(/t\(/);
+    }
   });
 
   it('client JSX may use t() and non-Korean literals', async () => {
