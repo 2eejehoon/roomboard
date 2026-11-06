@@ -58,7 +58,7 @@ jobs:
             --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(npm ci),Bash(npm test:*),Bash(npx vitest:*),Bash(npm run typecheck),Bash(gh issue view:*)"
             --json-schema '{"type":"object","required":["result","title","body","cause","summary"],"properties":{"result":{"enum":["fixed","not_reproduced"]},"title":{"type":"string"},"body":{"type":"string"},"cause":{"type":"string","pattern":"^[a-z0-9-]{1,40}$"},"summary":{"type":"string"}}}'
       - id: pr
-        if: steps.claude.outputs.conclusion == 'success' && fromJSON(steps.claude.outputs.structured_output).result == 'fixed' && steps.claude.outputs.branch_name != ''
+        if: steps.claude.outputs.conclusion == 'success' && steps.claude.outputs.structured_output != '' && fromJSON(steps.claude.outputs.structured_output).result == 'fixed' && steps.claude.outputs.branch_name != ''
         env:
           # Claude App token: PRs opened with GITHUB_TOKEN would not trigger CI or review.
           GH_TOKEN: ${{ steps.claude.outputs.github_token }}

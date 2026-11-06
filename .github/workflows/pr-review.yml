@@ -47,7 +47,13 @@ jobs:
             --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
             --json-schema '{"type":"object","required":["blocking","suggestions","summary"],"properties":{"blocking":{"type":"integer","minimum":0},"suggestions":{"type":"integer","minimum":0},"summary":{"type":"string"}}}'
             ${{ github.event_name == 'pull_request_target' && '--add-dir pr-head' || '' }}
+      - name: No review result
+        if: steps.claude.outputs.structured_output == ''
+        run: |
+          echo "::error::리뷰 에이전트가 결과를 내지 못했습니다(이 PR이 리뷰 워크플로 자체를 바꿨거나, 사용량 예산 소진, 실행 오류). 사람이 판단하세요."
+          exit 1
       - name: Verdict
+        if: steps.claude.outputs.structured_output != ''
         env:
           BLOCKING: ${{ fromJSON(steps.claude.outputs.structured_output).blocking }}
           SUMMARY: ${{ fromJSON(steps.claude.outputs.structured_output).summary }}
