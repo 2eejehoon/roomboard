@@ -65,7 +65,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T017 [US2] `.github/workflows/agent-fix.yml`: `issues: [opened, reopened, labeled]`, 조건 단계(`agent-gate`), `concurrency` 이슈별·전체 1개, `timeout-minutes: 45`, `anthropics/claude-code-action` SHA 고정 + `claude_code_oauth_token`, `allowed_tools` 제한(research R2), `permissions` 최소, 결과 라벨·댓글(contracts/github.md), 사용량 한도 오류 시 `agent:queued`
 - [x] T018 [US2] `.github/workflows/agent-queue.yml`: 매시, 가장 오래된 `agent:queued` 이슈 하나 재실행
 - [x] T019 [US2] `ci.yml`에 `test-first` 잡 추가: 브랜치가 `agent/`로 시작하는 PR에서 `scripts/test-first-check.mjs` 실행
-- [ ] T020 [US2] B9~B11 실제 실행(시험용 버그 `src/core/trial/sum-positive.ts`를 심고, 확인 뒤 지운다). 1차(#9): 실행 1회·라벨·댓글 정상, 하위 프로세스 격리에 `socat`이 없어 명령 실행 불가 → 설치 단계 추가 후 재시험: 심은 버그 이슈에 `agent:run` → PR·CI 실행 확인, 주입 지시 이슈, 외부 이슈. 결과를 research R2 "확인 필요"에 반영하고 판례 추가
+- [ ] T020 [US2] B9~B11 실제 실행(시험용 버그 `src/core/trial/sum-positive.ts`를 심고, 확인 뒤 지운다). 1차(#9): 실행 1회·라벨·댓글 정상, 하위 프로세스 격리에 `socat`이 없어 명령 실행 불가 → 설치 단계 추가 후 재시험. 2차: 에이전트가 실패 테스트→수정→브랜치 push까지 성공(74초), 액션 `branch_name` 출력이 비어 워크플로가 PR을 못 만듦 → 결과 JSON의 `branch`로 PR 생성하게 수정 후 3차: 심은 버그 이슈에 `agent:run` → PR·CI 실행 확인, 주입 지시 이슈, 외부 이슈. 결과를 research R2 "확인 필요"에 반영하고 판례 추가
 
 ---
 
