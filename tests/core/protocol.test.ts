@@ -54,6 +54,11 @@ describe('parseClientMessage', () => {
     expect(parse(m)).toEqual({ ok: false, reason: 'bad_message' });
   });
 
+  it('chat text limit counts characters, not UTF-16 units', () => {
+    expect(parse({ t: 'chat', text: '😀'.repeat(200) }).ok).toBe(true);
+    expect(parse({ t: 'chat', text: '😀'.repeat(201) })).toEqual({ ok: false, reason: 'bad_message' });
+  });
+
   it('rejects text that is not JSON', () => {
     expect(parseClientMessage('{nope')).toEqual({ ok: false, reason: 'bad_message' });
   });
