@@ -57,7 +57,9 @@ jobs:
           # The agent reads the issue from this file (untrusted data) instead of holding a workflow token.
           mkdir -p .agent && gh issue view "$ISSUE" --json title,body --jq '"# " + .title + "\n\n" + .body' > .agent/issue.md
           # This issue's agent branches before the agent runs, so job 2 can tell a fresh push from a stale branch.
-          echo "before=$(gh api "repos/$GH_REPO/git/matching-refs/heads/agent/issue-$ISSUE-" --jq 'map({(.ref): .object.sha}) | add // {}' | jq -c .)" >> "$GITHUB_OUTPUT"
+          # A plain assignment makes bash -e stop the step if the API call fails (fail closed).
+          refs=$(gh api "repos/$GH_REPO/git/matching-refs/heads/agent/issue-$ISSUE-" --jq 'map({(.ref): .object.sha}) | add // {}')
+          echo "before=$(jq -c . <<<"$refs")" >> "$GITHUB_OUTPUT"
       # The subprocess sandbox (secret scrub + isolation) needs these; without them no command runs (T020 first trial).
       - if: steps.gate.outputs.run == 'true'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
@@ -106,7 +108,9 @@ jobs:
           [ -n "$OUT" ] && [ "$(jq -r .result <<<"$OUT")" = fixed ] || exit 0
           branch=$(jq -r .branch <<<"$OUT")
           after=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq .object.sha 2>/dev/null || true)
-          before=$(jq -r --arg r "refs/heads/$branch" '.[$r] // ""' <<<"${BEFORE:-null}")
+          # No snapshot means we cannot tell a fresh push from a stale branch: do not open a PR.
+          [ -n "$BEFORE" ] || { echo "::error::no pre-run branch snapshot"; exit 0; }
+          before=$(jq -r --arg r "refs/heads/$branch" '.[$r] // ""' <<<"$BEFORE")
           node scripts/agent-branch-check.mjs "$ISSUE" "$branch" "$before" "$after" && echo "ok=true" >> "$GITHUB_OUTPUT" || true
       - id: pr
         if: steps.verify.outputs.ok == 'true'
