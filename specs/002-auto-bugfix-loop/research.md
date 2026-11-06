@@ -40,9 +40,11 @@
     운영자 혼자인 저장소라 자기 PR을 승인할 수 없으므로 우회 목록에 Repository admin만 둔다(에이전트는 우회 불가라 승인 없이
     머지 못 함). CI 필수 검사는 GitHub가 최근 실행된 검사만 고를 수 있게 해서 CI 워크플로가 생긴 뒤 추가한다. 이게 있어야 FR-022가
     워크플로 설정 실수와 무관하게 보장된다.
-- **PR 생성**: 액션은 기본적으로 브랜치만 push하고 PR은 만들지 않는다(액션 보안 문서). 워크플로의 다음 단계가 액션 출력
-  `branch_name`과 `github_token`(Claude App 토큰)으로 `gh pr create`를 실행한다. `GITHUB_TOKEN`으로 만든 PR은 다른 워크플로를
-  트리거하지 않으므로 App 토큰을 쓴다. CI가 실제로 도는지는 첫 실행(T020)에서 확인한다.
+- **PR 생성**: 에이전트가 `agent/issue-<n>-<slug>` 브랜치를 push하고 이름을 결과로 돌려준다. 워크플로가 브랜치를 검사
+  (`scripts/agent-branch-check.mjs`)한 뒤 PR 전용 fine-grained 토큰 `AGENT_PR_TOKEN`(이 저장소, Pull requests·Issues 쓰기,
+  Contents 읽기)으로 PR을 연다. 액션 출력 `github_token`은 액션이 끝날 때 폐기되어 쓸 수 없었고(T020 3차, 401),
+  `GITHUB_TOKEN`으로 만든 PR은 CI·리뷰를 트리거하지 않는다. 이 토큰은 에이전트 단계에 노출되지 않고, Contents 쓰기가 없어
+  push·머지를 할 수 없다.
 - **모델**: 운영자의 역할별 모델 설정을 따른다. 수정 `opus`, 리뷰 `opus`, 장치 `sonnet`, 문서 정리 `opus`. `claude_args`에
   별칭(`--model opus`)으로 넣어 새 모델이 나와도 따라간다.
 - 봇 계정 이벤트는 기본 차단이다. 리뷰 워크플로는 에이전트 PR을 리뷰해야 하므로 `allowed_bots: claude`만 명시한다(`*` 금지).

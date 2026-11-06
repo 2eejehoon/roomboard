@@ -75,6 +75,7 @@
 ## 에이전트 PR 규칙
 
 - 에이전트가 `agent/issue-<n>-<slug>` 브랜치를 직접 만들어 push하고 결과의 `branch`에 이름을 담는다. 워크플로는 브랜치가 `agent/issue-<이 이슈 번호>-`로
-  시작하는지와 push 여부를 확인한 뒤 액션 출력 `github_token`(Claude App 토큰)으로 PR을 만든다(research R2). 액션의 `branch_name` 출력은 이 방식에서 비어 있다.
+  시작하고 원격 SHA가 이번 실행의 로컬 브랜치와 같은지(`scripts/agent-branch-check.mjs`) 확인한 뒤 PR 전용 토큰 `AGENT_PR_TOKEN`으로
+  PR을 만든다(research R2). 액션의 `branch_name` 출력은 이 방식에서 비어 있고, 액션 토큰은 이 단계 전에 폐기된다.
 - 본문에 `Fixes #<n>`, `cause:<id>` 라벨 필수.
 - 커밋 순서: 실패 테스트 커밋이 수정 커밋보다 먼저(FR-021). CI의 별도 검사가 첫 커밋에서 새 테스트가 실패했는지 확인한다.

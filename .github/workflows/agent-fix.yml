@@ -63,19 +63,16 @@ jobs:
       - id: pr
         if: steps.claude.outputs.conclusion == 'success'
         env:
-          # Claude App token: PRs opened with GITHUB_TOKEN would not trigger CI or review.
-          GH_TOKEN: ${{ steps.claude.outputs.github_token }}
+          # The action revokes its own token before this step, and PRs opened with GITHUB_TOKEN do not trigger CI or review.
+          # AGENT_PR_TOKEN: fine-grained, this repo only, Pull requests + Issues write, Contents read (cannot push or merge).
+          GH_TOKEN: ${{ secrets.AGENT_PR_TOKEN }}
           ISSUE: ${{ steps.gate.outputs.issue }}
           BASE: ${{ github.event.repository.default_branch }}
           OUT: ${{ steps.claude.outputs.structured_output }}
         run: |
           [ -n "$OUT" ] && [ "$(jq -r .result <<<"$OUT")" = fixed ] || exit 0
-          # The agent creates and pushes its own branch (the action's branch_name output stays empty in this mode).
           BRANCH=$(jq -r .branch <<<"$OUT")
-          case "$BRANCH" in "agent/issue-$ISSUE-"*) ;; *) echo "::error::agent branch is not agent/issue-$ISSUE-*: $BRANCH"; exit 0 ;; esac
-          # The remote branch must be exactly what this run committed (not a stale branch from an earlier run).
-          remote=$(git ls-remote --heads origin "$BRANCH" | cut -f1)
-          [ -n "$remote" ] && [ "$remote" = "$(git rev-parse --verify -q "refs/heads/$BRANCH")" ] || { echo "::error::branch $BRANCH was not pushed by this run"; exit 0; }
+          node scripts/agent-branch-check.mjs "$ISSUE" "$BRANCH" || exit 0
           cause=$(jq -r .cause <<<"$OUT")
           gh label create "cause:$cause" --color 006b75 --force
           url=$(gh pr create --head "$BRANCH" --base "$BASE" --title "$(jq -r .title <<<"$OUT")" \
