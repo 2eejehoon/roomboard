@@ -2,7 +2,7 @@
 
 - 날짜: 2026-11-06
 - 대상: specs/002-auto-bugfix-loop/spec.md FR-020
-- 출처: 002 clarify, 이 PR
+- 출처: 002 clarify, PR #4
 - 대체한 판례: 없음
 
 ## 결정
