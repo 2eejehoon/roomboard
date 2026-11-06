@@ -19,7 +19,7 @@
 - **Decision**: `anthropics/claude-code-action@v1`(v1.0.268, 워크플로에는 커밋 SHA `c0949c50`로 고정).
   인증은 `claude_code_oauth_token`(운영자의 Claude 구독 사용량 = "토큰이 있는 만큼", 판례 agent-budget). 저장소 Secret
   `CLAUDE_CODE_OAUTH_TOKEN`.
-- 트리거(`issues: [opened, reopened, labeled]`) 조건:
+- 트리거(`issues: [reopened, labeled]`, 대기열용 `workflow_dispatch`) 조건(`opened`는 라벨 생성 시 `labeled`와 중복이라 제외):
   - `agent:skip` 라벨이 있으면 실행 안 함.
   - `agent:run` 라벨이 있으면 실행(라벨은 triage 이상 권한자만 붙일 수 있어 외부 사용자는 못 붙임).
   - `source:service` 라벨이 있고 `agent:gated` 라벨(Worker가 FR-015 조건 충족 시 붙임)이 있으면 실행.

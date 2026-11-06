@@ -7,10 +7,10 @@ import { shouldRunAgent } from '../src/core/agent-gate.ts';
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH ?? '', 'utf8'));
 const dispatch = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
 const issue = dispatch ? Number(event.inputs.issue) : event.issue.number;
-// Dispatch carries no labels, so read them fresh.
-const labels = dispatch
-  ? JSON.parse(execFileSync('gh', ['issue', 'view', String(issue), '--json', 'labels'], { encoding: 'utf8' })).labels.map((/** @type {{name: string}} */ l) => l.name)
-  : event.issue.labels.map((/** @type {{name: string}} */ l) => l.name);
+// Always read current labels: a run queued behind another carries a stale payload without agent:attempt-1.
+const labels = JSON.parse(execFileSync('gh', ['issue', 'view', String(issue), '--json', 'labels'], { encoding: 'utf8' })).labels.map(
+  (/** @type {{name: string}} */ l) => l.name,
+);
 
 const result = shouldRunAgent({ action: dispatch ? 'dispatch' : event.action, addedLabel: event.label?.name, labels });
 console.log(JSON.stringify({ issue, ...result }));

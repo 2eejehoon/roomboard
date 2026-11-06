@@ -2,7 +2,7 @@ name: agent-fix
 # 002 US2: fix agent. Run condition: src/core/agent-gate.ts. Contract: specs/002-auto-bugfix-loop/contracts/github.md
 on:
   issues:
-    types: [opened, reopened, labeled]
+    types: [reopened, labeled]
   workflow_dispatch:
     inputs:
       issue:
