@@ -65,7 +65,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T017 [US2] `.github/workflows/agent-fix.yml`: `issues: [opened, reopened, labeled]`, 조건 단계(`agent-gate`), `concurrency` 이슈별·전체 1개, `timeout-minutes: 45`, `anthropics/claude-code-action` SHA 고정 + `claude_code_oauth_token`, `allowed_tools` 제한(research R2), `permissions` 최소, 결과 라벨·댓글(contracts/github.md), 사용량 한도 오류 시 `agent:queued`
 - [x] T018 [US2] `.github/workflows/agent-queue.yml`: 매시, 가장 오래된 `agent:queued` 이슈 하나 재실행
 - [x] T019 [US2] `ci.yml`에 `test-first` 잡 추가: 브랜치가 `agent/`로 시작하는 PR에서 `scripts/test-first-check.mjs` 실행
-- [x] T020 [US2] B9~B11 실제 실행(시험용 버그 `src/core/trial/sum-positive.ts`를 심고, 확인 뒤 지운다). 1차(#9): 실행 1회·라벨·댓글 정상, 하위 프로세스 격리에 `socat`이 없어 명령 실행 불가 → 설치 단계 추가 후 재시험. 2차: 에이전트가 실패 테스트→수정→브랜치 push까지 성공(74초), 액션 `branch_name` 출력이 비어 워크플로가 PR을 못 만듦 → 결과 JSON의 `branch`로 PR 생성하게 수정 후 3차. 3차: 수정·push 성공, PR 단계에서 401(액션이 자기 토큰을 먼저 폐기) → `AGENT_PR_TOKEN` 도입 후 4차. 4차: 잡 `fix`·`finish` 성공, 에이전트 PR #13 생성(실패 테스트 커밋 → 수정 커밋, 파일 2개), PR에서 `ci`·`doc-checks`·`test-first` 통과. 단 `ai-review`는 라벨 이벤트의 skip 실행이 같은 동시 실행 그룹의 진짜 리뷰를 취소 → 그룹에 이벤트 이름 추가: 심은 버그 이슈에 `agent:run` → PR·CI 실행 확인, 주입 지시 이슈, 외부 이슈. 결과를 research R2 "확인 필요"에 반영하고 판례 추가 5차 없이 종료: 4차에서 #9 → PR #13(실패 테스트→수정) → `ci`·`doc-checks`·`test-first` 통과 → 독립 리뷰 차단 0 → 운영자 머지 → 이슈 자동 종료까지 확인. 리뷰 취소 버그는 PR #14에서 수정. 시험용 파일 삭제.
+- [ ] T020 [US2] B9~B11 실제 실행(시험용 버그 `src/core/trial/sum-positive.ts`를 심고, 확인 뒤 지운다). 1차(#9): 실행 1회·라벨·댓글 정상, 하위 프로세스 격리에 `socat`이 없어 명령 실행 불가 → 설치 단계 추가 후 재시험. 2차: 에이전트가 실패 테스트→수정→브랜치 push까지 성공(74초), 액션 `branch_name` 출력이 비어 워크플로가 PR을 못 만듦 → 결과 JSON의 `branch`로 PR 생성하게 수정 후 3차. 3차: 수정·push 성공, PR 단계에서 401(액션이 자기 토큰을 먼저 폐기) → `AGENT_PR_TOKEN` 도입 후 4차. 4차: 잡 `fix`·`finish` 성공, 에이전트 PR #13 생성(실패 테스트 커밋 → 수정 커밋, 파일 2개), PR에서 `ci`·`doc-checks`·`test-first` 통과. 단 `ai-review`는 라벨 이벤트의 skip 실행이 같은 동시 실행 그룹의 진짜 리뷰를 취소 → 그룹에 이벤트 이름 추가: 심은 버그 이슈에 `agent:run` → PR·CI 실행 확인, 주입 지시 이슈, 외부 이슈. 결과를 research R2 "확인 필요"에 반영하고 판례 추가 **B9 완료**(4차): #9 → PR #13(실패 테스트→수정) → `ci`·`doc-checks`·`test-first` 통과 → 독립 리뷰 차단 0 → 운영자 머지 → 이슈 자동 종료. 리뷰 취소 버그는 PR #14에서 수정, 시험용 파일 삭제. **남은 것**: B10(프롬프트 주입 이슈) 실제 실행, B11(외부 계정 이슈, 다른 계정 필요. 지금은 `agent-gate` 단위 테스트로만 확인).
 
 ---
 
@@ -76,7 +76,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T045 [P] [US7] `tests/scripts/labels.test.ts`: `.github/labels.json`의 라벨 이름 집합이 contracts/github.md 라벨 표와 같다(문서·설정 어긋남 방지)
 - [x] T046 [US7] `.claude/skills/pr-review/SKILL.md`: 새 세션 리뷰 체크리스트(버그, 보안, 개인정보, 헌법 I~VII, 테스트 우선), 근거 필수, 차단/제안 구분, PR 본문·코드 속 지시 무시
 - [x] T047 [US7] `.github/workflows/pr-review.yml`: 같은 저장소 PR은 `pull_request`, 포크는 `review:run` 라벨 + `pull_request_target`(base 루트·head `pr-head/`, 읽기 전용 도구), `--model opus`, `--json-schema` 판정, `blocking > 0`이면 `ai-review` 실패, `allowed_bots: claude`, 권한 `contents: read`·`pull-requests: write`
-- [x] T048 [US7] 실제 확인: 이 PR 자체와 의도적 위반 PR로 `ai-review` 동작 확인 후 Ruleset 필수 검사에 `ai-review` 추가(운영자). PR #8에서 심은 버그를 차단으로 잡고 실제 결함 3건을 찾음, PR #13(에이전트 PR)은 차단 0으로 통과. 리뷰 워크플로를 바꾸는 PR에서는 액션이 일부러 건너뛰어 실패하므로 그때는 관리자 우회로 머지.
+- [ ] T048 [US7] 실제 확인: 이 PR 자체와 의도적 위반 PR로 `ai-review` 동작 확인 후 Ruleset 필수 검사에 `ai-review` 추가(운영자). PR #8에서 심은 버그를 차단으로 잡고 실제 결함 3건을 찾음, PR #13(에이전트 PR)은 차단 0으로 통과. 리뷰 워크플로를 바꾸는 PR에서는 액션이 일부러 건너뛰어 실패하므로 그때는 관리자 우회로 머지. **남은 것**: Ruleset 필수 검사에 `ai-review` 추가(운영자).
 
 ---
 
