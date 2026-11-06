@@ -55,12 +55,15 @@ export const parseWordList = (text: string): string[] =>
     .filter((l) => l && !l.startsWith('#'));
 
 export function createChatFilter(words: string[]): (text: string) => string {
-  const patterns = words.map((w) => normalize([...w]).units.map((u) => u.ch)).filter((p) => p.length > 0);
+  // A particle may follow only a long word: "개 새끼야" yes, but "씨 발아" (germination) and "몇 시 팔아" are real sentences.
+  const patterns = words
+    .map((w) => ({ ch: normalize([...w]).units.map((u) => u.ch), takesEnding: [...w].length >= 3 }))
+    .filter((p) => p.ch.length > 0);
   return (text) => {
     const chars = [...text];
     const { units, wordStart, wordEnd } = normalize(chars);
     const masked = new Set<number>();
-    for (const p of patterns) {
+    for (const { ch: p, takesEnding } of patterns) {
       for (let i = 0; i + p.length <= units.length; i++) {
         const end = units[i + p.length - 1];
         // Whole source characters only: "조절" holds ㅈㅗㅈ but must not match "좆".
@@ -69,7 +72,7 @@ export function createChatFilter(words: string[]): (text: string) => string {
         // "push it", "a bit chilly", "포도 씨 발라" and "몇 시 팔아요" do not.
         if (units[i].word !== end.word) {
           const rest = chars.slice(end.src + 1, wordEnd[end.word] + 1).join('');
-          if (units[i].src !== wordStart[units[i].word] || (rest && !ENDINGS.has(rest))) continue;
+          if (units[i].src !== wordStart[units[i].word] || (rest && !(takesEnding && ENDINGS.has(rest)))) continue;
         }
         for (let s = units[i].src; s <= end.src; s++) masked.add(s);
       }

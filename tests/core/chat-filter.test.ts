@@ -44,7 +44,7 @@ describe('chat filter', () => {
   });
 
   it('does not join the end of one word to the start of the next', () => {
-    for (const s of ['몇 시 발표해?', '몇 시 팔아요?', '포도 씨 발라 먹어', '수박 씨 발라줘', 'push it', 'this hit', 'a bit chilly']) {
+    for (const s of ['몇 시 발표해?', '몇 시 팔아요?', '몇 시 팔아?', '포도 씨 발아 조건', '포도 씨 발라 먹어', '수박 씨 발라줘', 'push it', 'this hit', 'a bit chilly']) {
       expect(filter(s), s).toBe(s);
     }
     expect(f('씨 발 진짜')).toBe('*** 진짜');
