@@ -58,7 +58,7 @@ description: "Task list for 001-realtime-room-board"
 - [x] T019 [P] `tests/core/channels.test.ts`: `assignChannel(counts)` — 빈 방 → 1, `{1:20}` → 2, `{1:20, 2:5}` → 2, `{1:19, 2:20}` → 1, `{1:20, 2:20}` → 3 — 완료.
 - [x] T020 [P] `tests/core/movement.test.ts`: `validateMove(prev, next, now, bounds)` — 경계 밖 거부, 초속 8m 초과 거부, 정상 이동 허용 — 완료. 시간이 흐르지 않은 이동(같은 ms)은 제자리일 때만 허용.
 - [x] T021 [P] `tests/core/rate-bucket.test.ts`: 토큰 버킷 — 채팅 "10초에 5개"(6번째 거부, `retryAfterMs` 계산), 이동 "초당 10개" — 완료.
-- [x] T022 [P] `tests/core/chat-filter.test.ts`: 금칙어를 `*`로 가림, 공백·특수문자 끼워넣기·자모 분리 우회도 가림, 정상 문장은 그대로 — 완료. 매치는 원래 글자 단위(음절)로만 인정해서 "조절" 같은 말이 "좆"에 걸리지 않는다. 공백·기호를 건너뛰는 매치는 닿는 조각이 모두 한 글자일 때만(`씨 발`, `f u c k`) 인정해서 "몇 시 발표", "push it"은 그대로 둔다.
+- [x] T022 [P] `tests/core/chat-filter.test.ts`: 금칙어를 `*`로 가림, 공백·특수문자 끼워넣기·자모 분리 우회도 가림, 정상 문장은 그대로 — 완료. 매치는 원래 글자 단위(음절)로만 인정해서 "조절" 같은 말이 "좆"에 걸리지 않는다. 공백·기호를 건너뛰는 매치는 낱말 전체를 덮을 때만(`개 새끼`, `f u c k`) 인정해서 "몇 시 발표", "push it"은 그대로 둔다. 글자마다 NFKC를 거치고 NFD 한글도 같은 자모로 맞춘다.
 
 ### `src/core` — 구현
 
