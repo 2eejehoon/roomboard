@@ -33,7 +33,9 @@
   - `allowed_tools`를 좁힌다: 파일 편집, `git`, `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`만. `curl`·`wget`·임의
     네트워크 금지.
   - 워크플로 `permissions`: `contents: write`, `pull-requests: write`, `issues: write`만. 저장소 설정·Secrets·Actions 쓰기 없음.
-  - **기본 브랜치 보호(사용자 설정 필요)**: main에 PR 필수, 승인 1명, CI 통과 필수, force push 금지. 이게 있어야 FR-022가
+  - **기본 브랜치 보호(사용자 설정 필요)**: main 대상 Ruleset으로 PR 필수(승인 1명), CI 통과 필수, force push·삭제 차단.
+    운영자 혼자인 저장소라 자기 PR을 승인할 수 없으므로 우회 목록에 Repository admin만 둔다(에이전트는 우회 불가라 승인 없이
+    머지 못 함). CI 필수 검사는 GitHub가 최근 실행된 검사만 고를 수 있게 해서 CI 워크플로가 생긴 뒤 추가한다. 이게 있어야 FR-022가
     워크플로 설정 실수와 무관하게 보장된다.
 - **확인 필요**: 액션이 만든 PR에서 CI(`pull_request` 이벤트)가 도는지. 기본 `GITHUB_TOKEN`으로 만든 PR은 다른 워크플로를
   트리거하지 않는다. Claude GitHub App 토큰을 쓰는 기본 설정에서는 돈다고 알려져 있으나 첫 실행에서 확인한다.
