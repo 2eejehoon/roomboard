@@ -1,0 +1,443 @@
+openapi: 3.1.0
+info:
+  title: roomboard API
+  version: 1.0.0
+  description: |
+    실시간 3D 방 게시판 HTTP API. 실시간 이동·채팅은 WebSocket(websocket.md)으로 한다.
+    개인정보를 받지 않는다. 기기 키(deviceKey)는 랜덤 UUID이며 서버는 원문을 저장하지 않는다.
+    모든 오류 응답은 Error 스키마를 따른다.
+security: []   # 공개 API. 관리자 경로만 operation 단위로 adminToken
+servers:
+  - url: /api
+
+tags:
+  - name: rooms
+  - name: reports
+  - name: admin
+
+paths:
+  /rooms:
+    get:
+      tags: [rooms]
+      summary: 방 목록 (최신순, FR-001)
+      parameters:
+        - name: cursor
+          in: query
+          description: 이전 응답의 nextCursor
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+      responses:
+        '200':
+          description: 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/RoomSummary' }
+                  nextCursor:
+                    type: [string, 'null']
+    post:
+      tags: [rooms]
+      summary: 방 만들기 (FR-002~004)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateRoomRequest' }
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Room' }
+        '400': { $ref: '#/components/responses/Validation' }
+        '403': { $ref: '#/components/responses/TurnstileFailed' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rooms/{roomId}:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [rooms]
+      summary: 방 정보
+      responses:
+        '200':
+          description: 방
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Room' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+    patch:
+      tags: [rooms]
+      summary: 방 수정 (글 비밀번호, FR-005)
+      description: 테마를 바꾸면 roomData.objects가 새 테마 기본값으로 바뀌고, 접속 중인 참가자에게 room_updated가 전달된다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateRoomRequest' }
+      responses:
+        '200':
+          description: 수정됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Room' }
+        '400': { $ref: '#/components/responses/Validation' }
+        '403': { $ref: '#/components/responses/WrongPassword' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    delete:
+      tags: [rooms]
+      summary: 방 삭제 (글 비밀번호, FR-005, FR-016)
+      description: 접속 중인 참가자에게 room_deleted를 보내고 연결을 닫는다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { $ref: '#/components/schemas/Password' }
+      responses:
+        '204': { description: 삭제됨 }
+        '403': { $ref: '#/components/responses/WrongPassword' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /rooms/{roomId}/ws:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    get:
+      tags: [rooms]
+      summary: 방 실시간 연결 (WebSocket 업그레이드)
+      description: 메시지 형식은 contracts/websocket.md. 연결 후 첫 메시지는 join이어야 한다.
+      parameters:
+        - name: Upgrade
+          in: header
+          required: true
+          schema: { type: string, const: websocket }
+      responses:
+        '101': { description: 업그레이드 성공 }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        '426': { description: Upgrade 헤더 없음 }
+
+  /reports:
+    post:
+      tags: [reports]
+      summary: 방 또는 채팅 메시지 신고 (FR-040)
+      description: |
+        메시지 신고는 클라이언트가 받은 chat 메시지 필드와 서버 서명(sig)을 그대로 보내고, 서버가 서명을 검증한 뒤 스냅샷으로 저장한다
+        (서버는 채팅을 저장하지 않는다, research R14). 서명이 틀리거나 sentAt에서 24시간이 지났으면 400.
+        같은 기기·같은 대상의 중복 신고는 200 duplicate=true.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateReportRequest' }
+      responses:
+        '201':
+          description: 접수됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportAccepted' }
+        '200':
+          description: 이미 신고한 대상
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReportAccepted' }
+        '400': { $ref: '#/components/responses/Validation' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410':
+          description: 방이 삭제됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /admin/reports:
+    get:
+      tags: [admin]
+      summary: 신고 목록 (FR-041)
+      security: [{ adminToken: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, resolved], default: open }
+        - name: cursor
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, nextCursor]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Report' }
+                  nextCursor:
+                    type: [string, 'null']
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /admin/reports/{reportId}/resolve:
+    post:
+      tags: [admin]
+      summary: 신고 처리 완료 표시 (메시지 신고 숨김 처리 포함)
+      security: [{ adminToken: [] }]
+      parameters:
+        - name: reportId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: 처리됨 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /admin/rooms/{roomId}:
+    parameters:
+      - $ref: '#/components/parameters/RoomId'
+    delete:
+      tags: [admin]
+      summary: 관리자 방 삭제 (FR-041)
+      description: 방을 삭제하고 그 방의 open 신고를 모두 resolved로 바꾼다. 접속 중인 참가자에게 room_deleted.
+      security: [{ adminToken: [] }]
+      responses:
+        '204': { description: 삭제됨 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '410': { $ref: '#/components/responses/Gone' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+components:
+  securitySchemes:
+    adminToken:
+      type: http
+      scheme: bearer
+      description: 배포 비밀값 ADMIN_TOKEN. 상수 시간 비교, 실패 시 요청 횟수 제한(FR-042).
+
+  parameters:
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema: { $ref: '#/components/schemas/RoomId' }
+
+  schemas:
+    RoomId:
+      type: string
+      pattern: '^[A-Za-z0-9_-]{10}$'
+    ThemeId:
+      type: string
+      description: src/core/themes.ts에 정의된 id (v1 3개)
+    Password:
+      type: string
+      minLength: 4
+      maxLength: 64
+    DeviceKey:
+      type: string
+      format: uuid
+
+    RoomObject:
+      type: object
+      required: [id, assetId, position, rotationY, collider]
+      properties:
+        id: { type: string }
+        assetId: { type: string }
+        position:
+          type: array
+          items: { type: number }
+          minItems: 3
+          maxItems: 3
+        rotationY: { type: number }
+        scale: { type: number, default: 1 }
+        collider: { type: string, enum: [box, none] }
+
+    RoomData:
+      type: object
+      required: [version, themeId, objects]
+      properties:
+        version: { type: integer, const: 1 }
+        themeId: { $ref: '#/components/schemas/ThemeId' }
+        objects:
+          type: array
+          items: { $ref: '#/components/schemas/RoomObject' }
+
+    RoomSummary:
+      type: object
+      required: [id, title, themeId, onlineCount, createdAt]
+      properties:
+        id: { $ref: '#/components/schemas/RoomId' }
+        title: { type: string }
+        themeId: { $ref: '#/components/schemas/ThemeId' }
+        onlineCount: { type: integer, minimum: 0 }
+        createdAt: { type: integer, description: Unix ms }
+
+    Room:
+      allOf:
+        - $ref: '#/components/schemas/RoomSummary'
+        - type: object
+          required: [description, roomData, updatedAt]
+          properties:
+            description: { type: string }
+            roomData: { $ref: '#/components/schemas/RoomData' }
+            updatedAt: { type: integer }
+
+    CreateRoomRequest:
+      type: object
+      required: [title, themeId, password, turnstileToken]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, maxLength: 300, default: '' }
+        themeId: { $ref: '#/components/schemas/ThemeId' }
+        password: { $ref: '#/components/schemas/Password' }
+        turnstileToken: { type: string }
+
+    UpdateRoomRequest:
+      type: object
+      required: [password]
+      minProperties: 2
+      properties:
+        password: { $ref: '#/components/schemas/Password' }
+        title: { type: string, minLength: 1, maxLength: 60 }
+        description: { type: string, maxLength: 300 }
+        themeId: { $ref: '#/components/schemas/ThemeId' }
+
+    ReportReason:
+      type: string
+      enum: [spam, abuse, sexual, illegal, other]
+
+    CreateReportRequest:
+      type: object
+      required: [target, reason, deviceKey]
+      properties:
+        target:
+          oneOf:
+            - type: object
+              required: [type, roomId]
+              properties:
+                type: { const: room }
+                roomId: { $ref: '#/components/schemas/RoomId' }
+            - type: object
+              required: [type, roomId, message]
+              properties:
+                type: { const: message }
+                roomId: { $ref: '#/components/schemas/RoomId' }
+                message:
+                  type: object
+                  description: 받은 chat 메시지 그대로 (websocket.md)
+                  required: [messageId, nickname, text, sentAt, channel, sig]
+                  properties:
+                    messageId: { type: string }
+                    nickname: { type: string }
+                    text: { type: string }
+                    sentAt: { type: integer }
+                    channel: { type: integer }
+                    sig: { type: string, description: 'HMAC-SHA256 base64url' }
+        reason: { $ref: '#/components/schemas/ReportReason' }
+        deviceKey: { $ref: '#/components/schemas/DeviceKey' }
+
+    ReportAccepted:
+      type: object
+      required: [duplicate]
+      properties:
+        duplicate: { type: boolean }
+
+    Report:
+      type: object
+      required: [id, targetType, roomId, reason, status, createdAt, reportCount]
+      properties:
+        id: { type: integer }
+        targetType: { type: string, enum: [room, message] }
+        roomId: { $ref: '#/components/schemas/RoomId' }
+        roomTitle: { type: [string, 'null'] }
+        messageId: { type: [string, 'null'] }
+        messageSnapshot:
+          type: [object, 'null']
+          properties:
+            nickname: { type: string }
+            text: { type: string }
+            sentAt: { type: integer }
+            channel: { type: integer }
+        reason: { $ref: '#/components/schemas/ReportReason' }
+        status: { type: string, enum: [open, resolved] }
+        createdAt: { type: integer }
+        reportCount:
+          type: integer
+          description: 같은 대상에 대한 신고 수(기기별 1회)
+
+    Error:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum:
+            - validation
+            - turnstile_failed
+            - rate_limited
+            - wrong_password
+            - not_found
+            - gone
+            - unauthorized
+        fields:
+          type: object
+          additionalProperties: { type: string }
+          description: validation일 때 필드별 문구 키
+        retryAfterMs: { type: integer }
+
+  responses:
+    Validation:
+      description: 입력 오류
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    TurnstileFailed:
+      description: 봇 확인 실패
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: 요청 횟수 초과
+      headers:
+        Retry-After:
+          schema: { type: integer }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    WrongPassword:
+      description: 글 비밀번호 불일치
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: 없는 방 또는 대상
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Gone:
+      description: 삭제된 방
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: 관리자 토큰 없음 또는 불일치
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
