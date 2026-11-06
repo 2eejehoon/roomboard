@@ -40,6 +40,9 @@ jobs:
           ISSUE: ${{ steps.gate.outputs.issue }}
           ATTEMPT: ${{ steps.gate.outputs.attempt }}
         run: gh issue edit "$ISSUE" --add-label "agent:working,agent:attempt-$ATTEMPT" --remove-label agent:queued
+      # The subprocess sandbox (secret scrub + isolation) needs these; without them no command runs (T020 first trial).
+      - if: steps.gate.outputs.run == 'true'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
       - id: claude
         if: steps.gate.outputs.run == 'true'
         env:
