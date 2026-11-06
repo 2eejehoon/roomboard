@@ -1,0 +1,159 @@
+openapi: 3.1.0
+info:
+  title: roomboard bug report API
+  version: 1.0.0
+  description: |
+    001 API(specs/001-realtime-room-board/contracts/openapi.yaml)에 더하는 버그 리포트 경로.
+    공통 Error 스키마와 adminToken 보안은 001 계약을 따른다. 개인정보를 받지 않으며, 서버도 저장 전에 다시 가린다.
+security: []
+servers:
+  - url: /api
+
+paths:
+  /bug-reports:
+    post:
+      summary: 클라이언트 오류 자동 리포트 (FR-001~003)
+      description: 응답은 항상 202(수집 여부를 알려주지 않음). 요청 횟수 제한 초과도 202로 조용히 버린다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ClientErrorReport' }
+      responses:
+        '202': { description: 접수(또는 조용히 버림) }
+        '413': { description: 4KB 초과 }
+
+  /bug-reports/user:
+    post:
+      summary: 사용자 버그 신고 (FR-004, FR-014)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserBugReport' }
+      responses:
+        '201': { description: 접수 }
+        '400': { description: 입력 오류 }
+        '403': { description: 봇 확인 실패 }
+        '429': { description: 요청 횟수 초과 }
+
+  /admin/bug-reports:
+    get:
+      summary: 사용자 버그 신고 목록 (pending)
+      security: [{ adminToken: [] }]
+      responses:
+        '200':
+          description: 목록
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/UserBugReportView' }
+        '401': { description: 토큰 없음·틀림 }
+        '429': { description: 요청 횟수 초과 }
+
+  /admin/bug-reports/{id}/issue:
+    post:
+      summary: 운영자 요약으로 공개 이슈 만들기 (FR-014)
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, summary]
+              properties:
+                title: { type: string, minLength: 1, maxLength: 80 }
+                summary: { type: string, minLength: 1, maxLength: 2000, description: 운영자가 쓴 공개용 요약. 서버가 다시 가림 적용 }
+      responses:
+        '201':
+          description: 이슈 생성
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [issueNumber]
+                properties:
+                  issueNumber: { type: integer }
+        '401': { description: 토큰 없음·틀림 }
+        '404': { description: 없는 신고 }
+        '429': { description: 요청 횟수 초과 }
+        '502': { description: GitHub API 실패(신고는 pending 유지) }
+
+  /admin/bug-reports/{id}:
+    delete:
+      summary: 신고 버리기 (원문 즉시 삭제)
+      security: [{ adminToken: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      responses:
+        '204': { description: 삭제 }
+        '401': { description: 토큰 없음·틀림 }
+        '404': { description: 없는 신고 }
+
+components:
+  securitySchemes:
+    adminToken:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Frame:
+      type: object
+      required: [file, fn, line, col]
+      properties:
+        file: { type: string, maxLength: 200 }
+        fn: { type: string, maxLength: 100 }
+        line: { type: integer, minimum: 0 }
+        col: { type: integer, minimum: 0 }
+
+    ClientErrorReport:
+      type: object
+      required: [errorName, message, frames, appVersion, view, browser]
+      properties:
+        errorName: { type: string, maxLength: 100 }
+        message: { type: string, maxLength: 500, description: 클라이언트에서 가린 메시지 }
+        frames:
+          type: array
+          maxItems: 20
+          items: { $ref: '#/components/schemas/Frame' }
+        appVersion: { type: string, maxLength: 40 }
+        view: { type: string, enum: ['3d', '2d', 'board', 'admin'] }
+        browser: { type: string, enum: [chrome, safari, firefox, samsung, edge, other] }
+
+    UserBugReport:
+      type: object
+      required: [text, context, turnstileToken]
+      properties:
+        text: { type: string, minLength: 1, maxLength: 1000 }
+        context:
+          type: object
+          required: [view, appVersion, browser]
+          properties:
+            view: { type: string, enum: ['3d', '2d', 'board'] }
+            themeId: { type: string }
+            connection: { type: string, enum: [connecting, open, reconnecting, closed] }
+            recentFingerprints:
+              type: array
+              maxItems: 5
+              items: { type: string, pattern: '^[0-9a-f]{16}$' }
+            appVersion: { type: string, maxLength: 40 }
+            browser: { type: string, enum: [chrome, safari, firefox, samsung, edge, other] }
+        turnstileToken: { type: string }
+
+    UserBugReportView:
+      type: object
+      required: [id, text, context, createdAt, expiresAt]
+      properties:
+        id: { type: integer }
+        text: { type: string, description: '가린 원문, 비공개, 관리자만' }
+        context: { type: object }
+        createdAt: { type: integer }
+        expiresAt: { type: integer, description: createdAt + 30일 }
