@@ -19,14 +19,15 @@
 | ecctrl | 2.0.x | peer: fiber ≥9.4, rapier ≥2.2, three ≥0.184, react ≥19.2.7. `ecctrl/input`에 DOM 조이스틱 포함 |
 | hono | 4.13.x | Worker 라우팅 |
 | zod | 4.6.x | HTTP·WebSocket 입력 검증 |
-| vitest | **4.1.x** | 최신은 5.1이지만 `@cloudflare/vitest-pool-workers@0.23`가 `vitest ^4.1`만 지원 |
-| @cloudflare/vitest-pool-workers | 0.23.x | DO·Worker를 workerd 안에서 테스트 |
+| vitest | 5.1.x | |
+| @cloudflare/vitest-plugin | 1.6.x | DO·Worker를 workerd 안에서 테스트. `@cloudflare/vitest-pool-workers`의 새 이름(옛 패키지는 지원 종료), vitest `^4.1 \|\| ^5` 지원 |
+| eslint / typescript-eslint | 10.14 / 8.72 | typescript-eslint는 TypeScript `<6.1` 지원 |
 | @playwright/test | 1.65.x | 클라우드 세션에는 Chromium이 미리 설치됨 |
 | typescript | **6.0.x** | 7.0(네이티브 포트)은 나온 지 얼마 안 돼서 도구 호환이 검증될 때까지 6.0 사용 |
 | Node | 22 LTS | Actions·Codespaces 공통 |
 
 - **Decision**: 위 버전으로 고정하고 Renovate 같은 자동 업데이트는 v1 범위 밖이다.
-- **Alternatives**: vitest 5 — pool-workers 미지원이라 기각. TypeScript 7 — 기각(위 이유).
+- **Alternatives**: `@cloudflare/vitest-pool-workers` 0.23 + vitest 4.1 — 지원 종료 패키지라 기각(001 Setup 때 확인). TypeScript 7 — 기각(위 이유).
 
 ## R2. Cloudflare 무료 한도와 그 영향
 
@@ -145,7 +146,7 @@
 ## R12. 테스트 전략
 
 - `src/core` 순수 로직: Vitest(Node 환경). 채널 배정, 이동 검증, 토큰 버킷, 필터, 닉네임 생성, 프로토콜 파싱.
-- Worker·DO: `@cloudflare/vitest-pool-workers`로 workerd 안에서 실제 D1·DO 바인딩으로 테스트.
+- Worker·DO: `@cloudflare/vitest-plugin`으로 workerd 안에서 실제 D1·DO 바인딩으로 테스트.
 - E2E: Playwright, 개발 서버(Vite + Cloudflare 플러그인, workerd 로컬 실행)를 상대로 브라우저 컨텍스트
   2개 이상. 주로 2D 화면으로 검증하고, 3D는 개발 빌드 전용 `window.__roomboard` 테스트 훅으로 상태를
   읽는다. 테스트 훅은 `import.meta.env.DEV`로 감싸 프로덕션 번들에서 빠지는지 빌드 결과를 검사한다.

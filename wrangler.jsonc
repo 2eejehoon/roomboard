@@ -1,0 +1,9 @@
+// Cloudflare Worker config (specs/001-realtime-room-board/plan.md). Bindings (D1, Durable Object, rate limits) are
+// added by the tasks that use them.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "roomboard",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "assets": { "not_found_handling": "single-page-application", "run_worker_first": ["/api/*"] }
+}

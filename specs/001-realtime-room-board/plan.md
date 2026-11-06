@@ -21,7 +21,7 @@
 **Storage**: Cloudflare D1 (rooms, reports). 방 DO는 SQLite 백엔드 클래스로 선언하지만(무료 플랜 조건) v1에서는 DO 저장소에
 쓰지 않고 메모리·소켓 attachment만 쓴다. 기기 키는 localStorage.
 
-**Testing**: Vitest 4.1 (`core` Node 프로젝트 + `worker` 프로젝트 `@cloudflare/vitest-pool-workers` 0.23), Playwright 1.65
+**Testing**: Vitest 5.1 (`core` Node 프로젝트 + `worker` 프로젝트 `@cloudflare/vitest-plugin` 1.6), Playwright 1.65
 
 **Target Platform**: 최신 모바일·데스크톱 브라우저(Chrome, Safari, Samsung Internet, Firefox), Cloudflare Workers 무료 플랜으로 시작
 
