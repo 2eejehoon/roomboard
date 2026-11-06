@@ -21,7 +21,8 @@
 | `review:run` | 운영자 | 외부 포크 PR에 독립 리뷰 실행 허가 |
 
 에이전트 실행 조건: `agent:skip` 없음 AND (`agent:run` OR (`source:service` AND `agent:gated`) OR `source:user-report`) AND
-`agent:needs-human` 없음.
+`agent:needs-human` 없음. 라벨을 단 채 이슈를 만들면 `labeled` 이벤트도 오므로 `opened`는 듣지 않는다. 이미 시도한 이슈(`agent:attempt-1`)는
+라벨 추가로 다시 시작하지 않고, 재시도는 재오픈이나 대기열(`workflow_dispatch`)로만 한다.
 
 ## 자동 이슈 형식 (`source:service`)
 
@@ -55,7 +56,7 @@
 
 | 파일 | 이벤트 | 하는 일 |
 |---|---|---|
-| `.github/workflows/agent-fix.yml` | `issues: [opened, reopened, labeled]` | 실행 조건 확인 → 소스 위치 해석(비용 0 사전 단계, client만) → claude-code-action 실행 → 결과 댓글·라벨 |
+| `.github/workflows/agent-fix.yml` | `issues: [reopened, labeled]`, `workflow_dispatch` | 실행 조건 확인 → 소스 위치 해석(비용 0 사전 단계, client만) → claude-code-action 실행 → 결과 댓글·라벨 |
 | `.github/workflows/agent-queue.yml` | `schedule: 매시` | 가장 오래된 `agent:queued` 이슈 하나 재실행 |
 | `.github/workflows/mistake-tally.yml` | `pull_request: closed(merged)`, `pull_request_review_comment: created` | `cause:`/`[mistake:]` 집계, 2회째면 `kind:guardrail`+`agent:run` 이슈 |
 | `.github/workflows/doc-checks.yml` | `pull_request` | `scripts/check-docs.mjs` (contracts/doc-checks.md) |
