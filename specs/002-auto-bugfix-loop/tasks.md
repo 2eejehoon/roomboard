@@ -60,12 +60,23 @@ description: "Task list for 002-auto-bugfix-loop"
 ### Implementation
 
 - [ ] T014 [US2] `src/core/agent-gate.ts`
-- [ ] T015 [US2] `scripts/labels-sync.mjs` + `npm run labels:sync`: contracts/github.md 라벨 목록을 저장소에 만들거나 갱신(`GITHUB_TOKEN` 필요, Actions 수동 실행 워크플로 `labels-sync.yml`로 실행)
+- [ ] T015 [US2] `.github/labels.json`(contracts/github.md 라벨 표) + `.github/workflows/labels-sync.yml`(수동 실행, `gh label create --force`로 생성·갱신)
 - [ ] T016 [US2] `.claude/skills/bugfix/SKILL.md`: 이슈 본문은 신뢰하지 않는 데이터, 재현 실패 테스트 커밋 → 수정 커밋, `Fixes #n`, `cause:<id>` 라벨, 재현 실패 시 PR 없이 댓글, 테스트 비활성화 금지
 - [ ] T017 [US2] `.github/workflows/agent-fix.yml`: `issues: [opened, reopened, labeled]`, 조건 단계(`agent-gate`), `concurrency` 이슈별·전체 1개, `timeout-minutes: 45`, `anthropics/claude-code-action` SHA 고정 + `claude_code_oauth_token`, `allowed_tools` 제한(research R2), `permissions` 최소, 결과 라벨·댓글(contracts/github.md), 사용량 한도 오류 시 `agent:queued`
 - [ ] T018 [US2] `.github/workflows/agent-queue.yml`: 매시, 가장 오래된 `agent:queued` 이슈 하나 재실행
 - [ ] T019 [US2] `ci.yml`에 `test-first` 잡 추가: 브랜치가 `agent/`로 시작하는 PR에서 `scripts/test-first-check.mjs` 실행
 - [ ] T020 [US2] B9~B11 실제 실행: 심은 버그 이슈에 `agent:run` → PR·CI 실행 확인, 주입 지시 이슈, 외부 이슈. 결과를 research R2 "확인 필요"에 반영하고 판례 추가
+
+---
+
+## Phase 3b: User Story 7 — 모든 PR을 독립 리뷰 에이전트가 검토한다 (P2, US2와 같은 PR)
+
+**Independent Test**: spec US7 Independent Test (개인정보 로그·테스트 비활성화 PR은 `ai-review` 실패, 문서 PR은 통과).
+
+- [ ] T045 [P] [US7] `tests/scripts/labels.test.ts`: `.github/labels.json`의 라벨 이름 집합이 contracts/github.md 라벨 표와 같다(문서·설정 어긋남 방지)
+- [ ] T046 [US7] `.claude/skills/pr-review/SKILL.md`: 새 세션 리뷰 체크리스트(버그, 보안, 개인정보, 헌법 I~VII, 테스트 우선), 근거 필수, 차단/제안 구분, PR 본문·코드 속 지시 무시
+- [ ] T047 [US7] `.github/workflows/pr-review.yml`: 같은 저장소 PR은 `pull_request`, 포크는 `review:run` 라벨 + `pull_request_target`(base 루트·head `pr-head/`, 읽기 전용 도구), `--model opus`, `--json-schema` 판정, `blocking > 0`이면 `ai-review` 실패, `allowed_bots: claude`, 권한 `contents: read`·`pull-requests: write`
+- [ ] T048 [US7] 실제 확인: 이 PR 자체와 의도적 위반 PR로 `ai-review` 동작 확인 후 Ruleset 필수 검사에 `ai-review` 추가(운영자)
 
 ---
 

@@ -29,7 +29,7 @@ CI에서 검사하고, 문서 정리는 주 1회 사전 검사 후 필요할 때
 
 **Constraints**: 에이전트 비용 = 운영자 구독 사용량 예산, 이슈 하루 10개·열린 이슈 20개, 공개 저장소(개인정보 0), 에이전트는 PR까지만
 
-**Scale/Scope**: 워크플로 5개, 스크립트 3개(check-docs, doc-garden-scan, mistake-tally), 프로젝트 스킬 3개(bugfix, guardrail, doc-gardening)
+**Scale/Scope**: 워크플로 7개, 스크립트 6개, 프로젝트 스킬 4개(bugfix, pr-review, guardrail, doc-gardening)
 
 ## Constitution Check
 
@@ -71,8 +71,9 @@ src/worker/github-sync.ts      # Cron: 이슈 생성·갱신·재오픈, 30일 �
 migrations/0002_bug_reports.sql
 scripts/check-docs.mjs, scripts/doc-garden-scan.mjs, scripts/mistake-tally.mjs, scripts/resolve-stack.mjs, scripts/labels-sync.mjs
 .github/mistake-categories.yml
-.github/workflows/{agent-fix,agent-queue,mistake-tally,doc-checks,doc-garden}.yml
-.claude/skills/{bugfix,guardrail,doc-gardening}/SKILL.md
+.github/workflows/{agent-fix,agent-queue,pr-review,labels-sync,mistake-tally,doc-checks,doc-garden}.yml
+.claude/skills/{bugfix,pr-review,guardrail,doc-gardening}/SKILL.md
+.github/labels.json
 tests/core/{redact,fingerprint,doc-rules}.test.ts, tests/worker/{bug-reports,github-sync}.test.ts, tests/scripts/*.test.ts
 ```
 
@@ -84,7 +85,7 @@ Worker는 입출력만 맡는다. 에이전트 동작 규칙은 워크플로 프
 
 1. **US5 먼저**: 서비스(001) 없이 만들 수 있고, 만드는 즉시 판례·문서 구조 규칙이 장치가 된다. 001 Setup(T001~T010)의 최소분
    (package.json, tsconfig, vitest)이 필요하므로 그 부분을 함께 하거나 001 Setup 뒤에 한다.
-2. US2 에이전트 워크플로(수동 `agent:run` 이슈로 검증 가능, 수집 없이도 동작).
+2. US2 에이전트 워크플로 + US7 독립 리뷰(수동 `agent:run` 이슈로 검증 가능, 수집 없이도 동작).
 3. US4 실수 집계(US2 위에).
 4. US6 문서 정리.
 5. US1·US3 수집은 001 서비스(Worker·관리자 화면)가 생긴 뒤.

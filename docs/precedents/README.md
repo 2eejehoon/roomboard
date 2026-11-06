@@ -22,6 +22,7 @@
 | [2026-11-06-issue-token-pat](2026-11-06-issue-token-pat.md) | 자동 이슈 생성은 fine-grained PAT | 유효 |
 | [2026-11-06-doc-checks-first](2026-11-06-doc-checks-first.md) | 002는 문서 검사(US5)부터 구현 | 유효 |
 | [2026-11-06-doc-structure-table-globs](2026-11-06-doc-structure-table-globs.md) | 문서 구조 표를 경로 패턴으로 다시 씀 (헌법 1.1.1) | 유효 |
+| [2026-11-06-independent-pr-review](2026-11-06-independent-pr-review.md) | 모든 PR에 독립 리뷰 에이전트, 모델은 운영자 설정대로 | 유효 |
 
 ## 판례 쓰는 법
 
