@@ -53,6 +53,9 @@ describe('chat filter', () => {
     expect(filter('개 새끼')).toBe('****');
     expect(filter('저 미친 놈')).toBe('저 ****');
     expect(f('fu ck')).toBe('*****');
+    expect(filter('개 새끼야')).toBe('****야');
+    expect(filter('미친 놈아')).toBe('****아');
+    expect(filter('씨 발놈아')).toBe('***놈아');
   });
 
   it('masks NFD Hangul and full-width letters', () => {

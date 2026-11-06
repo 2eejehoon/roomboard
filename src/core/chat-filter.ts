@@ -53,6 +53,7 @@ export const parseWordList = (text: string): string[] =>
 
 export function createChatFilter(words: string[]): (text: string) => string {
   const patterns = words.map((w) => normalize([...w]).units.map((u) => u.ch)).filter((p) => p.length > 0);
+  const latinEnd = (p: string[]) => /[a-z0-9]/.test(p[p.length - 1]);
   return (text) => {
     const chars = [...text];
     const { units, wordStart, wordEnd } = normalize(chars);
@@ -62,8 +63,10 @@ export function createChatFilter(words: string[]): (text: string) => string {
         const end = units[i + p.length - 1];
         // Whole source characters only: "조절" holds ㅈㅗㅈ but must not match "좆".
         if (!units[i].first || !end.last || p.some((ch, j) => units[i + j].ch !== ch)) continue;
-        // Across a gap only whole words count ("개 새끼", "f u c k"), never part of one ("몇 시 발표", "push it").
-        if (units[i].word !== end.word && (units[i].src !== wordStart[units[i].word] || end.src !== wordEnd[end.word])) continue;
+        // Across a gap the match starts a word ("개 새끼야", "f u c k", not "push it"). Korean endings attach to the last word, so
+        // only Latin words must also end there ("a bit chilly").
+        const crossesGap = units[i].word !== end.word;
+        if (crossesGap && (units[i].src !== wordStart[units[i].word] || (latinEnd(p) && end.src !== wordEnd[end.word]))) continue;
         for (let s = units[i].src; s <= end.src; s++) masked.add(s);
       }
     }

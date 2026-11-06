@@ -26,6 +26,12 @@ describe('createRoomRequest (openapi CreateRoomRequest)', () => {
     expect(ok(createRoomRequest, { ...room, ...patch })).toBe(false);
   });
 
+  it('title and description limits count characters, not UTF-16 units', () => {
+    expect(ok(createRoomRequest, { ...room, title: '😀'.repeat(60), description: '😀'.repeat(300) })).toBe(true);
+    expect(ok(createRoomRequest, { ...room, title: '😀'.repeat(61) })).toBe(false);
+    expect(ok(createRoomRequest, { ...room, description: '😀'.repeat(301) })).toBe(false);
+  });
+
   it('accepts the length limits exactly', () => {
     expect(ok(createRoomRequest, { ...room, title: 'a'.repeat(60), description: 'a'.repeat(300), password: 'a'.repeat(64) })).toBe(true);
     expect(ok(createRoomRequest, { ...room, password: 'abcd' })).toBe(true);
