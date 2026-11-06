@@ -10,7 +10,9 @@ permissions:
   pull-requests: write
   id-token: write
 concurrency:
-  group: pr-review-${{ github.event.pull_request.number }}
+  # Event name in the group: a PR opened with a label also fires pull_request_target 'labeled', which is skipped for
+  # same-repo PRs and must not cancel the real review (T020 fourth trial).
+  group: pr-review-${{ github.event_name }}-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 jobs:
   ai-review:
