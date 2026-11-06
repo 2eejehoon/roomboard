@@ -61,7 +61,7 @@ describe('scripts/check-docs.mjs', () => {
   it('B3: fails when the constitution exceeds its cap or a spec has Clarifications', () => {
     const b = commit('base');
     const c = '.specify/memory/constitution.md';
-    write(c, `${readFileSync(join(repo, c), 'utf8')}${'\n'.repeat(200)}`);
+    write(c, `${readFileSync(join(repo, c), 'utf8')}${'줄\n'.repeat(60)}`);
     const s = 'specs/002-auto-bugfix-loop/spec.md';
     write(s, `${readFileSync(join(repo, s), 'utf8')}\n## Clarifications\n`);
     commit('head');

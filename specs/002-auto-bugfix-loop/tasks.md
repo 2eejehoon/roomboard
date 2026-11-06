@@ -18,11 +18,11 @@ description: "Task list for 002-auto-bugfix-loop"
 
 **Purpose**: US5에 필요한 만큼만. 001 Setup(T001~T010)의 일부를 먼저 하고, 나머지는 001 구현 때 같은 파일을 넓힌다.
 
-- [ ] T001 `package.json`: 001 research R1 버전 고정 중 지금 쓰는 것만(`typescript` 6.0, `vitest` 4.1, `yaml` 2.9), `"type": "module"`, `"engines": {"node": ">=22.12"}`, 스크립트 `typecheck`, `test`, `check:docs` (001 T001의 일부)
-- [ ] T002 `tsconfig.json`: strict, ES2022, `moduleResolution: bundler`, `allowJs`+`checkJs`(스크립트도 타입 검사) (001 T002의 일부)
-- [ ] T003 [P] `vitest.config.ts`: `core` 프로젝트(Node, `tests/core/**`, `tests/scripts/**`) (001 T005의 일부)
-- [ ] T004 [P] `.gitignore`(`node_modules/`, `.dev.vars`, `.env`, `.wrangler/`, `test-results/`, `dist/`), `.devcontainer/devcontainer.json`(Node 22) (001 T008·T009의 일부)
-- [ ] T005 [P] `.github/workflows/ci.yml`: PR·main push마다 `npm ci` → `typecheck` → `test` (001 T010의 일부, 001 구현 때 lint·build·e2e 추가)
+- [x] T001 `package.json`: 001 research R1 버전 고정 중 지금 쓰는 것만(`typescript` 6.0, `vitest` 4.1, `@types/node` 22; `yaml`은 US4에서 추가), `"type": "module"`, `"engines": {"node": ">=22.18"}`(스크립트가 Node 기본 타입 제거로 .ts를 import), 스크립트 `typecheck`, `test`, `check:docs` (001 T001의 일부)
+- [x] T002 `tsconfig.json`: strict, ES2022, `moduleResolution: bundler`, `allowJs`+`checkJs`(스크립트도 타입 검사) (001 T002의 일부)
+- [x] T003 [P] `vitest.config.ts`: `core` 프로젝트(Node, `tests/core/**`, `tests/scripts/**`) (001 T005의 일부)
+- [x] T004 [P] `.gitignore`(`node_modules/`, `.dev.vars`, `.env`, `.wrangler/`, `test-results/`, `dist/`), `.devcontainer/devcontainer.json`(Node 22) (001 T008·T009의 일부)
+- [x] T005 [P] `.github/workflows/ci.yml`: PR·main push마다 `npm ci` → `typecheck` → `test` (001 T010의 일부, 001 구현 때 lint·build·e2e 추가)
 
 ---
 
@@ -34,15 +34,15 @@ description: "Task list for 002-auto-bugfix-loop"
 
 ### Tests (먼저)
 
-- [ ] T006 [P] [US5] `tests/core/doc-rules.test.ts`: 순수 함수 `checkDocs({changes, files, baseFiles, labels})` — D1 헌법·`specs/**/spec.md`·`specs/**/plan.md` 변경에 새 판례 없으면 위반, `no-precedent` 라벨이면 D1만 건너뜀; D2 base에 있던 판례의 변경이 맨 끝 `대체됨: <파일>` 한 줄 추가면 통과, 다른 변경은 위반; D3 이름 `YYYY-MM-DD-<slug>.md` 형식, 필수 항목(날짜·대상·출처·대체한 판례·결정·이유·검토한 대안), 40줄 초과; D4 README 목록과 파일 불일치(양방향); D5 헌법 "문서 구조" 표 파싱(`없음`은 건너뜀, `파일당 N줄`·`N줄` 파싱, 글롭 `specs/<feature>/...` 대응) 후 초과; D6 `## Clarifications` 존재. 모든 위반 문구에 고치는 방법 포함
-- [ ] T007 [P] [US5] `tests/scripts/check-docs.test.ts`: 임시 git 저장소에서 base·head 커밋을 만들어 `scripts/check-docs.mjs --base --head` 종료 코드(0/1)와 출력 확인. B1(판례 없이 spec 수정), B2(머지된 판례 본문 수정), B3(헌법 201줄, spec에 Clarifications), B4(`--labels no-precedent` 오타 수정) 재현
+- [x] T006 [P] [US5] `tests/core/doc-rules.test.ts`: 순수 함수 `checkDocs({changes, files, baseFiles, labels})` — D1 헌법·`specs/**/spec.md`·`specs/**/plan.md` 변경에 새 판례 없으면 위반, `no-precedent` 라벨이면 D1만 건너뜀; D2 base에 있던 판례의 변경이 맨 끝 `대체됨: <파일>` 한 줄 추가면 통과, 다른 변경은 위반; D3 이름 `YYYY-MM-DD-<slug>.md` 형식, 필수 항목(날짜·대상·출처·대체한 판례·결정·이유·검토한 대안), 40줄 초과; D4 README 목록과 파일 불일치(양방향); D5 헌법 "문서 구조" 표 파싱(`없음`은 건너뜀, `파일당 N줄`·`N줄` 파싱, 글롭 `specs/<feature>/...` 대응) 후 초과; D6 `## Clarifications` 존재. 모든 위반 문구에 고치는 방법 포함
+- [x] T007 [P] [US5] `tests/scripts/check-docs.test.ts`: 임시 git 저장소에서 base·head 커밋을 만들어 `scripts/check-docs.mjs --base --head` 종료 코드(0/1)와 출력 확인. B1(판례 없이 spec 수정), B2(머지된 판례 본문 수정), B3(헌법 201줄, spec에 Clarifications), B4(`--labels no-precedent` 오타 수정) 재현
 
 ### Implementation
 
-- [ ] T008 [US5] `src/core/doc-rules.ts`: T006을 통과하는 순수 검사 로직(외부 의존 없음)
-- [ ] T009 [US5] `scripts/check-docs.mjs`: `git diff --name-status base...head`와 `git show`로 입력을 모아 `checkDocs` 호출, 위반을 출력하고 종료 코드 반환. `--labels` 인자로 PR 라벨 전달
-- [ ] T010 [US5] `.github/workflows/doc-checks.yml`: `pull_request`(opened, synchronize, reopened, labeled, unlabeled)에서 `fetch-depth: 0`, `npm ci`, `node scripts/check-docs.mjs --base origin/${{ base_ref }} --head HEAD --labels "<PR 라벨 쉼표 목록>"`
-- [ ] T011 [US5] 현재 main 문서 전체에 검사를 돌려 위반이 있으면 이 PR에서 고친다(예외 목록 없음)
+- [x] T008 [US5] `src/core/doc-rules.ts`: T006을 통과하는 순수 검사 로직(외부 의존 없음)
+- [x] T009 [US5] `scripts/check-docs.mjs`: `git diff --name-status base...head`와 `git show`로 입력을 모아 `checkDocs` 호출, 위반을 출력하고 종료 코드 반환. `--labels` 인자로 PR 라벨 전달
+- [x] T010 [US5] `.github/workflows/doc-checks.yml`: `pull_request`(opened, synchronize, reopened, labeled, unlabeled)에서 `fetch-depth: 0`, `npm ci`, `node scripts/check-docs.mjs --base origin/${{ base_ref }} --head HEAD --labels "<PR 라벨 쉼표 목록>"`
+- [x] T011 [US5] 현재 main 문서 전체에 검사를 돌려 위반이 있으면 이 PR에서 고친다(예외 목록 없음)
 
 **Checkpoint**: 판례 규칙이 CI 검사가 된다. 사용자는 Ruleset 필수 검사에 `ci`·`doc-checks`를 추가한다.
 
