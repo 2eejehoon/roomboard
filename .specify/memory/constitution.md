@@ -1,50 +1,95 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# roomboard Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. 클라우드 전용 작업 (로컬 설치 금지)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+- 개발자의 로컬 기기(Mac 등)에 런타임, 패키지, CLI, 브라우저 등 어떤 것도 설치하지 MUST NOT.
+- 모든 개발·빌드·테스트·배포는 Claude Code 웹 세션, GitHub Codespaces, GitHub Actions에서만
+  수행한다 (MUST).
+- 프로젝트를 돌리는 데 필요한 도구와 절차는 저장소 안(설정 파일, 스크립트, 워크플로)에 기록해서
+  위 세 환경 어디서든 같은 방법으로 재현할 수 있어야 한다 (MUST).
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+근거: 작업 환경을 저장소와 클라우드에 고정하면 어느 세션에서든 이어서 작업할 수 있고, 로컬 상태에
+기대는 "내 컴퓨터에서는 된다" 문제가 생기지 않는다.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. 개인정보 미수집
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+- 로그인 기능을 두지 MUST NOT. 이메일, 전화번호, 실명, IP 주소 등 개인을 식별할 수 있는 정보를
+  수집하거나 저장하지 MUST NOT (로그, 분석 도구, 오류 리포트 포함).
+- 사용자 신원은 기기별 랜덤 키와 랜덤 닉네임으로만 표현한다 (MUST).
+- 글 수정·삭제 비밀번호는 솔트를 둔 단방향 해시로만 저장한다 (MUST). 평문 저장은 금지한다.
+- 요청 횟수 제한과 봇 방지는 식별자를 저장하지 않는 방식(엣지 레이트 리밋, Cloudflare Turnstile)으로
+  한다 (MUST).
+- 새 데이터 필드를 추가하는 변경은 PR에서 "개인정보 아님"을 명시해야 한다 (MUST).
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+근거: 실제 사용자를 받는 서비스에서 개인정보를 아예 갖지 않는 것이 가장 강한 보호이고, 법적·운영
+부담도 없앤다.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. 테스트 우선 (NON-NEGOTIABLE)
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- 기능 코드보다 테스트를 먼저 작성하고, 실패를 확인한 뒤 구현한다 (Red → Green → Refactor, MUST).
+- unit 테스트는 Vitest로 작성한다. 방 상태 로직, Durable Object, API 핸들러를 포함한다 (MUST).
+- E2E 테스트는 Playwright로 작성한다. 멀티플레이 기능은 브라우저 컨텍스트 2개 이상으로 검증한다
+  (MUST).
+- 모든 테스트는 GitHub Actions에서 PR마다 실행되고, 실패하면 머지하지 MUST NOT.
+- 테스트를 건너뛰거나 비활성화해서 통과시키는 것을 금지한다 (MUST NOT).
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+근거: 실시간 멀티플레이는 수동 확인으로 회귀를 잡기 어렵다. 테스트가 먼저 있어야 스펙과 동작이
+어긋나지 않는다.
+
+### IV. 렌더링과 방 상태 로직 분리
+
+- 방 상태(참가자, 위치, 채팅, 오브젝트, 채널 배정 등)를 다루는 로직은 React, Three.js, React Three
+  Fiber, DOM에 의존하지 않는 순수 모듈로 둔다 (MUST).
+- 렌더링 계층(3D, 2D)은 상태 로직을 읽고 입력을 전달만 하며, 상태 규칙을 직접 구현하지 MUST NOT.
+- 상태 로직은 렌더러 없이 unit 테스트로 검증한다 (MUST).
+- E2E 검증용 상태 접근은 개발 빌드 전용 테스트 훅으로만 제공하고, 프로덕션 빌드에는 포함하지
+  MUST NOT.
+- 방은 데이터(JSON: 테마 id + 오브젝트 목록)로 표현한다 (MUST). 렌더러는 이 데이터를 해석할 뿐이다.
+
+근거: WebGL 화면은 자동 검증이 어렵다. 로직을 분리하면 핵심 규칙을 빠르게 unit 테스트할 수 있고,
+3D와 2D가 같은 상태를 공유할 수 있다.
+
+### V. 2D 대체 화면 필수
+
+- 3D 방을 보여주는 모든 화면에는 같은 방 상태를 보여주는 2D 텍스트 대체 화면이 있어야 한다 (MUST).
+- WebGL을 쓸 수 없는 환경에서는 2D 화면으로 자동 전환한다 (MUST). 사용자가 직접 2D로 전환할 수도
+  있어야 한다 (MUST).
+- 3D에서 할 수 있는 핵심 행동(방 입장, 참가자 확인, 채팅, 신고)은 2D에서도 할 수 있어야 한다 (MUST).
+- 2D 화면은 시맨틱 HTML로 만들어 스크린 리더와 검색 엔진이 읽을 수 있어야 한다 (MUST).
+
+근거: 접근성, SEO, 저사양 기기 지원, 그리고 E2E 테스트의 안정적인 검증 대상이 모두 2D 화면에서 나온다.
+
+## 제품·품질 제약
+
+- 기술 스택: Vite + React + React Three Fiber, Rapier, Cloudflare Workers + Durable Objects(방 1개 =
+  DO 1개, WebSocket), Cloudflare D1. 스택 변경은 plan 단계에서 근거와 함께 기록한다.
+- 3D 에셋은 CC0 라이선스만 사용한다 (MUST). 출처를 저장소에 기록한다.
+- 화면 문구는 처음부터 i18n 구조로 작성한다 (MUST). 하드코딩된 사용자 노출 문자열을 금지한다.
+  첫 언어는 한국어다.
+- PC(키보드)와 모바일(가상 조이스틱) 입력을 모두 지원한다 (MUST).
+- 사용자 생성 콘텐츠(글, 채팅)에는 욕설 필터, 신고 경로, 요청 횟수 제한, 관리자 삭제 경로가 있어야
+  한다 (MUST).
+
+## 개발 워크플로
+
+- 기본 브랜치(main)에 직접 커밋하거나 force push 하지 MUST NOT. 모든 변경은 브랜치 → PR로 한다.
+- 기능 작업은 Spec Kit 흐름을 따른다: `/speckit-specify` → `/speckit-clarify` → `/speckit-plan` →
+  `/speckit-tasks` → `/speckit-implement`.
+- 코드와 스펙이 어긋나면 스펙을 먼저 고치고 코드를 맞춘다. 스펙에 없는 기능은 추가하지 MUST NOT.
+- 산출물: 화면정의서(spec + 디자인 시안), API 명세서(`contracts/openapi.yaml`과 WebSocket 메시지
+  명세), unit·E2E 테스트.
+- PR마다 미리보기 배포를 만들어 실제 휴대폰으로 확인할 수 있어야 한다 (MUST).
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- 이 헌법은 다른 모든 관행보다 우선한다. Spec Kit 산출물(`constitution.md`, `specs/<feature>/`)이
+  요구사항·설계·작업의 진실의 원천이며, 이슈 #1은 기록용이다.
+- 개정은 PR로만 하며, 변경 이유와 영향받는 스펙·템플릿을 PR 설명에 적는다.
+- 버전은 시맨틱 버저닝을 따른다. MAJOR: 원칙 삭제·재정의, MINOR: 원칙·섹션 추가나 실질적 확장,
+  PATCH: 문구 수정.
+- 모든 PR 리뷰는 이 헌법 준수 여부를 확인한다. plan의 Constitution Check에서 위반이 있으면 근거를
+  기록하거나 설계를 바꾼다.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-06
