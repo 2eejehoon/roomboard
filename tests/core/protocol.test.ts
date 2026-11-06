@@ -66,5 +66,14 @@ describe('parseClientMessage', () => {
     expect(parseClientMessage(frame('a'.repeat(2049 - base)))).toEqual({ ok: false, reason: 'too_large' });
     // 700 Korean chars are 2,100 bytes but only 700 UTF-16 units.
     expect(parseClientMessage(frame('가'.repeat(700)))).toEqual({ ok: false, reason: 'too_large' });
+    // Same count as Node's UTF-8 encoder, including emoji pairs and lone surrogates (3-byte replacement character).
+    const raw = (fill: string) => `{"t":"chat","text":"x","pad":"${fill}"}`;
+    for (const unit of ['😀', '\uD800가', 'a\uDC00']) {
+      const n = Math.floor((2048 - Buffer.byteLength(raw(''))) / Buffer.byteLength(unit));
+      for (const count of [n, n + 1]) {
+        const frame = raw(unit.repeat(count));
+        expect(parseClientMessage(frame).ok, `${count}× ${JSON.stringify(unit)}`).toBe(Buffer.byteLength(frame) <= 2048);
+      }
+    }
   });
 });
