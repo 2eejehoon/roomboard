@@ -15,6 +15,9 @@
 | [2026-11-06-user-bug-report-review](2026-11-06-user-bug-report-review.md) | 사용자 버그 신고는 운영자 검토 후 이슈화 | 유효 |
 | [2026-11-06-recurrence-signal](2026-11-06-recurrence-signal.md) | 재발 판단은 버그 원인 분류 + PR 리뷰 지적 | 유효 |
 | [2026-11-06-agent-budget](2026-11-06-agent-budget.md) | 에이전트 실행은 사용량 예산이 남는 만큼 | 유효 |
+| [2026-11-06-agent-runner-action](2026-11-06-agent-runner-action.md) | 수정 에이전트는 GitHub Actions의 claude-code-action | 유효 |
+| [2026-11-06-issue-token-pat](2026-11-06-issue-token-pat.md) | 자동 이슈 생성은 fine-grained PAT | 유효 |
+| [2026-11-06-doc-checks-first](2026-11-06-doc-checks-first.md) | 002는 문서 검사(US5)부터 구현 | 유효 |
 
 ## 판례 쓰는 법
 
