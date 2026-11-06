@@ -18,3 +18,20 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+  test-first:
+    # FR-021: on fix-agent PRs the first commit must add a test that fails there and passes at head.
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - env:
+          BASE_REF: ${{ github.base_ref }}
+        run: node scripts/test-first-check.mjs --base "origin/$BASE_REF" --head HEAD

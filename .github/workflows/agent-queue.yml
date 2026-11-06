@@ -1,0 +1,22 @@
+name: agent-queue
+# Re-runs the oldest agent:queued issue once an hour (002 FR-024).
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  issues: write
+  actions: write
+jobs:
+  dequeue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - run: |
+          n=$(gh issue list --label agent:queued --state open --json number,createdAt --jq 'sort_by(.createdAt) | .[0].number // empty')
+          [ -z "$n" ] && exit 0
+          gh issue edit "$n" --remove-label agent:queued
+          gh workflow run agent-fix.yml -f issue="$n"

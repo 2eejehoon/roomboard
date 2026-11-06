@@ -16,7 +16,7 @@
 
 ## R2. 에이전트 실행 방식
 
-- **Decision**: `anthropics/claude-code-action@v1`(조사 시점 최신 v1.0.149, 워크플로에는 커밋 SHA로 고정).
+- **Decision**: `anthropics/claude-code-action@v1`(v1.0.268, 워크플로에는 커밋 SHA `c0949c50`로 고정).
   인증은 `claude_code_oauth_token`(운영자의 Claude 구독 사용량 = "토큰이 있는 만큼", 판례 agent-budget). 저장소 Secret
   `CLAUDE_CODE_OAUTH_TOKEN`.
 - 트리거(`issues: [opened, reopened, labeled]`) 조건:
@@ -30,6 +30,9 @@
   오래된 `agent:queued` 이슈 하나를 다시 실행한다.
 - **위험·대응 (헌법 VII)**:
   - 이슈 본문은 프롬프트에 "신뢰하지 않는 데이터" 블록으로만 넣는다. 액션의 하위 프로세스 환경 정리 기능(v1.0.77+)을 켠다.
+  - 에이전트는 자기가 고친 코드로 `npm test`를 돌린다. 이슈 본문이 공개 수집 경로에서 왔을 수 있으므로 액션의 하위 프로세스
+    비밀값 제거(`CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`)를 켠다. 이 설정이 `allowed_non_write_users` 없이도 동작하는지는 첫 실행에서
+    확인한다(문서상 그 경우에 기본으로 켜짐). 남는 위험으로 기록한다.
   - `allowed_tools`를 좁힌다: 파일 편집, `git`, `npm ci`, `npm test`, `npm run lint`, `npm run typecheck`만. `curl`·`wget`·임의
     네트워크 금지.
   - 워크플로 `permissions`: `contents: write`, `pull-requests: write`, `issues: write`만. 저장소 설정·Secrets·Actions 쓰기 없음.
