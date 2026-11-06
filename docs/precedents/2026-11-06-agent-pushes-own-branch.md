@@ -8,7 +8,8 @@
 ## 결정
 
 에이전트가 `agent/issue-<n>-<slug>` 브랜치를 만들어 push하고, 구조화된 결과의 `branch`에 이름을 담는다. 워크플로는
-`agent/` 접두사와 원격 브랜치 존재를 확인한 뒤 Claude App 토큰으로 PR을 연다. 수정했는데 PR을 못 만들면 `agent:needs-human`.
+브랜치가 `agent/issue-<이 이슈 번호>-`로 시작하고 원격 SHA가 이번 실행의 로컬 브랜치와 같을 때만 Claude App 토큰으로
+PR을 연다(다른 이슈 브랜치나 이전 실행이 남긴 브랜치 차단). 수정했는데 PR을 못 만들면 `agent:needs-human`.
 
 ## 이유
 
