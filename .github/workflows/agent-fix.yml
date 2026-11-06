@@ -35,10 +35,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # No npm cache here: its save step runs after the agent and could carry files the agent changed into other jobs.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
       - id: gate
         env:
           GH_TOKEN: ${{ github.token }}
