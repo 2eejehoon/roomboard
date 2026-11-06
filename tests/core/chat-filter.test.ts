@@ -44,7 +44,9 @@ describe('chat filter', () => {
   });
 
   it('does not join the end of one word to the start of the next', () => {
-    for (const s of ['몇 시 발표해?', 'push it', 'this hit', 'a bit chilly']) expect(filter(s), s).toBe(s);
+    for (const s of ['몇 시 발표해?', '몇 시 팔아요?', '포도 씨 발라 먹어', '수박 씨 발라줘', 'push it', 'this hit', 'a bit chilly']) {
+      expect(filter(s), s).toBe(s);
+    }
     expect(f('씨 발 진짜')).toBe('*** 진짜');
     expect(f('아씨 발')).toBe('아씨 발');
   });
@@ -55,7 +57,8 @@ describe('chat filter', () => {
     expect(f('fu ck')).toBe('*****');
     expect(filter('개 새끼야')).toBe('****야');
     expect(filter('미친 놈아')).toBe('****아');
-    expect(filter('씨 발놈아')).toBe('***놈아');
+    expect(filter('씨 발놈아')).toBe('****아');
+    expect(filter('개 새끼들')).toBe('****들');
   });
 
   it('masks NFD Hangul and full-width letters', () => {
