@@ -76,7 +76,7 @@ export function createChatFilter(words: string[]): (text: string) => string {
         // Across a gap the match starts a word and ends one, give or take a particle: "개 새끼야" and "f u c k" match;
         // "push it", "a bit chilly", "포도 씨 발라" and "몇 시 팔아요" do not.
         if (units[i].word !== end.word) {
-          const rest = chars.slice(end.src + 1, wordEnd[end.word] + 1).join('');
+          const rest = chars.slice(end.src + 1, wordEnd[end.word] + 1).join('').replace(/[^\p{L}\p{N}]/gu, '');
           const core = rest.replace(LAUGHTER, '');
           const ending = !core || (takesEnding && ENDINGS.has(core));
           if (units[i].src !== wordStart[units[i].word] || !ending) continue;
