@@ -289,3 +289,15 @@ Setup → Foundational ─┬─ US1 ─┬─ US2
 2. **P2 증분**: US3(방 만들기) → US4(채팅) → US5(채널). 스토리마다 PR.
 3. **P3 증분**: US6 → US7. 스토리마다 PR.
 4. 각 PR: 테스트 먼저 커밋 → 실패 확인 → 구현 → `/ponytail:ponytail-review` → CI 통과 → 미리보기(가능하면) 휴대폰 확인.
+
+---
+
+## Phase 11: Convergence
+
+2026-11-07 `/speckit-converge` 결과. 아직 열린 작업(T038·T040 부분 완료, T045~T099)이 이미 맡은 일은 다시 적지 않았다.
+
+- [ ] T100 [US1] `tests/worker/room-do.test.ts`에 테스트 먼저: 서버가 닫은(4000·4008 등) 소켓이 닫힘 완료 전에 Hibernation되면(`evictDurableObject`) 깨어난 뒤 새 참가자의 `welcome.peers`에 나타나지 않음. 실패하면 `src/worker/room-do.ts` `drop()`이 `close()` 전에 attachment의 `participant`를 비운다 per FR-014, T040 후속 (partial)
+- [ ] T101 [US2] 실시간 연결을 아예 못 쓰는 네트워크에서 방 정보는 2D로 읽히고 "이동·채팅을 쓸 수 없다" 안내가 보임. "못 쓴다"의 기준(예: 첫 연결이 몇 번 연속 실패)이 스펙에 없으므로 먼저 spec.md에 정하고(판례), 그다음 `RoomPage`·`room-socket` 테스트와 구현 per spec Edge Cases (missing)
+- [ ] T102 [US5] `tests/e2e/`에서 한 채널 20명 상태로 이동·채팅이 1초 안에 전달되는지 확인(컨텍스트 20개가 무거우면 테스트 훅 없는 WebSocket 클라이언트 19개 + 브라우저 1개) per SC-003 (missing)
+- [ ] T103 [US1] `tests/worker/room-do.test.ts`: 같은 `deviceKey`로 소켓 2개가 join하면 서로 상대를 별도 참가자(`peer_joined`, 다른 `peerId`)로 받음 — 코드는 이미 그렇게 동작, 검증만 없음 per spec Edge Cases (partial)
+- [ ] T104 [US4] T073 `ChatPanel`: 200자를 넘는 입력은 보내지 않고 안내 문구(i18n 키)를 보여줌, `tests/e2e/us4-chat.spec.ts`에 케이스 추가 per spec Edge Cases (partial)
