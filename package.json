@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "check:docs": "node scripts/check-docs.mjs",
+    "check:bundle": "node scripts/check-bundle.mjs",
     "seed:dev": "node scripts/seed-dev.ts"
   },
   "devDependencies": {

@@ -93,22 +93,22 @@ description: "Task list for 001-realtime-room-board"
 - [x] T035 [P] [US1] `tests/core/room-session.test.ts`: 순수 상태 기계 `RoomSession` — `join` → 나에게 `welcome`(같은 채널 peers만), 다른 참가자에게 `peer_joined`; `move` 정상 → 같은 채널에 `peer_moved`; 거부 → 나에게 `correction`; 초당 10개 초과는 조용히 버림; `leave` → `peer_left`; join 전 다른 메시지 → `error not_joined`; 두 번째 join → `bad_message`; 잘못된 메시지 10초 5번 → 닫힘 4008 — 완료. 채널 21번째 배정, 경계 밖 이동, 2KB 초과(1009), 4002, Hibernation 후 `restore`도 검사. 채팅은 US4(T068).
 - [x] T036 [P] [US1] `tests/worker/room-do.test.ts`: 실제 DO에 WebSocket 2개 접속 — join/welcome, 이동 전달, 닫으면 peer_left, 5초 안에 join 없으면 4000, 바이너리 프레임 1003, 2KB 초과 1009, 텍스트 `ping`에 `pong` 자동 응답, Hibernation 후(attachment 복원) 새 참가자의 `welcome.peers`에 기존 참가자 위치가 있음, 없는 방 404·삭제된 방 410 — 완료. 없는 방 404·삭제된 방 410·`Upgrade` 없음 426, `GET /api/rooms/:roomId`도 같은 파일. Hibernation은 `evictDurableObject`.
 - [x] T037 [P] [US1] `tests/worker/online-count.test.ts`: 입장·퇴장 후 DO alarm으로 2초 디바운스되어 `rooms.online_count`가 갱신됨(`setTimeout` 미사용) — 완료. 예약된 alarm 시각(2초 뒤)과 alarm 전에는 D1이 그대로인지 확인.
-- [ ] T038 [P] [US1] `tests/e2e/us1-move.spec.ts`: Q1(컨텍스트 A·B 입장, A가 `__roomboard.move` → B의 `state().peers`와 2D 목록 갱신 1초 이내), Q2(A 닫으면 B 목록에서 제거), Q3(모바일 프로젝트에서 조이스틱 보임·드래그 시 `move` 전송), 랜덤 닉네임 표시
+- [ ] T038 [P] [US1] `tests/e2e/us1-move.spec.ts`: Q1(컨텍스트 A·B 입장, A가 `__roomboard.move` → B의 `state().peers`와 2D 목록 갱신 1초 이내), Q2(A 닫으면 B 목록에서 제거), Q3(모바일 프로젝트에서 조이스틱 보임·드래그 시 `move` 전송), 랜덤 닉네임 표시 — 부분 완료(U2): Q1·Q2(테스트 훅 `peers`)와 내 랜덤 닉네임 표시. 2D 참가자 목록 확인은 목록이 생기는 T054(US2)에서, Q3(조이스틱)은 3D 장면과 같이(T047). seed는 Playwright `webServer`가 `npm run seed:dev`로 넣는다.
 
 ### Implementation
 
 - [x] T039 [US1] `src/core/room-session.ts`: T035를 통과하는 순수 상태 기계(입력: 참가자 집합 + 메시지 + 시각, 출력: 보낼 메시지 목록·닫을 소켓), `assignChannel`·`validateMove`·`RateBucket`·`nicknameFor` 사용 — 완료. 참가자 키는 `peerId`(DO가 접속 때 만듦), 나가는 숫자는 소수점 2자리.
 - [ ] T040 [US1] `src/worker/room-do.ts`: `RoomDurableObject` — RPC `hashPassword`·`verifyPassword`(research R5), `acceptWebSocket`(Hibernation API), `setWebSocketAutoResponse("ping","pong")`, attachment `{peerId, nickname, avatarId, channel, pose, lastMoveAt}` 직렬화·복원(기기 키 원문 미포함), 메시지를 `RoomSession`에 넘기고 결과 전송, join 타임아웃 4000, 크기·바이너리 검사, `online_count` alarm 디바운스 — 부분 완료: RPC `hashPassword`·`verifyPassword`는 `password.ts`와 같이 T062·T064(US3)에서. 나머지 완료. attachment에 join 마감용 `connectedAt` 추가, alarm 하나가 join 마감(4000)과 `online_count` 기록을 같이 한다. 방 정보는 깨어날 때 D1에서 읽는다(`ctx.id.name` = 방 id).
 - [x] T041 [US1] `src/worker/index.ts`에 `GET /api/rooms/:roomId/ws` 추가: D1에서 방 확인(404/410), `Upgrade` 없으면 426, DO로 전달. 그리고 `GET /api/rooms/:roomId`(방 정보, 404/410) 추가 — 완료. 방 조회는 `src/worker/rooms.ts` `requireRoom`(형식이 틀린 id도 404, `password_hash`는 읽지 않음).
-- [ ] T042 [US1] `src/client/net/room-socket.ts`: 연결·join·ping 20초·재연결 백오프(1,2,4,8,이후 15초, ±20% 지터)·닫힘 코드별 동작(websocket.md 표), 이동 송신 throttle(변경 시에만, 초당 최대 5번, 멈추면 `idle` 1번)
-- [ ] T043 [US1] `src/client/state/room-store.ts`: 3D·2D가 같이 읽는 상태(you, channel, peers, chat, connection), 서버 메시지 적용 로직은 `src/core` 타입 사용
-- [ ] T044 [US1] `src/client/room/RoomPage.tsx`: 방 정보 로드, 소켓 연결, 머리글(제목·채널·인원·내 닉네임·전환 버튼 자리), "다시 연결 중" 띠 — screens.md S3 공통 영역
+- [x] T042 [US1] `src/client/net/room-socket.ts`: 연결·join·ping 20초·재연결 백오프(1,2,4,8,이후 15초, ±20% 지터)·닫힘 코드별 동작(websocket.md 표), 이동 송신 throttle(변경 시에만, 초당 최대 5번, 멈추면 `idle` 1번) — 완료. 소켓 클래스·타이머·난수를 주입해 Node에서 테스트(`tests/client/room-socket.test.ts`). throttle은 마지막 자세를 200ms 뒤에 보내는 방식, 연결 중이 아닐 때 이동은 버린다.
+- [x] T043 [US1] `src/client/state/room-store.ts`: 3D·2D가 같이 읽는 상태(you, channel, peers, chat, connection), 서버 메시지 적용 로직은 `src/core` 타입 사용 — 완료. `RoomStore`(`subscribe`/`getState`로 `useSyncExternalStore`). 끊기면 peers를 비우고 다음 welcome이 다시 채운다. 채팅·`room_updated`는 각 스토리에서.
+- [x] T044 [US1] `src/client/room/RoomPage.tsx`: 방 정보 로드, 소켓 연결, 머리글(제목·채널·인원·내 닉네임·전환 버튼 자리), "다시 연결 중" 띠 — screens.md S3 공통 영역 — 완료. 404/410은 S6 문구와 목록으로 버튼. 전환 버튼 자리만 두고 버튼은 T056.
 - [ ] T045 [US1] `src/client/room/room3d/Scene.tsx`(동적 import): R3F Canvas, Rapier 물리, 테마 `roomData.objects`를 GLB로 배치하고 `collider: "box"`는 고정 충돌체, ecctrl 3인칭 컨트롤러(WASD/방향키, Shift, Space), 내 위치를 `room-socket`으로 송신
 - [ ] T046 [US1] `src/client/room/room3d/RemoteAvatar.tsx`: 다른 참가자 아바타(Quaternius 캐릭터, `avatarId`), 마지막 두 위치 보간, 애니메이션 상태, 머리 위 닉네임
 - [ ] T047 [US1] `src/client/room/room3d/TouchControls.tsx`: 터치 기기에서 `ecctrl/input`의 `Joystick`·점프 `VirtualButton`, 카메라 드래그
 - [ ] T048 [P] [US1] `public/assets/`에 테마 1개분 CC0 에셋(Kenney 방·가구, Quaternius 캐릭터, Poly Haven HDRI)과 `public/assets/CREDITS.md`(파일별 출처·라이선스), 테마당 첫 로딩 ≤ 5MB
-- [ ] T049 [US1] `src/client/test-hooks.ts`: `import.meta.env.DEV`일 때만 `window.__roomboard = { state(), move(p, r) }`
-- [ ] T050 [US1] `scripts/check-bundle.mjs`(`npm run check:bundle`): `dist/` 클라이언트 번들에 `__roomboard` 문자열이 없으면 통과
+- [x] T049 [US1] `src/client/test-hooks.ts`: `import.meta.env.DEV`일 때만 `window.__roomboard = { state(), move(p, r) }` — 완료. `installTestHooks(store, socket)`를 RoomPage가 부른다.
+- [x] T050 [US1] `scripts/check-bundle.mjs`(`npm run check:bundle`): `dist/` 클라이언트 번들에 `__roomboard` 문자열이 없으면 통과 — 완료. 폴더를 인자로 받고(기본 `dist/client`), 폴더가 없으면 실패. CI `build` 다음 단계.
 
 **Checkpoint**: US1 독립 동작. MVP 데모 가능.
 

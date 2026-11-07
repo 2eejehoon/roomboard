@@ -7,4 +7,11 @@ export const ko = {
   'common.networkError': '연결에 문제가 있어요',
   'common.retry': '다시 시도',
   'common.rateLimited': '잠시 후 다시 시도해 주세요 ({seconds}초)',
+  'room.channel': '채널 {n}',
+  'room.people': '{n}/{max}',
+  'room.you': '나: {nickname}',
+  'room.reconnecting': '다시 연결 중…',
+  'room.notFound': '없는 방이에요',
+  'room.gone': '삭제된 방이에요',
+  'room.toBoard': '목록으로',
 } as const;
