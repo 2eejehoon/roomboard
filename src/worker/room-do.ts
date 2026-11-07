@@ -12,6 +12,7 @@ const att = (ws: WebSocket) => ws.deserializeAttachment() as Attachment;
 
 export class RoomDurableObject extends DurableObject<Env> {
   private readonly sockets = new Map<string, WebSocket>();
+  private readonly left = new Set<string>();
   private loading?: Promise<RoomSession | null>;
 
   constructor(ctx: DurableObjectState, env: Env) {
@@ -104,10 +105,15 @@ export class RoomDurableObject extends DurableObject<Env> {
   }
 
   private async gone(ws: WebSocket): Promise<void> {
-    const { peerId } = att(ws);
-    if (!this.sockets.delete(peerId)) return;
+    const { peerId, participant } = att(ws);
+    // Our own close() and the close event that follows both land here; handle each socket once per wake.
+    if (this.left.has(peerId)) return;
+    this.left.add(peerId);
+    this.sockets.delete(peerId);
     const session = await this.session();
     if (!session) return;
+    // A socket whose close wakes the DO is already missing from getWebSockets(), so the session learns it from the attachment.
+    if (participant && !session.participant(peerId)) session.restore(participant);
     const wasJoined = session.participant(peerId) !== null;
     await this.deliver(session.leave(peerId));
     if (wasJoined) await this.schedule(Date.now() + ONLINE_DEBOUNCE_MS);

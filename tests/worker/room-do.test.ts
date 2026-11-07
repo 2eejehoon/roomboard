@@ -1,4 +1,4 @@
-import { evictDurableObject } from 'cloudflare:test';
+import { evictDurableObject, runDurableObjectAlarm, runInDurableObject } from 'cloudflare:test';
 import { env, exports } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 import { nicknameFor } from '../../src/core/identity.ts';
@@ -69,6 +69,19 @@ describe('room WebSocket', () => {
       expect.arrayContaining([expect.objectContaining({ peerId: a.welcome.you.peerId, p: [0.5, 0, 4], r: 2, a: 'idle' })]),
     );
     expect(c.welcome.peers).toHaveLength(2);
+  });
+
+  it('a close that wakes the DO from hibernation still tells the channel and reschedules online_count', async () => {
+    const roomId = await insertRoom();
+    const stub = env.ROOM.getByName(roomId);
+    const a = await joinRoom(roomId, 1);
+    const b = await joinRoom(roomId, 2);
+    await a.next(); // peer_joined
+    await runDurableObjectAlarm(stub); // clear the pending online_count alarm
+    await evictDurableObject(stub);
+    b.ws.close(1000);
+    expect(await a.next()).toEqual({ t: 'peer_left', peerId: b.welcome.you.peerId });
+    await expect.poll(() => runInDurableObject(stub, (_o, state) => state.storage.getAlarm())).not.toBeNull();
   });
 
   it('rejects a missing room with 404, a deleted one with 410 and a plain GET with 426', async () => {
