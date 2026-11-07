@@ -29,6 +29,7 @@
 | [2026-11-06-vitest-plugin](2026-11-06-vitest-plugin.md) | Worker 테스트는 @cloudflare/vitest-plugin, Vitest 5.1 | 유효 |
 | [2026-11-06-password-hash-in-do](2026-11-06-password-hash-in-do.md) | 글 비밀번호 해시는 방 DO 안에서 계산 | 유효 |
 | [2026-11-07-chat-filter-limits](2026-11-07-chat-filter-limits.md) | 욕설 필터는 붙여 쓴 복합어 오탐을 감수 | 유효 |
+| [2026-11-07-assets-quaternius](2026-11-07-assets-quaternius.md) | 방·가구 에셋은 Kenney 대신 Quaternius | 유효 |
 
 ## 판례 쓰는 법
 

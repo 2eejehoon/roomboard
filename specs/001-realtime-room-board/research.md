@@ -165,7 +165,7 @@
 
 ## R13. 3D 에셋
 
-- **Decision**: Kenney(방·가구), Quaternius(애니메이션 캐릭터), Poly Haven(HDRI·텍스처), 모두 CC0.
+- **Decision**: Quaternius(방·가구, 애니메이션 캐릭터), Poly Haven(HDRI·텍스처), 모두 CC0 (판례 2026-11-07-assets-quaternius).
   `public/assets/CREDITS.md`에 파일별 출처를 적는다. 테마 3개의 첫 로딩 용량 목표는 테마당 5MB 이하
   (SC-001의 4G 10초 목표). GLB는 Draco/Meshopt 압축, 텍스처는 KTX2를 검토한다.
 

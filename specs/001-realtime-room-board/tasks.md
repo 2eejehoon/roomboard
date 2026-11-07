@@ -106,7 +106,7 @@ description: "Task list for 001-realtime-room-board"
 - [ ] T045 [US1] `src/client/room/room3d/Scene.tsx`(동적 import): R3F Canvas, Rapier 물리, 테마 `roomData.objects`를 GLB로 배치하고 `collider: "box"`는 고정 충돌체, ecctrl 3인칭 컨트롤러(WASD/방향키, Shift, Space), 내 위치를 `room-socket`으로 송신
 - [ ] T046 [US1] `src/client/room/room3d/RemoteAvatar.tsx`: 다른 참가자 아바타(Quaternius 캐릭터, `avatarId`), 마지막 두 위치 보간, 애니메이션 상태, 머리 위 닉네임
 - [ ] T047 [US1] `src/client/room/room3d/TouchControls.tsx`: 터치 기기에서 `ecctrl/input`의 `Joystick`·점프 `VirtualButton`, 카메라 드래그
-- [ ] T048 [P] [US1] `public/assets/`에 테마 1개분 CC0 에셋(Kenney 방·가구, Quaternius 캐릭터, Poly Haven HDRI)과 `public/assets/CREDITS.md`(파일별 출처·라이선스), 테마당 첫 로딩 ≤ 5MB — 진행 메모: 환경 네트워크에 `kenney.nl`·`quaternius.com`·`dl.polyhaven.org`·`api.polyhaven.com`을 허용했다. quaternius·Poly Haven은 열리지만 kenney.nl은 사이트가 403을 돌려준다(프록시 차단 아님, 봇 차단으로 보임). 우회하지 않는다. 운영자가 받은 원본 zip을 저장소에 올리는 방법 등은 운영자가 정한다.
+- [ ] T048 [P] [US1] `public/assets/`에 테마 1개분 CC0 에셋(Quaternius 방·가구·캐릭터, Poly Haven HDRI)과 `public/assets/CREDITS.md`(파일별 출처·라이선스), 테마당 첫 로딩 ≤ 5MB (판례 2026-11-07-assets-quaternius)
 - [x] T049 [US1] `src/client/test-hooks.ts`: `import.meta.env.DEV`일 때만 `window.__roomboard = { state(), move(p, r) }` — 완료. `installTestHooks(store, socket)`를 RoomPage가 부른다.
 - [x] T050 [US1] `scripts/check-bundle.mjs`(`npm run check:bundle`): `dist/` 클라이언트 번들에 `__roomboard` 문자열이 없으면 통과 — 완료. 폴더를 인자로 받고(기본 `dist/client`), 폴더가 없으면 실패. CI `build` 다음 단계. 실행 확인: 머지 후 main CI run 42349355500에서 `check:bundle` 통과.
 
