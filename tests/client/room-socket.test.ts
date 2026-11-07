@@ -121,6 +121,21 @@ describe('openRoomSocket', () => {
     expect(FakeSocket.all).toHaveLength(2);
   });
 
+  it("a closed socket's late close event cannot touch the store a newer socket uses (StrictMode remount)", () => {
+    const store = new RoomStore();
+    const first = openRoomSocket({ url: 'wss://x', deviceKey: KEY, store, WS: FakeSocket as never });
+    const old = last();
+    old.close = function () {
+      this.readyState = 3; // a real browser fires onclose later, not inside close()
+    };
+    first.close();
+    openRoomSocket({ url: 'wss://x', deviceKey: KEY, store, WS: FakeSocket as never });
+    last().open();
+    last().receive(welcome);
+    old.onclose?.({ code: 1000 });
+    expect(store.getState().connection).toBe('open');
+  });
+
   it('close() stops for good', () => {
     const { socket, store } = joined();
     socket.close();
