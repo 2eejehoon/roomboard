@@ -48,8 +48,8 @@ function normalize(chars: string[]): Normalized {
 }
 
 // Particles and endings that may follow a spaced-out banned word ("개 새끼야", "미친 놈들아").
-// Standalone jamo after the word is laughter or crying ("씨 발ㅋㅋ"), never the rest of an ordinary word.
-const LAUGHTER = /^[\u3131-\u318e]+$/;
+// Trailing standalone jamo is laughter or crying ("씨 발ㅋㅋ", "개 새끼야ㅋㅋ"), never the rest of an ordinary word.
+const LAUGHTER = /[\u3131-\u318e]+$/;
 const ENDINGS = new Set(['아', '야', '이', '이야', '들', '들아', '들이', '은', '는', '이랑', '같은']);
 
 export const parseWordList = (text: string): string[] =>
@@ -77,7 +77,8 @@ export function createChatFilter(words: string[]): (text: string) => string {
         // "push it", "a bit chilly", "포도 씨 발라" and "몇 시 팔아요" do not.
         if (units[i].word !== end.word) {
           const rest = chars.slice(end.src + 1, wordEnd[end.word] + 1).join('');
-          const ending = !rest || LAUGHTER.test(rest) || (takesEnding && ENDINGS.has(rest));
+          const core = rest.replace(LAUGHTER, '');
+          const ending = !core || (takesEnding && ENDINGS.has(core));
           if (units[i].src !== wordStart[units[i].word] || !ending) continue;
         }
         for (let s = units[i].src; s <= end.src; s++) masked.add(s);

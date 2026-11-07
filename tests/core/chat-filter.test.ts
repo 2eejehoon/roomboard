@@ -62,6 +62,8 @@ describe('chat filter', () => {
     expect(filter('씨 발ㅋㅋ')).toBe('***ㅋㅋ');
     expect(filter('개 새끼ㅋㅋ')).toBe('****ㅋㅋ');
     expect(filter('미친 놈ㅠ')).toBe('****ㅠ');
+    expect(filter('개 새끼야ㅋㅋ')).toBe('****야ㅋㅋ');
+    expect(filter('개 새끼들ㅋㅋ')).toBe('****들ㅋㅋ');
   });
 
   it('only whitespace separates words: symbols and invisible characters inside a word do not', () => {
