@@ -6,7 +6,7 @@ import { CuboidCollider, Physics, RigidBody } from '@react-three/rapier';
 import { Ecctrl, type EcctrlHandle } from 'ecctrl';
 import { useButtonStore, useJoystickStore } from 'ecctrl/input';
 import { TimeControl } from 'ecctrl/time';
-import { Suspense, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, Suspense, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Euler } from 'three';
 import type { Pose } from '../../../core/room-session.ts';
 import { THEMES, type Bounds, type RoomObject, type Vec3 } from '../../../core/themes.ts';
@@ -32,7 +32,8 @@ const KEYS: { name: Control; keys: string[] }[] = [
 const FEET = 0.8;
 const euler = new Euler(0, 0, 0, 'YXZ');
 
-export default function Scene({ store, move }: { store: RoomStore; move: Move }) {
+// memo: RoomPage re-renders on every store change, including my own pose each frame; store and move never change.
+export default memo(function Scene({ store, move }: { store: RoomStore; move: Move }) {
   const room = useSyncExternalStore(store.subscribe, () => store.getState().room);
   const peers = useSyncExternalStore(store.subscribe, () => store.getState().peers);
   const avatarId = useSyncExternalStore(store.subscribe, () => store.getState().you?.avatarId);
@@ -65,7 +66,7 @@ export default function Scene({ store, move }: { store: RoomStore; move: Move })
       <TouchControls />
     </>
   );
-}
+});
 
 function Progress() {
   const { active, progress } = useProgress();
