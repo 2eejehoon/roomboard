@@ -2,6 +2,8 @@
 # T048: downloads the CC0 sources listed in public/assets/CREDITS.md and rebuilds public/assets/ from them.
 # Needs network access to drive.google.com, drive.usercontent.google.com and dl.polyhaven.org.
 # Usage: bash scripts/fetch-assets.sh
+# Ends by checking the results against scripts/assets.sha256, so a changed or broken download cannot slip in silently.
+# After an intended asset change, regenerate it: (cd public/assets && sha256sum characters/* models/* hdri/*) > scripts/assets.sha256
 set -euo pipefail
 cd "$(dirname "$0")/.."
 src=$(mktemp -d)
@@ -46,3 +48,5 @@ EOF
 # Poly Haven "Comfy Café" HDRI, 1k.
 mkdir -p public/assets/hdri
 curl -fsSL -o public/assets/hdri/cafe.hdr https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/comfy_cafe_1k.hdr
+
+(cd public/assets && sha256sum --check --quiet ../../scripts/assets.sha256)
