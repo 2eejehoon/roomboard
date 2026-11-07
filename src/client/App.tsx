@@ -14,6 +14,12 @@ export function matchRoute(path: string): Route {
   return { name: 'notFound' };
 }
 
+// pushState fires no popstate, so in-app moves announce themselves the same way back/forward does.
+export function navigate(path: string): void {
+  history.pushState(null, '', path);
+  dispatchEvent(new PopStateEvent('popstate'));
+}
+
 const subscribe = (onChange: () => void) => {
   addEventListener('popstate', onChange);
   return () => removeEventListener('popstate', onChange);

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, expect, it } from 'vitest';
-import { matchRoute } from '../../src/client/App.tsx';
+import { describe, expect, it, vi } from 'vitest';
+import { matchRoute, navigate } from '../../src/client/App.tsx';
 import { Loading, NetworkError, RateLimited } from '../../src/client/Status.tsx';
 
 describe('matchRoute (screens.md 화면 목록)', () => {
@@ -15,6 +15,20 @@ describe('matchRoute (screens.md 화면 목록)', () => {
     ['/nope', { name: 'notFound' }],
   ])('%s', (path, route) => {
     expect(matchRoute(path)).toEqual(route);
+  });
+});
+
+describe('navigate', () => {
+  it('pushes the path and tells route subscribers, which pushState alone does not', () => {
+    const pushState = vi.fn();
+    const events: string[] = [];
+    vi.stubGlobal('history', { pushState });
+    vi.stubGlobal('dispatchEvent', (e: Event) => events.push(e.type));
+    vi.stubGlobal('PopStateEvent', class extends Event {});
+    navigate('/rooms/aB3dE5fG7h');
+    expect(pushState).toHaveBeenCalledWith(null, '', '/rooms/aB3dE5fG7h');
+    expect(events).toEqual(['popstate']);
+    vi.unstubAllGlobals();
   });
 });
 
