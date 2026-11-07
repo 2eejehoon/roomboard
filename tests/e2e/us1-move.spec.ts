@@ -86,3 +86,34 @@ test('without WebGL the room still connects and shows the header', async ({ brow
   const me = await enter(a);
   await expect(a.getByText(me.nickname)).toBeVisible();
 });
+
+// T046: a remote avatar glides from its last pose to the new one instead of jumping. The nickname label follows it every frame.
+test('T046: a remote avatar moves through the poses in between', async ({ browser }) => {
+  test.setTimeout(60_000);
+  // Small and 1x so software WebGL draws frames well under the 200 ms glide; at full size it can skip it entirely.
+  const a = await (await browser.newContext({ viewport: { width: 400, height: 300 }, deviceScaleFactor: 1 })).newPage();
+  const b = await withoutWebGL(await (await browser.newContext()).newPage());
+  await enter(a);
+  const peer = await enter(b);
+  const label = a.getByText(peer.nickname, { exact: true });
+  await expect(label).toBeVisible({ timeout: 30_000 });
+
+  await b.waitForTimeout(1000); // 2 m in over a second stays under 8 m/s
+  // Start sampling before B moves, so the first sample is the old pose.
+  await a.evaluate((name) => {
+    const el = [...document.querySelectorAll('span')].find((s) => s.textContent === name)!;
+    const xs: number[] = ((window as unknown as { xs: number[] }).xs = []);
+    const t0 = performance.now();
+    const sample = () => {
+      xs.push(Math.round(el.getBoundingClientRect().x));
+      if (performance.now() - t0 < 3000) requestAnimationFrame(sample);
+    };
+    sample();
+  }, peer.nickname);
+  await b.evaluate(() => (window as unknown as { __roomboard: { move(p: number[], r: number): void } }).__roomboard.move([2, 0, 4], 0));
+  await a.waitForTimeout(3200);
+  const seen = await a.evaluate(() => (window as unknown as { xs: number[] }).xs);
+  const [first, last] = [seen[0], seen.at(-1)!];
+  expect(Math.abs(last - first), 'the avatar moved on screen').toBeGreaterThan(20);
+  expect(seen.some((x) => Math.min(first, last) + 5 < x && x < Math.max(first, last) - 5), `positions in between: ${seen.join(',')}`).toBe(true);
+});
