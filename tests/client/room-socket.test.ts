@@ -159,6 +159,20 @@ describe('move throttle', () => {
     expect(last().moves().map((m) => m.a)).toEqual(['walk', 'idle']);
   });
 
+  it('keeps sending moves after a reconnect that cut off a pending one', () => {
+    const { socket } = joined();
+    socket.move([0.1, 0, 4], 0, 'walk');
+    socket.move([0.15, 0, 4], 0, 'walk'); // waits for the throttle
+    last().close(1006);
+    vi.advanceTimersByTime(1000);
+    last().open();
+    last().receive(welcome);
+    vi.advanceTimersByTime(300);
+    socket.move([0.2, 0, 4], 0, 'walk');
+    vi.advanceTimersByTime(300);
+    expect(last().moves()).toEqual([{ t: 'move', p: [0.2, 0, 4], r: 0, a: 'walk' }]);
+  });
+
   it('drops moves while not connected', () => {
     const { socket } = start();
     socket.move([1, 0, 4], 0, 'walk');
