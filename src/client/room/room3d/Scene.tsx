@@ -12,6 +12,7 @@ import type { Pose } from '../../../core/room-session.ts';
 import { THEMES, type Bounds, type RoomObject, type Vec3 } from '../../../core/themes.ts';
 import { t } from '../../i18n/t.ts';
 import type { RoomStore } from '../../state/room-store.ts';
+import { nextSend } from '../send-rule.ts';
 import { Avatar, RemoteAvatar } from './RemoteAvatar.tsx';
 import { TouchControls } from './TouchControls.tsx';
 
@@ -127,16 +128,12 @@ function Me({ store, move, avatarId }: { store: RoomStore; move: Move; avatarId:
       own.current = you;
       return;
     }
-    // My input starts the sends; leftover motion (sliding, mid-air) keeps them going until one idle. Resting physics sends nothing.
     const v = h.currLinVel;
     const driving = keys.forward || keys.backward || keys.leftward || keys.rightward || jump || stick.active;
-    // Thresholds, not zero: ecctrl slows down exponentially. Not isOnGround: it stays false on an edge.
-    const [walking, falling] = [Math.hypot(v.x, v.z) > 0.2, Math.abs(v.y) > 0.5];
-    const active = driving || (sending.current && (walking || falling));
-    if (!active && !sending.current) return;
-    sending.current = active;
+    const anim = nextSend(driving, sending.current, [v.x, v.y, v.z]);
+    if (!anim) return;
+    sending.current = anim !== 'idle';
     const r = euler.setFromQuaternion(h.currQuat).y;
-    const anim = !active ? 'idle' : falling ? 'jump' : Math.hypot(v.x, v.z) > 3 ? 'run' : 'walk';
     move([h.currPos.x, Math.max(0, h.currPos.y - FEET), h.currPos.z], r, anim);
     own.current = store.getState().you;
   });
