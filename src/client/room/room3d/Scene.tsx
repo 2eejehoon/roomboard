@@ -12,7 +12,7 @@ import type { Pose } from '../../../core/room-session.ts';
 import { THEMES, type Bounds, type RoomObject, type Vec3 } from '../../../core/themes.ts';
 import { t } from '../../i18n/t.ts';
 import type { RoomStore } from '../../state/room-store.ts';
-import { nextSend } from '../send-rule.ts';
+import { nextSend, snapsBody } from '../send-rule.ts';
 import { Avatar, RemoteAvatar } from './RemoteAvatar.tsx';
 import { TouchControls } from './TouchControls.tsx';
 
@@ -108,7 +108,7 @@ function Me({ store, move, avatarId }: { store: RoomStore; move: Move; avatarId:
   const camera = useRef<CameraControls>(null);
   const [, getKeys] = useKeyboardControls<Control>();
   const a = useSyncExternalStore(store.subscribe, () => store.getState().you?.a ?? 'idle');
-  // The `you` my own sends produced. Any other `you` (correction, a new welcome, the E2E hook) moves the body to it.
+  // The `you` my own sends produced. Any other `you` (correction, a new welcome, the E2E hook) moves the body if it is far off.
   const own = useRef(store.getState().you);
   const sending = useRef(false);
   const [[x, y, z]] = useState(() => store.getState().you?.p ?? [0, 0, 0]);
@@ -124,10 +124,12 @@ function Me({ store, move, avatarId }: { store: RoomStore; move: Move; avatarId:
 
     const you = store.getState().you;
     if (you && you !== own.current) {
-      h.body.setTranslation({ x: you.p[0], y: you.p[1] + FEET, z: you.p[2] }, true);
-      h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
       own.current = you;
-      return;
+      if (snapsBody([h.currPos.x, h.currPos.y - FEET, h.currPos.z], you.p)) {
+        h.body.setTranslation({ x: you.p[0], y: you.p[1] + FEET, z: you.p[2] }, true);
+        h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        return;
+      }
     }
     const v = h.currLinVel;
     const driving = keys.forward || keys.backward || keys.leftward || keys.rightward || jump || stick.active;
