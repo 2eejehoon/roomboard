@@ -11,9 +11,10 @@ export function nextSend(driving: boolean, wasSending: boolean, [vx, vy, vz]: Ve
   return falling ? 'jump' : speed > 3 ? 'run' : 'walk';
 }
 
-// The server rejects a move that arrives too soon after the last one (validateMove times arrivals), so network jitter can
-// bring a correction a step or two behind me. It does not advance lastMoveAt, so my next move is accepted and nothing needs
-// fixing; snapping back would rubber-band me mid-run. Only a far pose (a reconnect at the spawn, a real divergence) moves the body.
+// A store pose I did not send: a correction or a new welcome. The server rejects a move that arrives too soon after the last
+// one (validateMove times arrivals), so network jitter can bring a correction a step or two behind me. Snapping back would
+// rubber-band me mid-run; the server takes my next move instead, so resend where I am (the rejected move may have been my last).
+// Only a far pose (a reconnect at the spawn, a real divergence) moves the body.
 const SNAP_M = 3; // a run send covers about 1 m
-export const snapsBody = (body: Vec3, target: Vec3): boolean =>
-  Math.hypot(body[0] - target[0], body[1] - target[1], body[2] - target[2]) > SNAP_M;
+export const onStorePose = (body: Vec3, target: Vec3): 'snap' | 'resend' =>
+  Math.hypot(body[0] - target[0], body[1] - target[1], body[2] - target[2]) > SNAP_M ? 'snap' : 'resend';

@@ -42,6 +42,7 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
         attempt = 0;
         sentKey = poseKey(parsed.data.spawn, 0, 'idle');
       }
+      if (parsed.data.t === 'correction') sentKey = ''; // the server kept an older pose, so the rejected one is not a duplicate
       store.apply(parsed.data);
     };
     ws.onclose = (e: CloseEvent) => {
