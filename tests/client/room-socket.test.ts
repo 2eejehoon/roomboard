@@ -188,6 +188,16 @@ describe('move throttle', () => {
     expect(last().moves()).toEqual([{ t: 'move', p: [0.2, 0, 4], r: 0, a: 'walk' }]);
   });
 
+  it('resends the rejected pose after a correction (the server still has the older one)', () => {
+    const { socket } = joined();
+    socket.move([0.5, 0, 4], 0, 'idle');
+    vi.advanceTimersByTime(300);
+    last().receive(JSON.stringify({ t: 'correction', p: [0, 0, 4], r: 0 }));
+    socket.move([0.5, 0, 4], 0, 'idle');
+    vi.advanceTimersByTime(300);
+    expect(last().moves().map((m) => m.p)).toEqual([[0.5, 0, 4], [0.5, 0, 4]]);
+  });
+
   it('drops moves while not connected', () => {
     const { socket } = start();
     socket.move([1, 0, 4], 0, 'walk');

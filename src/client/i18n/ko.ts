@@ -17,4 +17,7 @@ export const ko = {
   'room.outdated': '새 버전이 있어요. 새로고침해 주세요',
   'room.ended': '연결이 끊겼어요. 새로고침해 주세요',
   'room.reload': '새로고침',
+  'room3d.loading': '3D 불러오는 중 {n}%',
+  'room3d.joystick': '이동',
+  'room3d.jump': '점프',
 } as const;
