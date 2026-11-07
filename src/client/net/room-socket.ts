@@ -82,6 +82,10 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
     close() {
       stopped = true;
       clearTimeout(retry);
+      clearInterval(ping);
+      clearTimeout(flush);
+      // The browser fires onclose later; by then a remount may share this store with a newer socket.
+      ws.onopen = ws.onmessage = ws.onclose = null;
       ws.close(CLOSE.normal);
       store.setConnection('closed'); // also when the close lands between retries, where no close event follows
     },
