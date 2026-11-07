@@ -31,7 +31,9 @@ function normalize(chars: string[]): Normalized {
     // NFKC per character keeps source indices: full-width "ｆ" becomes "f".
     const parts = [...c.normalize('NFKC')].flatMap(jamo);
     if (!parts.length) {
-      inWord = false; // spaces and symbols inserted to dodge the filter
+      // Skipped: spaces and symbols inserted to dodge the filter. Only whitespace ends a word; "씨.발" and a zero-width
+      // space stay one word, so the stricter cross-word rules below never apply to them.
+      if (/\s/u.test(c)) inWord = false;
       return;
     }
     if (!inWord) {
