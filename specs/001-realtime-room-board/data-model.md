@@ -82,9 +82,14 @@ Theme {
 
 ## 방 DO 상태 (접속 중에만)
 
-### Participant (소켓 attachment, Hibernation 후 복원)
+### 소켓 attachment (Hibernation 후 복원)
 
 ```text
+Attachment {
+  peerId: string                 // 접속할 때 DO가 만든다
+  connectedAt: number            // join 마감(5초) 계산용
+  participant: Participant | null  // join 전에는 null
+}
 Participant {
   peerId: string                 // 접속마다 새 랜덤 id (탭마다 다른 참가자)
   nickname: string               // nicknameFor(기기 키)
