@@ -9,8 +9,10 @@ app.notFound((c) => c.json({ code: 'not_found' }, 404));
 const HTTP_CODES: Partial<Record<number, string>> = { 401: 'unauthorized', 404: 'not_found', 410: 'gone', 429: 'rate_limited' };
 app.onError((err, c) => {
   if (err instanceof HTTPException && err.status < 500) return c.json({ code: HTTP_CODES[err.status] ?? 'validation' }, err.status);
-  // Constitution II: name and "at ..." frames only. Messages, even multi-line ones, can echo request content (JSON.parse).
-  console.error(err.name, (err.stack ?? '').split('\n').filter((l) => /^\s+at /.test(l)).join('\n'));
+  // Constitution II: name and stack frames only. The stack opens with "name: message", and messages (even multi-line ones)
+  // can echo request content (JSON.parse), so skip exactly that many lines rather than guessing which lines are frames.
+  const header = `${err.name}: ${err.message}`.split('\n').length;
+  console.error(err.name, (err.stack ?? '').split('\n').slice(header).join('\n'));
   return c.json({ code: 'internal' }, 500);
 });
 

@@ -54,12 +54,13 @@ describe('worker app', () => {
   it('logs the error without its message, so request content never reaches the logs', async () => {
     const logged: unknown[] = [];
     for (const m of ['log', 'info', 'warn', 'error', 'debug'] as const) vi.spyOn(console, m).mockImplementation((...a) => void logged.push(...a));
-    for (const body of ['hunter2', 'x\nhunter2\n', '{"a":1,\n"pw": hunter2\n}']) {
+    for (const body of ['hunter2', 'x\nhunter2\n', '{"a":1,\n"pw": hunter2\n}', '\n    at hunter2 (x)\n']) {
       const res = await app.request('/api/__test/json', { method: 'POST', body });
       expect(res.status).toBe(500);
     }
     const text = logged.map((a) => (a instanceof Error ? `${a.message}\n${a.stack}` : String(a))).join('\n');
     expect(text).toContain('SyntaxError');
+    expect(text, 'stack frames are still logged').toMatch(/\n\s+at /);
     expect(text).not.toContain('hunter2');
   });
 
