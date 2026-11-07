@@ -61,6 +61,13 @@ describe('chat filter', () => {
     expect(filter('개 새끼들')).toBe('****들');
   });
 
+  it('only whitespace separates words: symbols and invisible characters inside a word do not', () => {
+    expect(filter('씨\u200b발ㅋㅋ')).toBe('***ㅋㅋ');
+    expect(filter('씨.발ㅋㅋ')).toBe('***ㅋㅋ');
+    expect(filter('병.신아')).toBe('***아');
+    expect(filter('개.새끼ㅋㅋ')).toBe('****ㅋㅋ');
+  });
+
   it('masks NFD Hangul and full-width letters', () => {
     expect(f('씨발'.normalize('NFD'))).toBe('**');
     expect(f('ｆｕｃｋ')).toBe('****');
