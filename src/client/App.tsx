@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { RoomPage } from './room/RoomPage.tsx';
 
 // Routes from contracts/screens.md. A dozen lines of history routing instead of a router dependency (not in research R1).
 export type Route =
@@ -28,5 +29,5 @@ const subscribe = (onChange: () => void) => {
 export function App() {
   const route = matchRoute(useSyncExternalStore(subscribe, () => location.pathname));
   // Each story fills in its screen (S1~S6); until then the route only marks the page.
-  return <main data-route={route.name} />;
+  return <main data-route={route.name}>{route.name === 'room' && <RoomPage key={route.id} id={route.id} />}</main>;
 }
