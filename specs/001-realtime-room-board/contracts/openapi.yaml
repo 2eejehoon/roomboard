@@ -396,6 +396,8 @@ components:
             - not_found
             - gone
             - unauthorized
+            - internal
+          description: internal은 예상하지 못한 서버 오류(500). 원인은 응답에 넣지 않는다.
         fields:
           type: object
           additionalProperties: { type: string }

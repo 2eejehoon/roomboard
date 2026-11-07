@@ -85,11 +85,13 @@
 
 ## R5. 글 비밀번호 해시
 
-- **Decision**: WebCrypto PBKDF2-SHA256, 반복 100,000회(workerd의 PBKDF2 반복 상한으로 알려져 있으나 미확인, 측정 작업에서 같이 확인), 16바이트 랜덤 솔트.
+- **Decision**: WebCrypto PBKDF2-SHA256, 반복 100,000회, 16바이트 랜덤 솔트.
   저장 형식 `pbkdf2-sha256$<반복>$<솔트 b64>$<해시 b64>`라서 나중에 방식을 바꿀 수 있다. 비교는
-  상수 시간으로 한다.
-- **Risk**: 무료 플랜 CPU 10ms를 넘을 수 있다. 구현 첫 단계에서 workerd로 측정하고, 넘으면 해시 계산을
-  방 DO 안(메시지당 CPU 30초)으로 옮긴다.
+  상수 시간으로 한다. 해시 계산과 검증은 **그 방의 DO 안**(요청당 CPU 30초)에서 한다. Worker는 DO RPC로 부른다
+  (판례 2026-11-06-password-hash-in-do).
+- **측정**(T011, `tests/worker/perf-password.test.ts`): 로컬 workerd(Xeon 2.1GHz VM)에서 1회 중앙값 19ms(7회 16~20ms).
+  Worker 요청당 CPU 10ms를 넘는다. 로컬 workerd는 타이머가 CPU 작업 중에도 흐르지만, 엣지 CPU 시간의 대용값이다.
+  로컬 workerd는 100,001회도 허용했다. 배포 환경의 반복 상한은 첫 배포 때 확인한다(미확인).
 - **Alternatives**: bcrypt/argon2 WASM — 번들·CPU 부담으로 기각.
 
 ## R6. 방 1개 = DO 1개에서 채널 처리
@@ -119,6 +121,7 @@
   안 되면 2D로 시작하고, 3D 코드(three, R3F, rapier)는 동적 import로 나눠 2D 경로에서는 내려받지 않는다.
 - 검색 엔진용으로 Worker가 `/rooms/:id` 요청에 `index.html`을 `HTMLRewriter`로 고쳐 `<title>`,
   `<meta name="description">`, `<noscript>` 안의 제목·설명을 넣는다. SSR 프레임워크는 쓰지 않는다.
+- **측정**(T012, `tests/worker/perf-html.test.ts`): 로컬 workerd에서 요청당 평균 0.085ms(200회 17ms). 목표 2ms 안이다.
 - **Alternatives**: SSR 프레임워크 도입 — 범위에 비해 과해서 기각.
 
 ## R9. 요청 횟수 제한 (저장 없이)
