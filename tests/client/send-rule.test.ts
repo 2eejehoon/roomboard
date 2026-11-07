@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { nextSend, snapsBody } from '../../src/client/room/send-rule.ts';
+import { nextSend, onStorePose } from '../../src/client/room/send-rule.ts';
 
 // When the 3D scene sends my pose and with which anim (T045). null = send nothing this frame.
 describe('nextSend', () => {
@@ -21,13 +21,14 @@ describe('nextSend', () => {
   });
 });
 
-// A correction from network jitter is a step or two behind me; the server accepts my next move anyway, so only a far one moves the body.
-describe('snapsBody', () => {
-  it('ignores a correction a few run steps behind', () => {
-    expect(snapsBody([0, 0, 4], [0, 0, 2])).toBe(false);
+// A store pose I did not send (a correction, a new welcome). A jitter correction is a step or two behind me: keep my body and
+// resend where I am, since it may have been my last move and nothing else would correct the server and the peers.
+describe('onStorePose', () => {
+  it('resends my pose for a correction a few run steps behind', () => {
+    expect(onStorePose([0, 0, 4], [0, 0, 2])).toBe('resend');
   });
 
   it('moves the body when the store pose is far away, like a reconnect at the spawn', () => {
-    expect(snapsBody([5, 0, -5], [0, 0, 4])).toBe(true);
+    expect(onStorePose([5, 0, -5], [0, 0, 4])).toBe('snap');
   });
 });
