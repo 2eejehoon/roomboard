@@ -1,39 +1,8 @@
-import { expect, test, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
+import { enter, newPage, state, withoutWebGL } from './helpers.ts';
 
-// quickstart Q1~Q3 (US1). seedroom01 comes from npm run seed:dev.
-type HookState = { you: { peerId: string; nickname: string } | null; peers: { peerId: string; p: number[]; a: string }[]; connection: string };
-const state = (page: Page) => page.evaluate(() => (window as unknown as { __roomboard: { state(): HookState } }).__roomboard.state());
-
-// Contexts from browser.newContext() outlive the test; an earlier test's 3D pages would keep rendering and starve the next one.
-const contexts: BrowserContext[] = [];
-test.afterEach(() => Promise.all(contexts.splice(0).map((c) => c.close())));
-async function newPage(browser: Browser, options?: BrowserContextOptions) {
-  const context = await browser.newContext(options);
-  contexts.push(context);
-  return context.newPage();
-}
-
-// WebGL detection and the 2D screen are US2 (T053, T056); until then this is how a page runs without the 3D scene.
-async function withoutWebGL(page: Page) {
-  await page.addInitScript(() => {
-    const getContext = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, id: string, ...rest: unknown[]) {
-      return id.startsWith('webgl') ? null : getContext.call(this, id as '2d', ...(rest as []));
-    } as typeof getContext;
-  });
-  return page;
-}
-
-async function enter(page: Page) {
-  await page.goto('/rooms/seedroom01');
-  // Generous: another context's software-rendered 3D scene can hold the CPU while this one connects.
-  await expect
-    .poll(async () => (await page.evaluate(() => '__roomboard' in window)) && (await state(page)).connection, { timeout: 15_000 })
-    .toBe('open');
-  return (await state(page)).you!;
-}
-
+// quickstart Q1~Q3 (US1).
 // Q1/Q2 time the sync path, so they run without the 3D scene: software WebGL on the CI machine starves the local Worker
 // (a move took 1.4~1.6 s to leave the server while two SwiftShader pages rendered). The 3D send path is the next test.
 test('Q1: a move reaches the other participant within a second; Q2: leaving removes them', async ({ browser }) => {
@@ -41,7 +10,7 @@ test('Q1: a move reaches the other participant within a second; Q2: leaving remo
   const b = await withoutWebGL(await newPage(browser));
   const me = await enter(a);
   await enter(b);
-  await expect(a.getByText(me.nickname), 'my random nickname is shown').toBeVisible();
+  await expect(a.locator('header').getByText(me.nickname), 'my random nickname is shown').toBeVisible();
   await expect.poll(async () => (await state(b)).peers.some((p) => p.peerId === me.peerId)).toBe(true);
 
   await a.waitForTimeout(300); // stay under 8 m/s from the spawn
@@ -87,13 +56,6 @@ test('T045, Q3: my input in the 3D room moves me for the other participant', asy
   }).toPass({ timeout: 30_000 });
   // ecctrl slows down over about a second, longer in software rendering's slow motion.
   await expect.poll(async () => (await seen())?.a, { message: 'stopping sends one idle', timeout: 15_000 }).toBe('idle');
-});
-
-// Until US2 switches to 2D (T056), a failed 3D scene must not take the room down.
-test('without WebGL the room still connects and shows the header', async ({ browser }) => {
-  const a = await withoutWebGL(await newPage(browser));
-  const me = await enter(a);
-  await expect(a.getByText(me.nickname)).toBeVisible();
 });
 
 // T046: a remote avatar glides from its last pose to the new one instead of jumping. The nickname label follows it every frame.

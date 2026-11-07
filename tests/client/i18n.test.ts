@@ -13,6 +13,10 @@ describe('t', () => {
     for (const theme of Object.values(THEMES)) expect(t(theme.nameKey), theme.id).toMatch(/[가-힣]/);
   });
 
+  it('every zone nameKey has text', () => {
+    for (const theme of Object.values(THEMES)) for (const zone of theme.zones) expect(t(zone.nameKey), `${theme.id} ${zone.nameKey}`).toMatch(/[가-힣]/);
+  });
+
   it('an unknown key is a type error', () => {
     // @ts-expect-error not a key of ko.ts
     expect(t('no.such.key')).toBe('no.such.key');

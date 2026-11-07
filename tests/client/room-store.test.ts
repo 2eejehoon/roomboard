@@ -17,7 +17,7 @@ const welcome: ServerMessage = {
 
 describe('RoomStore', () => {
   it('starts connecting with nothing known', () => {
-    expect(new RoomStore().getState()).toEqual({ room: null, you: null, channel: null, peers: [], chat: [], connection: 'connecting', closeCode: null });
+    expect(new RoomStore().getState()).toEqual({ room: null, you: null, channel: null, peers: [], chat: [], notices: [], connection: 'connecting', closeCode: null });
   });
 
   it('welcome sets me at the spawn, the channel, the room and the peers, and marks the connection open', () => {
@@ -58,6 +58,31 @@ describe('RoomStore', () => {
     expect(s.getState()).toMatchObject({ connection: 'reconnecting', peers: [] });
     s.setConnection('closed', 4001);
     expect(s.getState()).toMatchObject({ connection: 'closed', closeCode: 4001 });
+  });
+
+  // screens.md S3 2D: join and leave notices for aria-live come from the messages only (precedent 2026-11-07-2d-view-rules).
+  it('peer_joined and peer_left add a notice with the nickname; a reconnect and the next welcome add none', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    expect(s.getState().notices).toEqual([]);
+    s.apply({ t: 'peer_joined', peer: peer('b') });
+    s.apply({ t: 'peer_left', peerId: 'a' });
+    s.apply({ t: 'peer_left', peerId: 'nobody' });
+    expect(s.getState().notices.map(({ kind, nickname }) => [kind, nickname])).toEqual([
+      ['joined', '닉 b'],
+      ['left', '닉 a'],
+    ]);
+    s.setConnection('reconnecting');
+    s.apply(welcome);
+    expect(s.getState().notices).toHaveLength(2);
+    expect(new Set(s.getState().notices.map((n) => n.id)).size).toBe(2);
+  });
+
+  it('keeps only the last five notices', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    for (let i = 0; i < 7; i++) s.apply({ t: 'peer_joined', peer: peer(`n${i}`) });
+    expect(s.getState().notices.map((n) => n.nickname)).toEqual(['닉 n2', '닉 n3', '닉 n4', '닉 n5', '닉 n6']);
   });
 
   it('tells subscribers about every change with a new state object', () => {
