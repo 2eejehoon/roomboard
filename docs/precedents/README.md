@@ -30,6 +30,7 @@
 | [2026-11-06-password-hash-in-do](2026-11-06-password-hash-in-do.md) | 글 비밀번호 해시는 방 DO 안에서 계산 | 유효 |
 | [2026-11-07-chat-filter-limits](2026-11-07-chat-filter-limits.md) | 욕설 필터는 붙여 쓴 복합어 오탐을 감수 | 유효 |
 | [2026-11-07-assets-quaternius](2026-11-07-assets-quaternius.md) | 방·가구 에셋은 Kenney 대신 Quaternius | 유효 |
+| [2026-11-07-2d-view-rules](2026-11-07-2d-view-rules.md) | 2D 전환 규칙(WebGL 없으면 2D만, 버튼 눌렀을 때만 저장)과 구역 | 유효 |
 
 ## 판례 쓰는 법
 
