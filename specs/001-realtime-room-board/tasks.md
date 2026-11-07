@@ -51,23 +51,23 @@ description: "Task list for 001-realtime-room-board"
 
 ### `src/core` — 테스트 먼저
 
-- [ ] T015 [P] `tests/core/protocol.test.ts`: contracts/websocket.md의 모든 메시지 예시가 `src/core/protocol.ts` 스키마를 통과하고, 형식이 틀린 예(필드 누락, `a` 값 밖, `text` 201자, 2KB 초과)가 거부되는지
-- [ ] T016 [P] `tests/core/api-schemas.test.ts`: openapi.yaml 요청 스키마 규칙(제목 "1~60자", 설명 "0~300자", 비밀번호 "4~64자", `themeId` 목록 안, `deviceKey` UUID, 신고 `reason` enum, 메시지 신고 `message` 필드 6개 필수)
-- [ ] T017 [P] `tests/core/themes.test.ts`, `tests/core/room-data.test.ts`: 테마 3개, 각 테마의 `spawn`이 `bounds` 안, `createRoomData(themeId)`가 `{version:1, themeId, objects: 기본값 복사본}`, 테마 변경 시 objects가 새 기본값으로 바뀜
-- [ ] T018 [P] `tests/core/identity.test.ts`: `nicknameFor(key)`·`avatarFor(key)`가 같은 키에 항상 같은 값, 다른 키 1,000개에서 닉네임이 충분히 퍼짐(서로 다른 값 ≥ 900), 닉네임에 금칙어 없음
-- [ ] T019 [P] `tests/core/channels.test.ts`: `assignChannel(counts)` — 빈 방 → 1, `{1:20}` → 2, `{1:20, 2:5}` → 2, `{1:19, 2:20}` → 1, `{1:20, 2:20}` → 3
-- [ ] T020 [P] `tests/core/movement.test.ts`: `validateMove(prev, next, now, bounds)` — 경계 밖 거부, 초속 8m 초과 거부, 정상 이동 허용
-- [ ] T021 [P] `tests/core/rate-bucket.test.ts`: 토큰 버킷 — 채팅 "10초에 5개"(6번째 거부, `retryAfterMs` 계산), 이동 "초당 10개"
-- [ ] T022 [P] `tests/core/chat-filter.test.ts`: 금칙어를 `*`로 가림, 공백·특수문자 끼워넣기·자모 분리 우회도 가림, 정상 문장은 그대로
+- [x] T015 [P] `tests/core/protocol.test.ts`: contracts/websocket.md의 모든 메시지 예시가 `src/core/protocol.ts` 스키마를 통과하고, 형식이 틀린 예(필드 누락, `a` 값 밖, `text` 201자, 2KB 초과)가 거부되는지 — 완료. 테스트가 websocket.md의 JSON 예시를 직접 읽어 검사한다(예시를 실제로 유효한 값으로 고침).
+- [x] T016 [P] `tests/core/api-schemas.test.ts`: openapi.yaml 요청 스키마 규칙(제목 "1~60자", 설명 "0~300자", 비밀번호 "4~64자", `themeId` 목록 안, `deviceKey` UUID, 신고 `reason` enum, 메시지 신고 `message` 필드 6개 필수) — 완료.
+- [x] T017 [P] `tests/core/themes.test.ts`, `tests/core/room-data.test.ts`: 테마 3개, 각 테마의 `spawn`이 `bounds` 안, `createRoomData(themeId)`가 `{version:1, themeId, objects: 기본값 복사본}`, 테마 변경 시 objects가 새 기본값으로 바뀜 — 완료. 테마 id는 `cafe`, `library`, `garden`.
+- [x] T018 [P] `tests/core/identity.test.ts`: `nicknameFor(key)`·`avatarFor(key)`가 같은 키에 항상 같은 값, 다른 키 1,000개에서 닉네임이 충분히 퍼짐(서로 다른 값 ≥ 900), 닉네임에 금칙어 없음 — 완료. 형용사 80 × 동물 80(1,000개 키에서 약 925개).
+- [x] T019 [P] `tests/core/channels.test.ts`: `assignChannel(counts)` — 빈 방 → 1, `{1:20}` → 2, `{1:20, 2:5}` → 2, `{1:19, 2:20}` → 1, `{1:20, 2:20}` → 3 — 완료.
+- [x] T020 [P] `tests/core/movement.test.ts`: `validateMove(prev, next, now, bounds)` — 경계 밖 거부, 초속 8m 초과 거부, 정상 이동 허용 — 완료. 시간이 흐르지 않은 이동(같은 ms)은 제자리일 때만 허용.
+- [x] T021 [P] `tests/core/rate-bucket.test.ts`: 토큰 버킷 — 채팅 "10초에 5개"(6번째 거부, `retryAfterMs` 계산), 이동 "초당 10개" — 완료.
+- [x] T022 [P] `tests/core/chat-filter.test.ts`: 금칙어를 `*`로 가림, 공백·특수문자 끼워넣기·자모 분리 우회도 가림, 정상 문장은 그대로 — 완료. 매치는 원래 글자 단위(음절)로만 인정해서 "조절" 같은 말이 "좆"에 걸리지 않는다. 띄어쓰기를 건너뛰는 매치는 낱말 처음에서 시작해 낱말 끝에서 끝나야 하고(기호·보이지 않는 문자는 낱말을 끊지 않음), 3음절 이상 금칙어만 끝에 조사·어미 목록(아, 야, 들 …)이 붙을 수 있다(`개 새끼야`는 가림, "push it", "a bit chilly", "포도 씨 발라", "몇 시 팔아"는 그대로). 휴리스틱이라 오탐·누락이 남는다. 목록 보강은 운영 중 신고로. 글자마다 NFKC를 거치고 NFD 한글도 같은 자모로 맞춘다.
 
 ### `src/core` — 구현
 
-- [ ] T023 [P] `src/core/protocol.ts`: websocket.md의 모든 클라이언트→서버, 서버→클라이언트 메시지 zod 스키마와 타입, 닫힘 코드 상수
-- [ ] T024 [P] `src/core/api-schemas.ts`: openapi.yaml 요청 바디 zod 스키마
-- [ ] T025 [P] `src/core/themes.ts`, `src/core/room-data.ts`: 테마 3개(id, `nameKey`, `bounds`, `spawn`, `defaultObjects`), `createRoomData`, `changeTheme`
-- [ ] T026 [P] `src/core/identity.ts`: 형용사·동물 단어 목록과 아바타 id 목록, 해시 기반 결정적 선택(동기 함수, 외부 의존 없음)
-- [ ] T027 [P] `src/core/channels.ts`, `src/core/movement.ts`, `src/core/rate-bucket.ts`
-- [ ] T028 [P] `src/core/chat-filter.ts`와 `src/data/profanity-ko.txt`(한국어·영어 금칙어 초기 목록)
+- [x] T023 [P] `src/core/protocol.ts`: websocket.md의 모든 클라이언트→서버, 서버→클라이언트 메시지 zod 스키마와 타입, 닫힘 코드 상수 — 완료. 2KB 초과는 `too_large`(DO가 1009로 닫음), 나머지는 `bad_message`.
+- [x] T024 [P] `src/core/api-schemas.ts`: openapi.yaml 요청 바디 zod 스키마 — 완료. 목록 조회 쿼리·`fields` 문구 키는 그것을 쓰는 US3에서.
+- [x] T025 [P] `src/core/themes.ts`, `src/core/room-data.ts`: 테마 3개(id, `nameKey`, `bounds`, `spawn`, `defaultObjects`), `createRoomData`, `changeTheme` — 완료.
+- [x] T026 [P] `src/core/identity.ts`: 형용사·동물 단어 목록과 아바타 id 목록, 해시 기반 결정적 선택(동기 함수, 외부 의존 없음) — 완료.
+- [x] T027 [P] `src/core/channels.ts`, `src/core/movement.ts`, `src/core/rate-bucket.ts` — 완료. `RateBucket`은 정수 ms GCRA(토큰 소수점 반올림 없음).
+- [x] T028 [P] `src/core/chat-filter.ts`와 `src/data/profanity-ko.txt`(한국어·영어 금칙어 초기 목록) — 완료. 금칙어 목록은 인자로 받는다(core는 파일을 읽지 않음, `tsconfig.core.json`이 DOM·Node·Workers 타입 없이 검사).
 
 ### Worker·클라이언트 공통 기반
 

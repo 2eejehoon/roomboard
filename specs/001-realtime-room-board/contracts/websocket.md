@@ -6,7 +6,7 @@
 
 - 모든 메시지는 UTF-8 JSON 텍스트 프레임 하나다. 바이너리 프레임은 닫힘 코드 `1003`으로 끊는다.
 - 모든 메시지에 `t`(종류) 필드가 있다. 스키마는 `src/core/protocol.ts`의 zod 스키마가 진실의 원천이고, 이 문서는 그것과
-  같아야 한다(프로토콜 테스트로 확인).
+  같아야 한다(`tests/core/protocol.test.ts`가 이 문서의 JSON 예시를 스키마로 검사한다).
 - 서버는 형식이 틀린 메시지를 버리고 `error {code: "bad_message"}`를 보낸다. 10초 안에 5번 틀리면 `4008`로 끊는다.
 - 좌표는 미터 단위 `[x, y, z]`, 방향 `r`은 Y축 회전(라디안). 숫자는 소수점 2자리로 반올림해 보낸다.
 - 시각은 Unix ms.
@@ -36,7 +36,7 @@ client                                   server (Room DO)
 ### `join`
 
 ```json
-{ "t": "join", "v": 1, "deviceKey": "6f1c…(uuid)" }
+{ "t": "join", "v": 1, "deviceKey": "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b" }
 ```
 
 - 연결 후 첫 메시지. 두 번째 `join`은 `bad_message`.
@@ -74,7 +74,7 @@ client                                   server (Room DO)
   "v": 1,
   "you": { "peerId": "p_8Kx2", "nickname": "느긋한 수달", "avatarId": "char-03" },
   "channel": 2,
-  "room": { "id": "aB3dE5fG7h", "title": "…", "description": "…", "roomData": { "version": 1, "themeId": "cafe", "objects": [] } },
+  "room": { "id": "aB3dE5fG7h", "title": "작은 카페", "description": "쉬어 가는 방", "roomData": { "version": 1, "themeId": "cafe", "objects": [] } },
   "peers": [
     { "peerId": "p_1aQ9", "nickname": "용감한 고양이", "avatarId": "char-01", "p": [0, 0, 0], "r": 0, "a": "idle" }
   ],
@@ -88,7 +88,7 @@ client                                   server (Room DO)
 ### `peer_joined`
 
 ```json
-{ "t": "peer_joined", "peer": { "peerId": "…", "nickname": "…", "avatarId": "…", "p": [0,0,2], "r": 0, "a": "idle" } }
+{ "t": "peer_joined", "peer": { "peerId": "p_1aQ9", "nickname": "용감한 고양이", "avatarId": "char-01", "p": [0,0,2], "r": 0, "a": "idle" } }
 ```
 
 ### `peer_left`
@@ -132,7 +132,7 @@ client                                   server (Room DO)
 ### `room_updated`
 
 ```json
-{ "t": "room_updated", "room": { "id": "…", "title": "…", "description": "…", "roomData": { "…": "…" } } }
+{ "t": "room_updated", "room": { "id": "aB3dE5fG7h", "title": "새 제목", "description": "", "roomData": { "version": 1, "themeId": "library", "objects": [] } } }
 ```
 
 - 주인이 방을 고쳤을 때 모든 채널에. 테마가 바뀌면 클라이언트는 장면을 다시 만들고 `spawn`으로 옮긴다.
