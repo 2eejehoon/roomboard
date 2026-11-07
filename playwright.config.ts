@@ -3,7 +3,12 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: 'tests/e2e',
   // PLAYWRIGHT_CHROMIUM_PATH: use a pre-installed Chromium (cloud sessions); CI installs the pinned one instead.
-  use: { baseURL: 'http://localhost:5173', trace: 'off', launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } },
+  // SwiftShader gives headless Chromium WebGL for the 3D room; newer Chromium no longer falls back to it on its own.
+  use: {
+    baseURL: 'http://localhost:5173',
+    trace: 'off',
+    launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
+  },
   projects: [
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
