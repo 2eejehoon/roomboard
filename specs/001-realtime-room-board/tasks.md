@@ -71,7 +71,7 @@ description: "Task list for 001-realtime-room-board"
 
 ### Worker·클라이언트 공통 기반
 
-- [x] T029 `tests/worker/app.test.ts`: 알 수 없는 `/api/*` 경로 404 JSON `{code:"not_found"}`, 오류 응답이 openapi `Error` 스키마를 따름, 응답·로그에 IP가 기록되지 않음(콘솔 출력 캡처 검사) — 완료. 예상하지 못한 오류는 500 `{code:"internal"}`(openapi `Error` enum에 추가). 로그에는 오류 이름과 스택 프레임만 남긴다. 스택 첫머리의 `이름: 메시지` 줄 수만큼 건너뛴다(여러 줄 메시지도 요청 본문을 담을 수 있음). Hono `HTTPException` 4xx는 그 상태 그대로, 코드는 401·404·410·429면 해당 코드, 나머지는 `validation`.
+- [x] T029 `tests/worker/app.test.ts`: 알 수 없는 `/api/*` 경로 404 JSON `{code:"not_found"}`, 오류 응답이 openapi `Error` 스키마를 따름, 응답·로그에 IP가 기록되지 않음(콘솔 출력 캡처 검사) — 완료. 예상하지 못한 오류는 500 `{code:"internal"}`(openapi `Error` enum에 추가). 로그에는 오류 이름과 스택 프레임만 남긴다. 스택 첫머리의 `이름: 메시지` 줄 수만큼 건너뛴다(여러 줄 메시지도 요청 본문을 담을 수 있음). Hono `HTTPException` 4xx는 그 상태와 헤더(`WWW-Authenticate` 등) 그대로, 코드는 401·404·410·429면 해당 코드, 나머지는 `validation`.
 - [x] T030 `src/worker/index.ts`: Hono 앱, `/api` 라우터 뼈대, 공통 오류 처리(`Error` 스키마), 정적 에셋 위임, `RoomDurableObject` export — 완료. 정적 에셋은 `run_worker_first: ["/api/*"]`라서 Worker를 거치지 않는다(`/rooms/:id` HTML은 T057). `RoomDurableObject` export와 DO 바인딩은 T040에서 같이 추가.
 - [x] T031 [P] `src/worker/rate-limit.ts`: Rate Limiting 바인딩 래퍼 — 키는 `cf-connecting-ip`를 요청 중에만 사용하고 저장·로그 금지(research R9), 초과 시 429 + `Retry-After` + `retryAfterMs` — 완료. Rate Limiting 바인딩(`RL_*`)은 쓰는 스토리에서 `wrangler.jsonc`에 추가.
 - [x] T032 [P] `src/client/i18n/ko.ts`, `src/client/i18n/t.ts`: 문구 객체와 `t(key, vars)`, 키 타입 추출(없는 키는 타입 오류) (research R10) — 완료. 테스트 `tests/client/i18n.test.ts`(테마 `nameKey` 전부 있음, 없는 키는 `@ts-expect-error`).

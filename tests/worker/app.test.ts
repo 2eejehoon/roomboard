@@ -21,6 +21,9 @@ app.get('/__test/http-413', () => {
 app.get('/__test/http-401', () => {
   throw new HTTPException(401);
 });
+app.get('/__test/http-401-auth', () => {
+  throw new HTTPException(401, { res: new Response('Unauthorized', { status: 401, headers: { 'WWW-Authenticate': 'Bearer' } }) });
+});
 
 describe('worker app', () => {
   afterEach(() => vi.restoreAllMocks());
@@ -49,6 +52,10 @@ describe('worker app', () => {
     const res = await app.request('/api/__test/http-401');
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ code: 'unauthorized' });
+    const auth = await app.request('/api/__test/http-401-auth');
+    expect(auth.headers.get('www-authenticate'), 'headers from the exception response are kept').toBe('Bearer');
+    expect(auth.headers.get('content-type')).toMatch(/json/);
+    expect(await auth.json()).toEqual({ code: 'unauthorized' });
   });
 
   it('logs the error without its message, so request content never reaches the logs', async () => {
