@@ -60,7 +60,8 @@ export function createChatFilter(words: string[]): (text: string) => string {
     .map((w) => ({ ch: normalize([...w]).units.map((u) => u.ch), takesEnding: [...w].length >= 3 }))
     .filter((p) => p.ch.length > 0);
   return (text) => {
-    const chars = [...text];
+    // NFC first: NFD splits a syllable into jamo code points, which would defeat the whole-syllable rule ("조절" vs "좆").
+    const chars = [...text.normalize('NFC')];
     const { units, wordStart, wordEnd } = normalize(chars);
     const masked = new Set<number>();
     for (const { ch: p, takesEnding } of patterns) {

@@ -62,9 +62,10 @@ describe('chat filter', () => {
   });
 
   it('masks NFD Hangul and full-width letters', () => {
-    expect(f('씨발'.normalize('NFD'))).toBe('*****');
+    expect(f('씨발'.normalize('NFD'))).toBe('**');
     expect(f('ｆｕｃｋ')).toBe('****');
     expect(f('안녕'.normalize('NFD'))).toBe('안녕'.normalize('NFD'));
+    for (const t of ['볼륨 조절해', '조사해', '옷방 정리', '갑시다']) expect(filter(t.normalize('NFD')), t).toBe(t.normalize('NFD'));
   });
 
   it('leaves dictionary words that contain a banned word alone', () => {
