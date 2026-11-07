@@ -93,7 +93,7 @@ description: "Task list for 001-realtime-room-board"
 - [x] T035 [P] [US1] `tests/core/room-session.test.ts`: 순수 상태 기계 `RoomSession` — `join` → 나에게 `welcome`(같은 채널 peers만), 다른 참가자에게 `peer_joined`; `move` 정상 → 같은 채널에 `peer_moved`; 거부 → 나에게 `correction`; 초당 10개 초과는 조용히 버림; `leave` → `peer_left`; join 전 다른 메시지 → `error not_joined`; 두 번째 join → `bad_message`; 잘못된 메시지 10초 5번 → 닫힘 4008 — 완료. 채널 21번째 배정, 경계 밖 이동, 2KB 초과(1009), 4002, Hibernation 후 `restore`도 검사. 채팅은 US4(T068).
 - [x] T036 [P] [US1] `tests/worker/room-do.test.ts`: 실제 DO에 WebSocket 2개 접속 — join/welcome, 이동 전달, 닫으면 peer_left, 5초 안에 join 없으면 4000, 바이너리 프레임 1003, 2KB 초과 1009, 텍스트 `ping`에 `pong` 자동 응답, Hibernation 후(attachment 복원) 새 참가자의 `welcome.peers`에 기존 참가자 위치가 있음, 없는 방 404·삭제된 방 410 — 완료. 없는 방 404·삭제된 방 410·`Upgrade` 없음 426, `GET /api/rooms/:roomId`도 같은 파일. Hibernation은 `evictDurableObject`.
 - [x] T037 [P] [US1] `tests/worker/online-count.test.ts`: 입장·퇴장 후 DO alarm으로 2초 디바운스되어 `rooms.online_count`가 갱신됨(`setTimeout` 미사용) — 완료. 예약된 alarm 시각(2초 뒤)과 alarm 전에는 D1이 그대로인지 확인.
-- [ ] T038 [P] [US1] `tests/e2e/us1-move.spec.ts`: Q1(컨텍스트 A·B 입장, A가 `__roomboard.move` → B의 `state().peers`와 2D 목록 갱신 1초 이내), Q2(A 닫으면 B 목록에서 제거), Q3(모바일 프로젝트에서 조이스틱 보임·드래그 시 `move` 전송), 랜덤 닉네임 표시 — 부분 완료(U2): Q1·Q2(테스트 훅 `peers`)와 내 랜덤 닉네임 표시. 2D 참가자 목록 확인은 목록이 생기는 T054(US2)에서, Q3(조이스틱)은 3D 장면과 같이(T047). seed는 Playwright `webServer`가 `npm run seed:dev`로 넣는다.
+- [ ] T038 [P] [US1] `tests/e2e/us1-move.spec.ts`: Q1(컨텍스트 A·B 입장, A가 `__roomboard.move` → B의 `state().peers`와 2D 목록 갱신 1초 이내), Q2(A 닫으면 B 목록에서 제거), Q3(모바일 프로젝트에서 조이스틱 보임·드래그 시 `move` 전송), 랜덤 닉네임 표시 — 부분 완료(U2): Q1·Q2(테스트 훅 `peers`)와 내 랜덤 닉네임 표시. 2D 참가자 목록 확인은 목록이 생기는 T054(US2)에서, Q3(조이스틱)은 3D 장면과 같이(T047). seed는 Playwright `webServer`가 `npm run seed:dev`로 넣는다. 실행 확인: main CI run 42349355500에서 seed + e2e(desktop·mobile) 통과.
 
 ### Implementation
 
@@ -106,9 +106,9 @@ description: "Task list for 001-realtime-room-board"
 - [ ] T045 [US1] `src/client/room/room3d/Scene.tsx`(동적 import): R3F Canvas, Rapier 물리, 테마 `roomData.objects`를 GLB로 배치하고 `collider: "box"`는 고정 충돌체, ecctrl 3인칭 컨트롤러(WASD/방향키, Shift, Space), 내 위치를 `room-socket`으로 송신
 - [ ] T046 [US1] `src/client/room/room3d/RemoteAvatar.tsx`: 다른 참가자 아바타(Quaternius 캐릭터, `avatarId`), 마지막 두 위치 보간, 애니메이션 상태, 머리 위 닉네임
 - [ ] T047 [US1] `src/client/room/room3d/TouchControls.tsx`: 터치 기기에서 `ecctrl/input`의 `Joystick`·점프 `VirtualButton`, 카메라 드래그
-- [ ] T048 [P] [US1] `public/assets/`에 테마 1개분 CC0 에셋(Kenney 방·가구, Quaternius 캐릭터, Poly Haven HDRI)과 `public/assets/CREDITS.md`(파일별 출처·라이선스), 테마당 첫 로딩 ≤ 5MB
+- [ ] T048 [P] [US1] `public/assets/`에 테마 1개분 CC0 에셋(Kenney 방·가구, Quaternius 캐릭터, Poly Haven HDRI)과 `public/assets/CREDITS.md`(파일별 출처·라이선스), 테마당 첫 로딩 ≤ 5MB — 진행 메모: 환경 네트워크에 `kenney.nl`·`quaternius.com`·`dl.polyhaven.org`·`api.polyhaven.com`을 허용했다. quaternius·Poly Haven은 열리지만 kenney.nl은 사이트가 403을 돌려준다(프록시 차단 아님, 봇 차단으로 보임). 우회하지 않는다. 운영자가 받은 원본 zip을 저장소에 올리는 방법 등은 운영자가 정한다.
 - [x] T049 [US1] `src/client/test-hooks.ts`: `import.meta.env.DEV`일 때만 `window.__roomboard = { state(), move(p, r) }` — 완료. `installTestHooks(store, socket)`를 RoomPage가 부른다.
-- [x] T050 [US1] `scripts/check-bundle.mjs`(`npm run check:bundle`): `dist/` 클라이언트 번들에 `__roomboard` 문자열이 없으면 통과 — 완료. 폴더를 인자로 받고(기본 `dist/client`), 폴더가 없으면 실패. CI `build` 다음 단계.
+- [x] T050 [US1] `scripts/check-bundle.mjs`(`npm run check:bundle`): `dist/` 클라이언트 번들에 `__roomboard` 문자열이 없으면 통과 — 완료. 폴더를 인자로 받고(기본 `dist/client`), 폴더가 없으면 실패. CI `build` 다음 단계. 실행 확인: 머지 후 main CI run 42349355500에서 `check:bundle` 통과.
 
 **Checkpoint**: US1 독립 동작. MVP 데모 가능.
 
@@ -218,7 +218,7 @@ description: "Task list for 001-realtime-room-board"
 
 ### Implementation
 
-- [ ] T082 [US6] `src/worker/rooms.ts`: `PATCH /api/rooms/:id`, `DELETE /api/rooms/:id`(rate limit `RL_PASSWORD` → DO RPC `verifyPassword` → D1 → DO RPC `roomUpdated(room)` / `roomDeleted(by)`)
+- [ ] T082 [US6] `src/worker/rooms.ts`: `PATCH /api/rooms/:id`, `DELETE /api/rooms/:id`(rate limit `RL_PASSWORD` → DO RPC `verifyPassword` → D1 → DO RPC `roomUpdated(room)` / `roomDeleted(by)`) 후속(PR #21 리뷰 제안): 재연결 대기 중 방이 삭제되면 업그레이드가 410이라 브라우저는 1006으로만 알고 계속 재연결한다. websocket.md 닫힘 표에 줄을 먼저 추가하고(예: welcome 없이 몇 번 실패하면 `GET /api/rooms/:id`로 확인해 S6), 테스트 먼저.
 - [ ] T083 [US6] `src/worker/room-do.ts`: RPC `roomUpdated`(모든 채널에 `room_updated`), `roomDeleted`(`room_deleted` 후 4001로 전부 닫기)
 - [ ] T084 [US6] `src/client/board/EditRoomPage.tsx`: screens.md S4 — 현재 값, 테마 변경 안내, 삭제 확인 대화상자, 403 문구
 - [ ] T085 [US6] `src/client/room/RoomPage.tsx`: `room_updated` 시 장면 재구성·스폰 이동, `room_deleted` 모달 → 목록
