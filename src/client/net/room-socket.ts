@@ -47,6 +47,7 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
     ws.onclose = (e: CloseEvent) => {
       clearInterval(ping);
       clearTimeout(flush);
+      flush = undefined; // move() schedules only while this is unset
       pending = null;
       if (stopped || FINAL.has(e.code)) return store.setConnection('closed', stopped ? null : e.code);
       store.setConnection('reconnecting');
