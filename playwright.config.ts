@@ -2,6 +2,8 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: 'tests/e2e',
+  // One test at a time: software WebGL uses every core, and a second 3D test would starve the local Worker under the others.
+  workers: 1,
   // PLAYWRIGHT_CHROMIUM_PATH: use a pre-installed Chromium (cloud sessions); CI installs the pinned one instead.
   // SwiftShader gives headless Chromium WebGL for the 3D room; newer Chromium no longer falls back to it on its own.
   use: {
