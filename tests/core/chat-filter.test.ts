@@ -59,6 +59,9 @@ describe('chat filter', () => {
     expect(filter('미친 놈아')).toBe('****아');
     expect(filter('씨 발놈아')).toBe('****아');
     expect(filter('개 새끼들')).toBe('****들');
+    expect(filter('씨 발ㅋㅋ')).toBe('***ㅋㅋ');
+    expect(filter('개 새끼ㅋㅋ')).toBe('****ㅋㅋ');
+    expect(filter('미친 놈ㅠ')).toBe('****ㅠ');
   });
 
   it('only whitespace separates words: symbols and invisible characters inside a word do not', () => {
