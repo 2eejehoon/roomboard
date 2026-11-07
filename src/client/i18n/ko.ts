@@ -14,4 +14,7 @@ export const ko = {
   'room.notFound': '없는 방이에요',
   'room.gone': '삭제된 방이에요',
   'room.toBoard': '목록으로',
+  'room.outdated': '새 버전이 있어요. 새로고침해 주세요',
+  'room.ended': '연결이 끊겼어요. 새로고침해 주세요',
+  'room.reload': '새로고침',
 } as const;

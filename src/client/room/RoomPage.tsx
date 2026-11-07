@@ -1,6 +1,7 @@
 // screens.md S3 공통 영역 and S6. The 3D/2D bodies come with their stories (T045~, T054).
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
+import { CLOSE } from '../../core/protocol.ts';
 import { navigate } from '../App.tsx';
 import { deviceKey } from '../device.ts';
 import { t } from '../i18n/t.ts';
@@ -43,17 +44,26 @@ export function RoomPage({ id }: { id: string }) {
 
   if (load.status === 'loading') return <Loading />;
   if (load.status === 'error') return <NetworkError onRetry={() => setAttempt((n) => n + 1)} />;
-  if (load.status !== 'ok') {
-    return (
-      <div role="alert">
-        <p>{t(load.status === 404 ? 'room.notFound' : 'room.gone')}</p>
-        <button type="button" onClick={() => navigate('/')}>
-          {t('room.toBoard')}
-        </button>
-      </div>
-    );
-  }
+  if (load.status !== 'ok') return <Notice text={t(load.status === 404 ? 'room.notFound' : 'room.gone')} />;
+  if (state.connection === 'closed' && state.closeCode !== null) return <ClosedNotice code={state.closeCode} />;
   return <RoomHeader title={state.room?.title ?? load.title} state={state} />;
+}
+
+// Final close codes (websocket.md 닫힘 코드 표): no reconnect, so say what happened instead of a room that looks live.
+export function ClosedNotice({ code }: { code: number }) {
+  if (code === CLOSE.roomDeleted) return <Notice text={t('room.gone')} />;
+  return <Notice text={t(code === CLOSE.unsupportedVersion ? 'room.outdated' : 'room.ended')} reload />;
+}
+
+function Notice({ text, reload = false }: { text: string; reload?: boolean }) {
+  return (
+    <div role="alert">
+      <p>{text}</p>
+      <button type="button" onClick={() => (reload ? location.reload() : navigate('/'))}>
+        {t(reload ? 'room.reload' : 'room.toBoard')}
+      </button>
+    </div>
+  );
 }
 
 export function RoomHeader({ title, state }: { title: string; state: RoomState }) {
