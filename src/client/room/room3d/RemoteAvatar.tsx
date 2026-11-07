@@ -1,7 +1,7 @@
 // T046: other participants' avatars (Quaternius characters by avatarId), interpolated between their last two poses, nickname overhead.
 import { Html, useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MathUtils, Vector3, type Group } from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import type { Pose } from '../../../core/room-session.ts';
@@ -29,6 +29,8 @@ export function RemoteAvatar({ peer }: { peer: Peer }) {
   const from = useRef({ p: new Vector3(...peer.p), r: peer.r, at: 0 });
   const to = useRef({ p: new Vector3(...peer.p), r: peer.r });
   const [x, y, z] = peer.p;
+  // Mount pose only. Reactive position/rotation props would move the group on commit, before the effect reads it as `from`.
+  const [start] = useState(() => ({ p: peer.p, r: peer.r }));
 
   useEffect(() => {
     const g = group.current;
@@ -47,7 +49,7 @@ export function RemoteAvatar({ peer }: { peer: Peer }) {
   });
 
   return (
-    <group ref={group} position={peer.p} rotation-y={peer.r}>
+    <group ref={group} position={start.p} rotation-y={start.r}>
       <Avatar avatarId={peer.avatarId} a={peer.a} />
       <Html position={[0, 1.9, 0]} center>
         <span style={{ whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.5)', color: 'white' }}>{peer.nickname}</span>
