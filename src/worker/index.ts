@@ -1,5 +1,8 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { requireRoom } from './rooms.ts';
+
+export { RoomDurableObject } from './room-do.ts';
 
 const app = new Hono<{ Bindings: Env }>().basePath('/api');
 
@@ -18,6 +21,14 @@ app.onError((err, c) => {
   const header = `${err.name}: ${err.message}`.split('\n').length;
   console.error(err.name, (err.stack ?? '').split('\n').slice(header).join('\n'));
   return c.json({ code: 'internal' }, 500);
+});
+
+app.get('/rooms/:roomId', async (c) => c.json(await requireRoom(c.env.DB, c.req.param('roomId'))));
+
+app.get('/rooms/:roomId/ws', async (c) => {
+  const { id } = await requireRoom(c.env.DB, c.req.param('roomId'));
+  if (c.req.header('Upgrade') !== 'websocket') return c.body(null, 426);
+  return c.env.ROOM.getByName(id).fetch(c.req.raw);
 });
 
 export default app;
