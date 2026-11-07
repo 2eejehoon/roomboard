@@ -28,6 +28,7 @@
 | [2026-11-06-agent-pr-token](2026-11-06-agent-pr-token.md) | 에이전트 PR은 PR 전용 토큰으로 연다 | 유효 |
 | [2026-11-06-vitest-plugin](2026-11-06-vitest-plugin.md) | Worker 테스트는 @cloudflare/vitest-plugin, Vitest 5.1 | 유효 |
 | [2026-11-06-password-hash-in-do](2026-11-06-password-hash-in-do.md) | 글 비밀번호 해시는 방 DO 안에서 계산 | 유효 |
+| [2026-11-07-chat-filter-limits](2026-11-07-chat-filter-limits.md) | 욕설 필터는 붙여 쓴 복합어 오탐을 감수 | 유효 |
 
 ## 판례 쓰는 법
 
