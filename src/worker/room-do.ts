@@ -2,6 +2,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CLOSE } from '../core/protocol.ts';
 import { RoomSession, type Outbox, type Participant } from '../core/room-session.ts';
+import { hashPassword } from './password.ts';
 import { requireRoom } from './rooms.ts';
 
 // Socket attachment (data-model.md "Participant"), plus the connect time for the join deadline. No device key.
@@ -33,6 +34,11 @@ export class RoomDurableObject extends DurableObject<Env> {
     session.connect(peerId);
     await this.schedule(now + JOIN_TIMEOUT_MS);
     return new Response(null, { status: 101, webSocket: client });
+  }
+
+  // RPC (research R5): PBKDF2 needs more CPU than a Worker request has. Called before the room's row exists, so no session().
+  hashPassword(password: string): Promise<string> {
+    return hashPassword(password);
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {

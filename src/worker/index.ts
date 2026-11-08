@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
-import { requireRoom } from './rooms.ts';
+import { rateLimit } from './rate-limit.ts';
+import { createRoom, listRooms, requireRoom } from './rooms.ts';
 
 export { RoomDurableObject } from './room-do.ts';
 
@@ -27,6 +28,8 @@ function logError(err: Error): void {
   console.error(err.name, (err.stack ?? '').split('\n').slice(header).join('\n'));
 }
 
+app.get('/rooms', listRooms);
+app.post('/rooms', rateLimit((c) => c.env.RL_CREATE, 60_000), createRoom);
 app.get('/rooms/:roomId', async (c) => c.json(await requireRoom(c.env.DB, c.req.param('roomId'))));
 
 app.get('/rooms/:roomId/ws', async (c) => {

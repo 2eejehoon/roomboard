@@ -98,7 +98,7 @@ description: "Task list for 001-realtime-room-board"
 ### Implementation
 
 - [x] T039 [US1] `src/core/room-session.ts`: T035를 통과하는 순수 상태 기계(입력: 참가자 집합 + 메시지 + 시각, 출력: 보낼 메시지 목록·닫을 소켓), `assignChannel`·`validateMove`·`RateBucket`·`nicknameFor` 사용 — 완료. 참가자 키는 `peerId`(DO가 접속 때 만듦), 나가는 숫자는 소수점 2자리.
-- [ ] T040 [US1] `src/worker/room-do.ts`: `RoomDurableObject` — RPC `hashPassword`·`verifyPassword`(research R5), `acceptWebSocket`(Hibernation API), `setWebSocketAutoResponse("ping","pong")`, attachment `{peerId, nickname, avatarId, channel, pose, lastMoveAt}` 직렬화·복원(기기 키 원문 미포함), 메시지를 `RoomSession`에 넘기고 결과 전송, join 타임아웃 4000, 크기·바이너리 검사, `online_count` alarm 디바운스 — 부분 완료: RPC `hashPassword`·`verifyPassword`는 `password.ts`와 같이 T062·T064(US3)에서. 나머지 완료. attachment에 join 마감용 `connectedAt` 추가, alarm 하나가 join 마감(4000)과 `online_count` 기록을 같이 한다. 방 정보는 깨어날 때 D1에서 읽는다(`ctx.id.name` = 방 id). 후속(PR #20 리뷰 제안): 서버가 닫은 소켓이 닫힘 완료 전에 Hibernation되면 깨어날 때 attachment 때문에 유령 참가자로 복원될 수 있다(미확인). 다음에 room-do를 고칠 때 테스트 먼저 쓰고, `close()` 전에 attachment의 `participant`를 비운다.
+- [ ] T040 [US1] `src/worker/room-do.ts`: `RoomDurableObject` — RPC `hashPassword`·`verifyPassword`(research R5), `acceptWebSocket`(Hibernation API), `setWebSocketAutoResponse("ping","pong")`, attachment `{peerId, nickname, avatarId, channel, pose, lastMoveAt}` 직렬화·복원(기기 키 원문 미포함), 메시지를 `RoomSession`에 넘기고 결과 전송, join 타임아웃 4000, 크기·바이너리 검사, `online_count` alarm 디바운스 — 부분 완료: RPC `hashPassword`는 T064(US3)에서 추가, `verifyPassword`는 쓰는 곳(US6 수정·삭제)에서. 나머지 완료. attachment에 join 마감용 `connectedAt` 추가, alarm 하나가 join 마감(4000)과 `online_count` 기록을 같이 한다. 방 정보는 깨어날 때 D1에서 읽는다(`ctx.id.name` = 방 id). 후속(PR #20 리뷰 제안): 서버가 닫은 소켓이 닫힘 완료 전에 Hibernation되면 깨어날 때 attachment 때문에 유령 참가자로 복원될 수 있다(미확인). 다음에 room-do를 고칠 때 테스트 먼저 쓰고, `close()` 전에 attachment의 `participant`를 비운다.
 - [x] T041 [US1] `src/worker/index.ts`에 `GET /api/rooms/:roomId/ws` 추가: D1에서 방 확인(404/410), `Upgrade` 없으면 426, DO로 전달. 그리고 `GET /api/rooms/:roomId`(방 정보, 404/410) 추가 — 완료. 방 조회는 `src/worker/rooms.ts` `requireRoom`(형식이 틀린 id도 404, `password_hash`는 읽지 않음).
 - [x] T042 [US1] `src/client/net/room-socket.ts`: 연결·join·ping 20초·재연결 백오프(1,2,4,8,이후 15초, ±20% 지터)·닫힘 코드별 동작(websocket.md 표), 이동 송신 throttle(변경 시에만, 초당 최대 5번, 멈추면 `idle` 1번) — 완료. 소켓 클래스·타이머·난수를 주입해 Node에서 테스트(`tests/client/room-socket.test.ts`). throttle은 마지막 자세를 200ms 뒤에 보내는 방식, 연결 중이 아닐 때 이동은 버린다.
 - [x] T043 [US1] `src/client/state/room-store.ts`: 3D·2D가 같이 읽는 상태(you, channel, peers, chat, connection), 서버 메시지 적용 로직은 `src/core` 타입 사용 — 완료. `RoomStore`(`subscribe`/`getState`로 `useSyncExternalStore`). 끊기면 peers를 비우고 다음 welcome이 다시 채운다. 채팅·`room_updated`는 각 스토리에서.
@@ -145,16 +145,16 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T058 [P] [US3] `tests/worker/rooms-create.test.ts`: `POST /api/rooms` 201(응답 `Room`, D1에 `password_hash`가 `pbkdf2-sha256$` 형식이고 평문 없음, 제목·설명 필터 적용), 제목 빈 값·61자 400 `fields.title`, 설명 301자 400, 비밀번호 3자 400, 없는 테마 400, Turnstile 실패 키 403 `turnstile_failed`, 4번째 요청 429
-- [ ] T059 [P] [US3] `tests/worker/rooms-list.test.ts`: `GET /api/rooms` 최신순, 삭제된 방 제외, `limit` 기본 20·최대 50, `nextCursor` 페이지 이동, `onlineCount` 포함
-- [ ] T060 [P] [US3] `tests/worker/password.test.ts`: `hashPassword`/`verifyPassword` 왕복, 틀린 비밀번호 거부, 저장 형식 파싱
+- [x] T058 [P] [US3] `tests/worker/rooms-create.test.ts`: `POST /api/rooms` 201(응답 `Room`, D1에 `password_hash`가 `pbkdf2-sha256$` 형식이고 평문 없음, 제목·설명 필터 적용), 제목 빈 값·61자 400 `fields.title`, 설명 301자 400, 비밀번호 3자 400, 없는 테마 400, Turnstile 실패 키 403 `turnstile_failed`, 4번째 요청 429 — 완료. siteverify는 테스트에서 가짜 응답으로 바꾼다(클라우드 세션의 workerd는 DNS가 없다). 가짜는 Cloudflare 테스트 비밀 키처럼 답한다(`1x…AA` 통과, `2x…AA` 실패). 보낸 값이 `secret`·`response` 둘뿐(`remoteip` 없음)인지도 확인한다. 403은 `app.request`에 실패 키를 넣은 env로 부른다. 요청마다 `cf-connecting-ip`를 다르게 줘서 rate limit 3회가 다른 테스트를 막지 않게 했다. 400은 siteverify를 부르지 않는다(판례 2026-11-08-create-room-check-order). JSON이 아닌 본문도 400.
+- [x] T059 [P] [US3] `tests/worker/rooms-list.test.ts`: `GET /api/rooms` 최신순, 삭제된 방 제외, `limit` 기본 20·최대 50, `nextCursor` 페이지 이동, `onlineCount` 포함 — 완료. `limit` 범위 밖·숫자 아님, 형식이 틀린 `cursor`는 400. 커서는 `<createdAt>.<id>`이고 만든 시각이 같은 방도 겹치거나 빠지지 않는다. D1은 테스트마다 따로라서 각 테스트가 자기 행만 본다.
+- [x] T060 [P] [US3] `tests/worker/password.test.ts`: `hashPassword`/`verifyPassword` 왕복, 틀린 비밀번호 거부, 저장 형식 파싱 — 완료. seed-dev(Node `pbkdf2Sync`)가 만든 해시 문자열을 그대로 검증하는 벡터, 반복 횟수를 문자열에서 읽음, 형식이 틀린 해시는 예외 없이 false.
 - [ ] T061 [P] [US3] `tests/e2e/us3-create.spec.ts`: Q6(양식 제출 → 방으로 이동, 다른 컨텍스트 목록 맨 위에 보임), Q7(빈 제목 오류 문구), 목록 빈 상태 문구
 
 ### Implementation
 
-- [ ] T062 [P] [US3] `src/worker/password.ts`: 방 DO 안에서 부르는 PBKDF2-SHA256(T011: Worker CPU 10ms 초과), 16바이트 솔트, `pbkdf2-sha256$<반복>$<솔트>$<해시>`, 상수 시간 비교
-- [ ] T063 [P] [US3] `src/worker/turnstile.ts`: siteverify 호출, 실패 시 403 `turnstile_failed`
-- [ ] T064 [US3] `src/worker/rooms.ts`: `POST /api/rooms`(rate limit `RL_CREATE` → zod → Turnstile → 필터 → `createRoomData` → 새 id의 DO RPC `hashPassword` → D1 insert, id 랜덤 10자 URL-safe), `GET /api/rooms`(커서 페이지, `limit`·`cursor`가 틀리면 400) (판례 2026-11-08-create-room-check-order)
+- [x] T062 [P] [US3] `src/worker/password.ts`: 방 DO 안에서 부르는 PBKDF2-SHA256(T011: Worker CPU 10ms 초과), 16바이트 솔트, `pbkdf2-sha256$<반복>$<솔트>$<해시>`, 상수 시간 비교 — 완료. 검증은 길이를 먼저 비교한 뒤 `crypto.subtle.timingSafeEqual`.
+- [x] T063 [P] [US3] `src/worker/turnstile.ts`: siteverify 호출, 실패 시 403 `turnstile_failed` — 완료. `remoteip`는 보내지 않는다(헌법 II). siteverify가 200이 아니면 예외 → 500 `internal`.
+- [x] T064 [US3] `src/worker/rooms.ts`: `POST /api/rooms`(rate limit `RL_CREATE` → zod → Turnstile → 필터 → `createRoomData` → 새 id의 DO RPC `hashPassword` → D1 insert, id 랜덤 10자 URL-safe), `GET /api/rooms`(커서 페이지, `limit`·`cursor`가 틀리면 400) (판례 2026-11-08-create-room-check-order) — 완료. `wrangler.jsonc`에 `RL_CREATE`(3/60s), `secrets.required: ["TURNSTILE_SECRET"]`(CI처럼 `.dev.vars`가 없어도 `wrangler types`가 안다). 오류 `fields` 값은 문구 키 `field.title` 등(`src/core/api-schemas.ts` `FIELD_ERRORS`, `ko.ts` 문구는 T066). 금칙어 목록은 `.txt` 모듈로 읽는다.
 - [ ] T065 [US3] `src/client/board/BoardPage.tsx`: screens.md S1 — 최신순 카드, "지금 N명", 상대 시간, 무한 스크롤 + "더 보기" 버튼, 빈 상태
 - [ ] T066 [US3] `src/client/board/CreateRoomPage.tsx`: screens.md S2 — 입력, 남은 글자 수, 테마 카드 3개, 비밀번호 안내, Turnstile 위젯, 필드 오류, 성공 시 이동
 - [ ] T067 [P] [US3] 나머지 테마 2개분 CC0 에셋과 테마 미리보기 이미지를 `public/assets/`에 추가, `CREDITS.md` 갱신

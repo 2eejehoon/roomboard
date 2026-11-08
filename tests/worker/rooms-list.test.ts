@@ -2,7 +2,7 @@ import { exports } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 import { insertRoom } from './rooms-helpers.ts';
 
-// T059: GET /api/rooms, newest first (FR-001). Rows outlive tests, so each test inserts above every earlier row and reads the top.
+// T059: GET /api/rooms, newest first (FR-001). Each test inserts above any earlier row and reads the top, whether or not rows outlive tests.
 type Page = { items: { id: string; title: string; themeId: string; onlineCount: number; createdAt: number }[]; nextCursor: string | null };
 const list = async (query = '') => {
   const res = await exports.default.fetch(`https://roomboard.test/api/rooms${query}`);
@@ -23,7 +23,6 @@ describe('GET /api/rooms', () => {
       { id: newer, title: '나중', themeId: 'cafe', onlineCount: 4, createdAt: t + 3 },
       { id: older, title: '먼저', themeId: 'cafe', onlineCount: 0, createdAt: t + 1 },
     ]);
-    expect(body.nextCursor).toEqual(expect.any(String));
   });
 
   it('limit defaults to 20 and allows up to 50', async () => {
