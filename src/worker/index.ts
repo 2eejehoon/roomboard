@@ -4,7 +4,7 @@ import { requireRoom } from './rooms.ts';
 
 export { RoomDurableObject } from './room-do.ts';
 
-const app = new Hono<{ Bindings: Env }>().basePath('/api');
+export const app = new Hono<{ Bindings: Env }>().basePath('/api');
 
 // Error shape from specs/001-realtime-room-board/contracts/openapi.yaml.
 app.notFound((c) => c.json({ code: 'not_found' }, 404));
@@ -31,4 +31,27 @@ app.get('/rooms/:roomId/ws', async (c) => {
   return c.env.ROOM.getByName(id).fetch(c.req.raw);
 });
 
-export default app;
+// T057 / research R8: /rooms/:id is index.html with the room's title and description, for search engines and clients
+// without scripts, under the room's status code (404 and 410 too). HTMLRewriter escapes text and attribute values.
+async function roomPage(req: Request, env: Env, id: string): Promise<Response> {
+  const room = await requireRoom(env.DB, id).catch((e: unknown) => (e instanceof HTTPException ? e.status : Promise.reject(e)));
+  // "/" and not "/index.html": the asset server redirects /index.html to /.
+  const shell = await env.ASSETS.fetch(new URL('/', req.url));
+  const page = new Response(shell.body, { status: typeof room === 'number' ? room : 200, headers: shell.headers });
+  if (typeof room === 'number') return page;
+  return new HTMLRewriter()
+    .on('title', { element: (e) => void e.setInnerContent(room.title) })
+    .on('meta[name="description"]', { element: (e) => void e.setAttribute('content', room.description) })
+    .on('noscript', { element: (e) => void e.setInnerContent(`${room.title}\n${room.description}`) })
+    .transform(page);
+}
+
+// run_worker_first sends /api/* and /rooms/* here; other /rooms/ paths (S4 edit) are the app shell as before.
+export default {
+  fetch(req, env, ctx) {
+    const { pathname } = new URL(req.url);
+    if (pathname.startsWith('/api/')) return app.fetch(req, env, ctx);
+    const id = /^\/rooms\/([^/]+)$/.exec(pathname)?.[1];
+    return id ? roomPage(req, env, id) : env.ASSETS.fetch(req);
+  },
+} satisfies ExportedHandler<Env>;

@@ -1,7 +1,7 @@
 import { exports } from 'cloudflare:workers';
 import { HTTPException } from 'hono/http-exception';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import app from '../../src/worker/index.ts';
+import { app } from '../../src/worker/index.ts';
 
 // openapi.yaml components.schemas.Error code enum.
 const ERROR_CODES = ['validation', 'turnstile_failed', 'rate_limited', 'wrong_password', 'not_found', 'gone', 'unauthorized', 'internal'];

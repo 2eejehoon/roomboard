@@ -1,18 +1,22 @@
-// screens.md S3 공통 영역 and S6, and the 3D body (T045). The 2D body and the 3D↔2D switch come with US2 (T054, T056).
+// screens.md S3 공통 영역 and S6, the 3D body (T045), the 2D body and the 3D↔2D switch (T054, T056).
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
 import { CLOSE } from '../../core/protocol.ts';
 import { navigate } from '../App.tsx';
-import { deviceKey } from '../device.ts';
+import { deviceKey, readView, saveView, type View } from '../device.ts';
 import { t } from '../i18n/t.ts';
 import { openRoomSocket, type RoomSocket } from '../net/room-socket.ts';
 import { RoomStore, type RoomState } from '../state/room-store.ts';
+import type { RoomInfo } from '../../core/room-session.ts';
 import { Loading, NetworkError } from '../Status.tsx';
 import { installTestHooks } from '../test-hooks.ts';
+import { Room2D } from './room2d/Room2D.tsx';
+import { hasWebGL, initialView } from './webgl.ts';
 
 const Scene = lazy(() => import('./room3d/Scene.tsx'));
 
-type Load = { status: 'loading' | 'error' } | { status: 404 | 410 } | { status: 'ok'; title: string };
+type RoomText = Pick<RoomInfo, 'title' | 'description' | 'roomData'>;
+type Load = { status: 'loading' | 'error' } | { status: 404 | 410 } | { status: 'ok'; room: RoomText };
 
 export function RoomPage({ id }: { id: string }) {
   const [load, setLoad] = useState<Load>({ status: 'loading' });
@@ -21,6 +25,16 @@ export function RoomPage({ id }: { id: string }) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const socket = useRef<RoomSocket | null>(null);
   const move = useCallback<RoomSocket['move']>((p, r, a) => socket.current?.move(p, r, a), []);
+  const [webgl] = useState(hasWebGL);
+  const [view, setView] = useState<View>(() => initialView(readView(), webgl));
+  const [failed3d, setFailed3d] = useState(false);
+  // Only a click is saved (precedent 2026-11-07-2d-view-rules); a failed 3D load falls back to 2D for this visit.
+  const switchView = () => {
+    const next = view === '3d' ? '2d' : '3d';
+    saveView(next);
+    setView(next);
+    setFailed3d(false);
+  };
 
   useEffect(() => {
     let live = true;
@@ -29,7 +43,7 @@ export function RoomPage({ id }: { id: string }) {
         if (!live) return;
         if (res.status === 404 || res.status === 410) return setLoad({ status: res.status });
         if (!res.ok) return setLoad({ status: 'error' });
-        setLoad({ status: 'ok', title: ((await res.json()) as { title: string }).title });
+        setLoad({ status: 'ok', room: (await res.json()) as RoomText });
       })
       .catch(() => live && setLoad({ status: 'error' }));
     return () => {
@@ -50,22 +64,36 @@ export function RoomPage({ id }: { id: string }) {
   if (load.status === 'error') return <NetworkError onRetry={() => setAttempt((n) => n + 1)} />;
   if (load.status !== 'ok') return <Notice text={t(load.status === 404 ? 'room.notFound' : 'room.gone')} />;
   if (state.connection === 'closed' && state.closeCode !== null) return <ClosedNotice code={state.closeCode} />;
+  const room = state.room ?? load.room;
   return (
     <>
-      <RoomHeader title={state.room?.title ?? load.title} state={state} />
-      <SceneBoundary>
-        <Suspense fallback={<Loading />}>
-          <Scene store={store} move={move} />
-        </Suspense>
-      </SceneBoundary>
+      <RoomHeader title={room.title} state={state} view={view} onSwitch={webgl ? switchView : undefined} />
+      {view === '3d' ? (
+        <SceneBoundary
+          onError={() => {
+            setView('2d');
+            setFailed3d(true);
+          }}
+        >
+          <Suspense fallback={<Loading />}>
+            <Scene store={store} move={move} />
+          </Suspense>
+        </SceneBoundary>
+      ) : (
+        <>
+          {failed3d && <p role="status">{t('room2d.fallback')}</p>}
+          <Room2D room={room} state={state} />
+        </>
+      )}
     </>
   );
 }
 
-// Without WebGL, or if the 3D chunk or an asset fails, the room keeps its header and connection. US2 switches to 2D here (T056).
-class SceneBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+// If the 3D chunk, WebGL or an asset fails, the room keeps its header and connection and RoomPage switches to 2D.
+class SceneBoundary extends Component<{ children: ReactNode; onError: () => void }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError = () => ({ failed: true });
+  componentDidCatch = () => this.props.onError();
   render = () => (this.state.failed ? null : this.props.children);
 }
 
@@ -86,7 +114,8 @@ function Notice({ text, reload = false }: { text: string; reload?: boolean }) {
   );
 }
 
-export function RoomHeader({ title, state }: { title: string; state: RoomState }) {
+// onSwitch is absent without WebGL: there is no 3D to switch to.
+export function RoomHeader({ title, state, view, onSwitch }: { title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
   return (
     <header>
       {state.connection === 'reconnecting' && <p role="status">{t('room.reconnecting')}</p>}
@@ -97,7 +126,11 @@ export function RoomHeader({ title, state }: { title: string; state: RoomState }
         </p>
       )}
       {state.you && <p>{t('room.you', { nickname: state.you.nickname })}</p>}
-      {/* 3D↔2D switch: T056 */}
+      {onSwitch && (
+        <button type="button" onClick={onSwitch}>
+          {t(view === '3d' ? 'room.view2d' : 'room.view3d')}
+        </button>
+      )}
     </header>
   );
 }

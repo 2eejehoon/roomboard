@@ -93,7 +93,7 @@ description: "Task list for 001-realtime-room-board"
 - [x] T035 [P] [US1] `tests/core/room-session.test.ts`: 순수 상태 기계 `RoomSession` — `join` → 나에게 `welcome`(같은 채널 peers만), 다른 참가자에게 `peer_joined`; `move` 정상 → 같은 채널에 `peer_moved`; 거부 → 나에게 `correction`; 초당 10개 초과는 조용히 버림; `leave` → `peer_left`; join 전 다른 메시지 → `error not_joined`; 두 번째 join → `bad_message`; 잘못된 메시지 10초 5번 → 닫힘 4008 — 완료. 채널 21번째 배정, 경계 밖 이동, 2KB 초과(1009), 4002, Hibernation 후 `restore`도 검사. 채팅은 US4(T068).
 - [x] T036 [P] [US1] `tests/worker/room-do.test.ts`: 실제 DO에 WebSocket 2개 접속 — join/welcome, 이동 전달, 닫으면 peer_left, 5초 안에 join 없으면 4000, 바이너리 프레임 1003, 2KB 초과 1009, 텍스트 `ping`에 `pong` 자동 응답, Hibernation 후(attachment 복원) 새 참가자의 `welcome.peers`에 기존 참가자 위치가 있음, 없는 방 404·삭제된 방 410 — 완료. 없는 방 404·삭제된 방 410·`Upgrade` 없음 426, `GET /api/rooms/:roomId`도 같은 파일. Hibernation은 `evictDurableObject`.
 - [x] T037 [P] [US1] `tests/worker/online-count.test.ts`: 입장·퇴장 후 DO alarm으로 2초 디바운스되어 `rooms.online_count`가 갱신됨(`setTimeout` 미사용) — 완료. 예약된 alarm 시각(2초 뒤)과 alarm 전에는 D1이 그대로인지 확인.
-- [x] T038 [P] [US1] `tests/e2e/us1-move.spec.ts`: Q1(컨텍스트 A·B 입장, A가 `__roomboard.move` → B의 `state().peers`와 2D 목록 갱신 1초 이내), Q2(A 닫으면 B 목록에서 제거), Q3(모바일 프로젝트에서 조이스틱 보임·드래그 시 `move` 전송), 랜덤 닉네임 표시 — 완료(2D 목록 확인은 목록이 생기는 T054에서). Q1·Q2는 WebGL을 끈 컨텍스트로 잰다: CI의 소프트웨어 WebGL(SwiftShader)이 CPU를 다 써서 같은 기기의 로컬 Worker가 메시지를 1.4~1.6초 늦게 내보냈다(운영에서는 서버가 따로 있고 GPU를 쓴다). 3D 송신 경로는 같은 파일의 T045·Q3 테스트(데스크톱 WASD, 모바일 조이스틱 드래그 → B가 위치 변화와 멈춘 뒤 `idle`을 봄)가 맡는다. 같은 이유로 Playwright `workers: 1`, 실행 인자 `--use-angle=swiftshader --enable-unsafe-swiftshader`. WebGL이 없으면 3D만 빠지고 방은 유지되는지도 검사(2D 전환은 T056). seed는 Playwright `webServer`가 `npm run seed:dev`로 넣는다. 실행 확인: main CI run 42349355500에서 seed + e2e(desktop·mobile) 통과(U2 시점). 실행 확인: main CI run 42426718401 통과(U3 머지 뒤, 커밋 324f072).
+- [x] T038 [P] [US1] `tests/e2e/us1-move.spec.ts`: Q1(컨텍스트 A·B 입장, A가 `__roomboard.move` → B의 `state().peers`와 2D 목록 갱신 1초 이내), Q2(A 닫으면 B 목록에서 제거), Q3(모바일 프로젝트에서 조이스틱 보임·드래그 시 `move` 전송), 랜덤 닉네임 표시 — 완료(2D 목록 확인은 T051 `us2-fallback.spec.ts`의 Q1 테스트). Q1·Q2는 WebGL을 끈 컨텍스트로 잰다: CI의 소프트웨어 WebGL(SwiftShader)이 CPU를 다 써서 같은 기기의 로컬 Worker가 메시지를 1.4~1.6초 늦게 내보냈다(운영에서는 서버가 따로 있고 GPU를 쓴다). 3D 송신 경로는 같은 파일의 T045·Q3 테스트(데스크톱 WASD, 모바일 조이스틱 드래그 → B가 위치 변화와 멈춘 뒤 `idle`을 봄)가 맡는다. 같은 이유로 Playwright `workers: 1`, 실행 인자 `--use-angle=swiftshader --enable-unsafe-swiftshader`. WebGL이 없으면 3D만 빠지고 방은 유지되는지도 검사(2D 전환은 T056). seed는 Playwright `webServer`가 `npm run seed:dev`로 넣는다. 실행 확인: main CI run 42349355500에서 seed + e2e(desktop·mobile) 통과(U2 시점). 실행 확인: main CI run 42426718401 통과(U3 머지 뒤, 커밋 324f072).
 
 ### Implementation
 
@@ -122,16 +122,16 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T051 [P] [US2] `tests/e2e/us2-fallback.spec.ts`: Q4(WebGL을 끈 컨텍스트 — `HTMLCanvasElement.prototype.getContext`에서 webgl/webgl2를 null로 — 로 입장하면 2D 자동, 오류 화면 없음, 3D 청크 요청 없음), 3D↔2D 전환 버튼, 다른 컨텍스트(3D)의 입장·퇴장이 2D 목록과 `aria-live` 영역에 반영, 키보드만으로 3D 전환 버튼 도달
-- [ ] T052 [P] [US2] `tests/worker/seo-html.test.ts`: Q5 — `GET /rooms/seedroom01` HTML에 방 제목이 `<title>`과 `<noscript>`에, 설명이 `<meta name="description">`에 있음, 제목에 `<script>`가 있으면 이스케이프됨, 없는 방 404·삭제된 방 410 상태 코드로 HTML 응답
+- [x] T051 [P] [US2] `tests/e2e/us2-fallback.spec.ts`: Q4(WebGL을 끈 컨텍스트 — `HTMLCanvasElement.prototype.getContext`에서 webgl/webgl2를 null로 — 로 입장하면 2D 자동, 오류 화면 없음, 3D 청크 요청 없음), 3D↔2D 전환 버튼, 다른 컨텍스트(3D)의 입장·퇴장이 2D 목록과 `aria-live` 영역에 반영, 키보드만으로 3D 전환 버튼 도달 — 완료. 도우미(`newPage`, `withoutWebGL`, `enter`, `state`, `move`)는 `tests/e2e/helpers.ts`로 옮겼다. 3D 청크 요청 확인은 URL 패턴(`/room3d/`, three, rapier, ecctrl, `Scene-*.js`)으로 하고, 같은 패턴이 3D 화면에서는 요청을 잡는지도 확인한다(dev 서버는 `Scene.tsx`와 사전 번들 의존성을 보낸다). 3D 로딩 실패는 `Scene` 요청을 끊어 만든다. T038 Q1의 2D 목록 갱신(1초)도 여기서 WebGL을 끈 두 컨텍스트로 잰다. US1의 "WebGL 없이도 머리글" 테스트는 Q4로 대체.
+- [x] T052 [P] [US2] `tests/worker/seo-html.test.ts`: Q5 — `GET /rooms/seedroom01` HTML에 방 제목이 `<title>`과 `<noscript>`에, 설명이 `<meta name="description">`에 있음, 제목에 `<script>`가 있으면 이스케이프됨, 없는 방 404·삭제된 방 410 상태 코드로 HTML 응답 — 완료. 테스트 풀에는 정적 에셋이 없어 `ASSETS`를 `index.html?raw`를 `/`에서만 주는 가짜로 바꿔 넣는다(플랫폼은 `/index.html`을 `/`로 넘긴다). 잘못된 `%` 이스케이프도 404.
 
 ### Implementation
 
-- [ ] T053 [US2] `src/client/room/webgl.ts`: WebGL 지원 감지, `rb.view` 기본값 결정
-- [ ] T054 [US2] `src/client/room/room2d/Room2D.tsx`: screens.md S3 2D — `<main>`, `<h1>`, 설명, 테마, 채널, 참가자 `<ul>`(닉네임, 상태, 테마 구역 이름), 입장·퇴장 `aria-live` 알림
-- [ ] T055 [US2] `src/core/themes.ts`에 테마별 구역(zone) 이름 키와 `zoneAt(themeId, p)` 추가, `tests/core/themes.test.ts`에 테스트 먼저 추가
-- [ ] T056 [US2] `src/client/room/RoomPage.tsx`: 3D/2D 전환(선택 저장 `rb.view`), 3D는 `React.lazy`로만 로드, 3D 로딩 실패 시 2D로 전환하고 안내
-- [ ] T057 [US2] `src/worker/index.ts`: `GET /rooms/:id` HTML 응답 — `env.ASSETS`의 `index.html`을 `HTMLRewriter`로 고쳐 제목·설명 삽입(이스케이프), 404/410 상태 코드
+- [x] T053 [US2] `src/client/room/webgl.ts`: WebGL 지원 감지, `rb.view` 기본값 결정 — 완료. WebGL이 없으면 `rb.view`와 상관없이 2D(판례 2026-11-07-2d-view-rules).
+- [x] T054 [US2] `src/client/room/room2d/Room2D.tsx`: screens.md S3 2D — `<main>`, `<h1>`, 설명, 테마, 채널, 참가자 `<ul>`(닉네임, 상태, 테마 구역 이름), 입장·퇴장 `aria-live` 알림 — 완료. App의 `<main>` 안에 `<section>`(h1, 설명, 테마·채널, 참가자 `<ul>`, `aria-live` 알림). 알림은 `RoomStore.notices`(`peer_joined`·`peer_left`에서만, 최근 5개).
+- [x] T055 [US2] `src/core/themes.ts`에 테마별 구역(zone) 이름 키와 `zoneAt(themeId, p)` 추가, `tests/core/themes.test.ts`에 테스트 먼저 추가 — 완료. 구역은 바닥 사각형 `[minX, minZ, maxX, maxZ]` 목록, 마지막 구역은 나머지 전부(data-model.md Zone).
+- [x] T056 [US2] `src/client/room/RoomPage.tsx`: 3D/2D 전환(선택 저장 `rb.view`), 3D는 `React.lazy`로만 로드, 3D 로딩 실패 시 2D로 전환하고 안내 — 완료. 전환 버튼은 머리글에, WebGL이 없으면 없다. `rb.view`는 버튼을 눌렀을 때만 저장. 3D가 실패하면(청크·WebGL·에셋) `SceneBoundary`가 2D로 바꾸고 안내를 띄운다. `React.lazy`는 실패한 import를 기억해서, 청크가 실패한 뒤 3D를 다시 누르면 새로고침 전까지 바로 2D로 돌아온다.
+- [x] T057 [US2] `src/worker/index.ts`: `GET /rooms/:id` HTML 응답 — `env.ASSETS`의 `index.html`을 `HTMLRewriter`로 고쳐 제목·설명 삽입(이스케이프), 404/410 상태 코드 — 완료. `run_worker_first`에 `/rooms/*`, `assets.binding: "ASSETS"`. `/rooms/:id`만 HTML을 고치고 그 밖의 `/rooms/` 경로는 `ASSETS`로 넘긴다. `index.html`에 빈 `<meta name="description">`·`<noscript>`를 두고 `HTMLRewriter`의 `setAttribute`·`setInnerContent`가 이스케이프한다. dev(Vite 머리 스크립트 유지)와 빌드(`vite preview`) 모두에서 `curl`로 확인.
 
 **Checkpoint**: US1 + US2 = P1 완료.
 
