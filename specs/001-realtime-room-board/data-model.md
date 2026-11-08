@@ -77,8 +77,15 @@ Theme {
   bounds: { min: [x,y,z], max: [x,y,z] }   // 이동 검증 경계
   spawn: [x, y, z]
   defaultObjects: RoomObject[]
+  zones: Zone[]                  // 2D 화면의 대략 위치(screens.md S3 2D)
+}
+Zone {
+  nameKey: I18nKey               // "입구 근처" 같은 구역 이름
+  area?: [minX, minZ, maxX, maxZ] // 바닥 사각형. 없으면 나머지 전부(마지막 구역)
 }
 ```
+
+- `zoneAt(themeId, p)`는 `p`의 x·z가 들어가는 첫 구역의 `nameKey`를 돌려준다. 마지막 구역은 `area`가 없어 모든 위치가 어느 구역엔가 속한다.
 
 ## 방 DO 상태 (접속 중에만)
 

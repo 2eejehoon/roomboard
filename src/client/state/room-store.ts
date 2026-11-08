@@ -5,6 +5,8 @@ import type { Vec3 } from '../../core/themes.ts';
 
 type Welcome = Extract<ServerMessage, { t: 'welcome' }>;
 export type Peer = Welcome['peers'][number];
+// Join and leave notices for the 2D live region (screens.md S3 2D); welcome after a reconnect adds none.
+export type Notice = { id: number; kind: 'joined' | 'left'; nickname: string };
 export type Connection = 'connecting' | 'open' | 'reconnecting' | 'closed';
 export type RoomState = {
   room: RoomInfo | null;
@@ -12,15 +14,17 @@ export type RoomState = {
   channel: number | null;
   peers: Peer[];
   chat: Extract<ServerMessage, { t: 'chat' }>[];
+  notices: Notice[];
   connection: Connection;
   closeCode: number | null;
 };
 
-const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], connection: 'connecting', closeCode: null };
+const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], notices: [], connection: 'connecting', closeCode: null };
 
 export class RoomStore {
   private state = initial;
   private readonly listeners = new Set<() => void>();
+  private noticeId = 0;
 
   getState = (): RoomState => this.state;
 
@@ -35,9 +39,11 @@ export class RoomStore {
       case 'welcome':
         return this.set({ room: msg.room, you: { ...msg.you, p: msg.spawn, r: 0, a: 'idle' }, channel: msg.channel, peers: msg.peers, connection: 'open' });
       case 'peer_joined':
-        return this.set({ peers: [...s.peers.filter((p) => p.peerId !== msg.peer.peerId), msg.peer] });
-      case 'peer_left':
-        return this.set({ peers: s.peers.filter((p) => p.peerId !== msg.peerId) });
+        return this.set({ peers: [...s.peers.filter((p) => p.peerId !== msg.peer.peerId), msg.peer], notices: this.notice('joined', msg.peer.nickname) });
+      case 'peer_left': {
+        const gone = s.peers.find((p) => p.peerId === msg.peerId);
+        return gone ? this.set({ peers: s.peers.filter((p) => p !== gone), notices: this.notice('left', gone.nickname) }) : undefined;
+      }
       case 'peer_moved':
         return this.set({ peers: s.peers.map((p) => (p.peerId === msg.peerId ? { ...p, p: msg.p, r: msg.r, a: msg.a } : p)) });
       case 'correction':
@@ -53,6 +59,10 @@ export class RoomStore {
   // welcome opens the connection. Peers from before a drop are stale; the next welcome lists them again.
   setConnection(connection: 'reconnecting' | 'closed', closeCode: number | null = null): void {
     this.set({ connection, closeCode, peers: [] });
+  }
+
+  private notice(kind: Notice['kind'], nickname: string): Notice[] {
+    return [...this.state.notices, { id: ++this.noticeId, kind, nickname }].slice(-5);
   }
 
   private set(patch: Partial<RoomState>): void {
