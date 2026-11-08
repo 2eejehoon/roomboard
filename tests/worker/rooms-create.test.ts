@@ -8,11 +8,12 @@ import { app } from '../../src/worker/index.ts';
 import { verifyPassword } from '../../src/worker/password.ts';
 
 // T058: POST /api/rooms (contracts/openapi.yaml, quickstart Q6·Q7).
-const PASS_SECRET = '1x0000000000000000000000000000000AA';
-const FAIL_SECRET = '2x0000000000000000000000000000000AA';
+// vitest.config.ts binds TURNSTILE_SECRET to PASS_SECRET. Cloudflare's documented test secrets never reach the network (below).
+const PASS_SECRET = 'secret-that-siteverify-accepts';
+const FAIL_SECRET = 'secret-that-siteverify-rejects';
 const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
-// workerd in the cloud session has no DNS, so siteverify answers here the way Cloudflare answers its documented test secrets.
+// workerd in the cloud session has no DNS, so siteverify answers here: success only for PASS_SECRET.
 let verified: FormData[] = [];
 beforeEach(() => {
   verified = [];
@@ -125,6 +126,15 @@ describe('POST /api/rooms', () => {
     expect(res.status).toBe(403);
     expect(await res.json()).toEqual({ code: 'turnstile_failed' });
     expect((await rowsTitled(body.title)).results).toHaveLength(0);
+  });
+
+  it.each([
+    ['1x0000000000000000000000000000000AA', 201],
+    ['2x0000000000000000000000000000000AA', 403],
+  ])("Cloudflare's test secret %s gets its documented answer (%i) without calling siteverify", async (secret, status) => {
+    const res = await app.request('/api/rooms', init(valid()), { ...env, TURNSTILE_SECRET: secret });
+    expect(res.status).toBe(status);
+    expect(verified).toHaveLength(0);
   });
 
   it('the env override above still reaches D1 and the room DO', async () => {
