@@ -5,6 +5,9 @@ import { newPage, withoutWebGL } from './helpers.ts';
 // T061 / quickstart Q6·Q7, screens.md S1·S2. Only Q6 really creates a room: the create limit is 3 per 60 s for every test client.
 // Pages run without WebGL so a new room's 3D scene does not hold the CPU (T038).
 const submit = (page: Page) => page.getByRole('button', { name: ko['create.submit'] });
+// Keyboard, not click(): a click that has to scroll the button into view first often lands in the Turnstile widget's
+// cross-origin iframe (closed shadow root) and submits nothing; it failed every time locally and now and then in CI.
+const send = (page: Page) => submit(page).press('Enter');
 
 async function fillForm(page: Page, title: string) {
   await page.getByLabel(ko['create.title']).fill(title);
@@ -12,9 +15,6 @@ async function fillForm(page: Page, title: string) {
   await page.getByRole('radio', { name: ko['theme.library'] }).check();
   await page.getByLabel(ko['create.password']).fill('pass1234');
   await expect(submit(page), 'enabled once the Turnstile test widget hands over its token').toBeEnabled({ timeout: 20_000 });
-  // Scroll first: when click() itself scrolls the button up to the viewport edge, the click lands in the widget's cross-origin
-  // iframe (closed shadow root, so Playwright's hit check misses it) and nothing submits.
-  await submit(page).scrollIntoViewIfNeeded();
 }
 
 test('Q6: create from the board, land in the room; another visitor sees it on top of the board', async ({ browser }) => {
@@ -24,7 +24,7 @@ test('Q6: create from the board, land in the room; another visitor sees it on to
   await expect(a).toHaveURL(/\/new$/);
   const title = `E2E 방 ${Date.now().toString(36)}`;
   await fillForm(a, title);
-  await submit(a).click();
+  await send(a);
   await expect(a).toHaveURL(/\/rooms\/[A-Za-z0-9_-]{10}$/);
   await expect(a.getByRole('heading', { level: 1, name: title })).toBeVisible();
   const roomPath = new URL(a.url()).pathname;
@@ -44,7 +44,7 @@ test('Q7: a title of spaces shows the field error and sends nothing', async ({ b
   page.on('request', (r) => r.method() === 'POST' && r.url().includes('/api/rooms') && posts.push(r.url()));
   await page.goto('/new');
   await fillForm(page, '   ');
-  await submit(page).click();
+  await send(page);
   await expect(page.getByText(ko['field.title'])).toBeVisible();
   await expect(page).toHaveURL(/\/new$/);
   expect(posts).toEqual([]);
@@ -57,7 +57,7 @@ test('Q7: a 403 from the bot check asks to redo the check and keeps the form', a
   );
   await page.goto('/new');
   await fillForm(page, 'Turnstile 실패');
-  await submit(page).click();
+  await send(page);
   await expect(page.getByText(ko['create.turnstileFailed'])).toBeVisible();
   await expect(submit(page), 'the spent token is dropped').toBeDisabled();
   await expect(submit(page), 'a fresh widget hands over a new token').toBeEnabled({ timeout: 20_000 });
