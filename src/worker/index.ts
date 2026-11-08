@@ -16,12 +16,16 @@ app.onError((err, c) => {
     for (const [k, v] of err.getResponse().headers) if (k !== 'content-type' && k !== 'content-length') c.header(k, v);
     return c.json({ code: HTTP_CODES[err.status] ?? 'validation' }, err.status);
   }
-  // Constitution II: name and stack frames only. The stack opens with "name: message", and messages (even multi-line ones)
-  // can echo request content (JSON.parse), so skip exactly that many lines rather than guessing which lines are frames.
-  const header = `${err.name}: ${err.message}`.split('\n').length;
-  console.error(err.name, (err.stack ?? '').split('\n').slice(header).join('\n'));
+  logError(err);
   return c.json({ code: 'internal' }, 500);
 });
+
+// Constitution II: name and stack frames only. The stack opens with "name: message", and messages (even multi-line ones)
+// can echo request content (JSON.parse), so skip exactly that many lines rather than guessing which lines are frames.
+function logError(err: Error): void {
+  const header = `${err.name}: ${err.message}`.split('\n').length;
+  console.error(err.name, (err.stack ?? '').split('\n').slice(header).join('\n'));
+}
 
 app.get('/rooms/:roomId', async (c) => c.json(await requireRoom(c.env.DB, c.req.param('roomId'))));
 
@@ -32,9 +36,14 @@ app.get('/rooms/:roomId/ws', async (c) => {
 });
 
 // T057 / research R8: /rooms/:id is index.html with the room's title and description, for search engines and clients
-// without scripts, under the room's status code (404 and 410 too). HTMLRewriter escapes text and attribute values.
+// without scripts, under the room's status code (404, 410, and 503 when D1 fails). HTMLRewriter escapes text and attribute values.
 async function roomPage(req: Request, env: Env, id: string): Promise<Response> {
-  const room = await requireRoom(env.DB, id).catch((e: unknown) => (e instanceof HTTPException ? e.status : Promise.reject(e)));
+  // Any other failure (D1 down) still serves the shell, as 503, so RoomPage's own request shows the retry screen.
+  const room = await requireRoom(env.DB, id).catch((e: unknown) => {
+    if (e instanceof HTTPException) return e.status;
+    logError(e instanceof Error ? e : new Error(String(e)));
+    return 503;
+  });
   // "/" and not "/index.html": the asset server redirects /index.html to /.
   const shell = await env.ASSETS.fetch(new URL('/', req.url));
   const page = new Response(shell.body, { status: typeof room === 'number' ? room : 200, headers: shell.headers });
