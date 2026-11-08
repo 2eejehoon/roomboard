@@ -148,7 +148,7 @@ description: "Task list for 001-realtime-room-board"
 - [x] T058 [P] [US3] `tests/worker/rooms-create.test.ts`: `POST /api/rooms` 201(응답 `Room`, D1에 `password_hash`가 `pbkdf2-sha256$` 형식이고 평문 없음, 제목·설명 필터 적용), 제목 빈 값·61자 400 `fields.title`, 설명 301자 400, 비밀번호 3자 400, 없는 테마 400, Turnstile 실패 키 403 `turnstile_failed`, 4번째 요청 429 — 완료. siteverify는 테스트에서 가짜 응답으로 바꾼다(클라우드 세션의 workerd는 DNS가 없다). 바인딩은 테스트 키가 아닌 비밀 키이고 가짜는 그 키에만 통과로 답한다. Cloudflare 테스트 키 두 개는 siteverify를 부르지 않는지 따로 확인한다. 보낸 값이 `secret`·`response` 둘뿐(`remoteip` 없음)인지도 확인한다. 403은 `app.request`에 실패 키를 넣은 env로 부른다. 요청마다 `cf-connecting-ip`를 다르게 줘서 rate limit 3회가 다른 테스트를 막지 않게 했다. 400은 siteverify를 부르지 않는다(판례 2026-11-08-create-room-check-order). JSON이 아닌 본문도 400.
 - [x] T059 [P] [US3] `tests/worker/rooms-list.test.ts`: `GET /api/rooms` 최신순, 삭제된 방 제외, `limit` 기본 20·최대 50, `nextCursor` 페이지 이동, `onlineCount` 포함 — 완료. `limit` 범위 밖·숫자 아님, 형식이 틀린 `cursor`는 400. 커서는 `<createdAt>.<id>`이고 만든 시각이 같은 방도 겹치거나 빠지지 않는다. D1은 테스트마다 따로라서 각 테스트가 자기 행만 본다.
 - [x] T060 [P] [US3] `tests/worker/password.test.ts`: `hashPassword`/`verifyPassword` 왕복, 틀린 비밀번호 거부, 저장 형식 파싱 — 완료. seed-dev(Node `pbkdf2Sync`)가 만든 해시 문자열을 그대로 검증하는 벡터, 반복 횟수를 문자열에서 읽음, 형식이 틀린 해시는 예외 없이 false.
-- [ ] T061 [P] [US3] `tests/e2e/us3-create.spec.ts`: Q6(양식 제출 → 방으로 이동, 다른 컨텍스트 목록 맨 위에 보임), Q7(빈 제목 오류 문구), 목록 빈 상태 문구
+- [ ] T061 [P] [US3] `tests/e2e/us3-create.spec.ts`: Q6(양식 제출 → 방으로 이동, 다른 컨텍스트 목록 맨 위에 보임), Q7(공백 제목 → 요청 없이 필드 오류, 서버 403을 가로채 위젯 다시 시도 안내), 목록 빈 상태 문구(목록 응답을 가로채 빈 목록) (판례 2026-11-08-create-form-checks)
 
 ### Implementation
 
