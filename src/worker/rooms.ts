@@ -1,7 +1,16 @@
 // Room rows in D1 (data-model.md "Room"). The password hash never leaves this module.
+import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import type { z } from 'zod';
+import { createRoomRequest, FIELD_ERRORS, listRoomsQuery } from '../core/api-schemas.ts';
+import { createChatFilter, parseWordList } from '../core/chat-filter.ts';
 import { roomIdSchema } from '../core/protocol.ts';
-import type { RoomData } from '../core/room-data.ts';
+import { createRoomData, type RoomData } from '../core/room-data.ts';
+import words from '../data/profanity-ko.txt';
+import { verifyTurnstile } from './turnstile.ts';
+
+type C = Context<{ Bindings: Env }>;
+const filter = createChatFilter(parseWordList(words));
 
 export type Room = {
   id: string;
@@ -34,4 +43,56 @@ export async function requireRoom(db: D1Database, id: string): Promise<Room> {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+const validation = (c: C, error?: z.ZodError) => {
+  const fields = Object.fromEntries(
+    (error?.issues ?? []).flatMap((i) => {
+      const key = i.path[0];
+      return typeof key === 'string' && key in FIELD_ERRORS ? [[key, FIELD_ERRORS[key as keyof typeof FIELD_ERRORS]]] : [];
+    }),
+  );
+  return c.json(Object.keys(fields).length ? { code: 'validation', fields } : { code: 'validation' }, 400);
+};
+
+// T064, order from precedent 2026-11-08-create-room-check-order: the rate limit runs before this (index.ts), validation before
+// siteverify so a 400 does not spend the single-use widget token.
+export async function createRoom(c: C): Promise<Response> {
+  const json: unknown = await c.req.json().catch(() => undefined);
+  if (json === undefined) return validation(c);
+  const parsed = createRoomRequest.safeParse(json);
+  if (!parsed.success) return validation(c, parsed.error);
+  const { title, description, themeId, password, turnstileToken } = parsed.data;
+  if (!(await verifyTurnstile(c.env.TURNSTILE_SECRET, turnstileToken))) return c.json({ code: 'turnstile_failed' }, 403);
+
+  // 64 symbols divide 256, so every byte maps without bias.
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(10)), (b) => ID_CHARS[b % 64]).join('');
+  const passwordHash = await c.env.ROOM.getByName(id).hashPassword(password); // research R5: the room's DO has the CPU budget
+  const now = Date.now();
+  const room: Room = { id, title: filter(title), description: filter(description), themeId, roomData: createRoomData(themeId), onlineCount: 0, createdAt: now, updatedAt: now };
+  await c.env.DB.prepare(
+    'INSERT INTO rooms (id, title, description, room_data, theme_id, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+  )
+    .bind(id, room.title, room.description, JSON.stringify(room.roomData), themeId, passwordHash, now, now)
+    .run();
+  return c.json(room, 201);
+}
+const ID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+
+// FR-001: newest first, keyset pages on (created_at, id) so equal timestamps neither repeat nor drop.
+export async function listRooms(c: C): Promise<Response> {
+  const parsed = listRoomsQuery.safeParse(c.req.query());
+  if (!parsed.success) return validation(c);
+  const { limit, cursor } = parsed.data;
+  const [at, after] = cursor ? cursor.split('.') : [Number.MAX_SAFE_INTEGER, ''];
+  const { results } = await c.env.DB.prepare(
+    `SELECT id, title, theme_id, online_count, created_at FROM rooms
+     WHERE deleted_at IS NULL AND (created_at < ?1 OR (created_at = ?1 AND id < ?2))
+     ORDER BY created_at DESC, id DESC LIMIT ?3`,
+  )
+    .bind(Number(at), after, limit + 1)
+    .all<Pick<Row, 'id' | 'title' | 'theme_id' | 'online_count' | 'created_at'>>();
+  const items = results.slice(0, limit).map((r) => ({ id: r.id, title: r.title, themeId: r.theme_id, onlineCount: r.online_count, createdAt: r.created_at }));
+  const last = items.at(-1);
+  return c.json({ items, nextCursor: results.length > limit && last ? `${last.createdAt}.${last.id}` : null });
 }
