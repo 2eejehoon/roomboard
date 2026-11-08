@@ -15,6 +15,8 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile', use: { ...devices['Pixel 7'] } },
   ],
-  // seedroom01 for the room tests (US1 runs before rooms can be created, T014).
-  webServer: { command: 'npm run seed:dev && npm run dev -- --port 5173 --strictPort', url: 'http://localhost:5173', reuseExistingServer: !process.env.CI },
+  // seedroom01 for the room tests (US1 runs before rooms can be created, T014). CI has no .dev.vars or .env: the examples hold
+  // Cloudflare's always-pass Turnstile test keys.
+  webServer: {
+    command: 'cp --update=none .dev.vars.example .dev.vars && cp --update=none .env.example .env && npm run seed:dev && npm run dev -- --port 5173 --strictPort', url: 'http://localhost:5173', reuseExistingServer: !process.env.CI },
 });
