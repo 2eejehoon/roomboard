@@ -31,6 +31,7 @@
 | [2026-11-07-chat-filter-limits](2026-11-07-chat-filter-limits.md) | 욕설 필터는 붙여 쓴 복합어 오탐을 감수 | 유효 |
 | [2026-11-07-assets-quaternius](2026-11-07-assets-quaternius.md) | 방·가구 에셋은 Kenney 대신 Quaternius | 유효 |
 | [2026-11-07-2d-view-rules](2026-11-07-2d-view-rules.md) | 2D 전환 규칙(WebGL 없으면 2D만, 버튼 눌렀을 때만 저장)과 구역 | 유효 |
+| [2026-11-08-create-room-check-order](2026-11-08-create-room-check-order.md) | 방 만들기는 입력 검사 뒤에 Turnstile, 목록 limit 범위 밖은 400 | 유효 |
 
 ## 판례 쓰는 법
 
