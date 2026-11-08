@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // T067: theme card images for S2 (public/assets/previews/<themeId>.jpg), shot from our own 3D rooms.
-// Usage: with `npm run dev` running on :5173, node scripts/theme-previews.ts. Renders differ by machine, so the images are not in
+// Usage: with `npm run dev` running on :5173, node scripts/theme-previews.ts. Its rooms are deleted again afterwards. Renders differ by machine, so the images are not in
 // scripts/assets.sha256; rerun this after a theme or its assets change.
 import { execFileSync } from 'node:child_process';
 import { chromium } from 'playwright';
@@ -28,3 +28,5 @@ for (const themeId of THEME_IDS) {
   await page.close();
 }
 await browser.close();
+const ids = THEME_IDS.map((themeId) => `'${id(themeId)}'`).join(', ');
+execFileSync('npx', ['wrangler', 'd1', 'execute', 'roomboard', '--local', '--command', `DELETE FROM rooms WHERE id IN (${ids});`], { stdio: 'inherit' });

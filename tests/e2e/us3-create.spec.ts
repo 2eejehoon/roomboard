@@ -12,6 +12,9 @@ async function fillForm(page: Page, title: string) {
   await page.getByRole('radio', { name: ko['theme.library'] }).check();
   await page.getByLabel(ko['create.password']).fill('pass1234');
   await expect(submit(page), 'enabled once the Turnstile test widget hands over its token').toBeEnabled({ timeout: 20_000 });
+  // Scroll first: when click() itself scrolls the button up to the viewport edge, the click lands in the widget's cross-origin
+  // iframe (closed shadow root, so Playwright's hit check misses it) and nothing submits.
+  await submit(page).scrollIntoViewIfNeeded();
 }
 
 test('Q6: create from the board, land in the room; another visitor sees it on top of the board', async ({ browser }) => {
@@ -56,6 +59,8 @@ test('Q7: a 403 from the bot check asks to redo the check and keeps the form', a
   await fillForm(page, 'Turnstile 실패');
   await submit(page).click();
   await expect(page.getByText(ko['create.turnstileFailed'])).toBeVisible();
+  await expect(submit(page), 'the spent token is dropped').toBeDisabled();
+  await expect(submit(page), 'a fresh widget hands over a new token').toBeEnabled({ timeout: 20_000 });
   await expect(page).toHaveURL(/\/new$/);
   await expect(page.getByLabel(ko['create.title'])).toHaveValue('Turnstile 실패');
 });
