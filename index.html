@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>roomboard</title>
     <meta name="description" content="" />
+    <style>
+      /* screens.md S1: one card per row on phones, 2~3 columns on wider screens */
+      .board { list-style: none; padding: 0; display: grid; gap: 1rem; }
+      @media (min-width: 720px) { .board { grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr)); } }
+      fieldset label { display: block; }
+    </style>
   </head>
   <body>
     <noscript></noscript>

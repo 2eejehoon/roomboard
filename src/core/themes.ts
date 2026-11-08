@@ -7,11 +7,12 @@ export type RoomObject = { id: string; assetId: string; position: Vec3; rotation
 export const THEME_IDS = ['cafe', 'library', 'garden'] as const;
 export type ThemeId = (typeof THEME_IDS)[number];
 // Rough position for the 2D list (data-model.md Zone): area is [minX, minZ, maxX, maxZ]; the last zone has none and covers the rest.
-export type ZoneKey = 'zone.entrance' | 'zone.counter' | 'zone.tables' | 'zone.shelves' | 'zone.desk' | 'zone.fountain' | 'zone.trees';
+export type ZoneKey = 'zone.entrance' | 'zone.counter' | 'zone.tables' | 'zone.shelves' | 'zone.desk' | 'zone.well' | 'zone.trees';
 export type Zone = { nameKey: ZoneKey; area?: [number, number, number, number] };
 export type Theme = { id: ThemeId; nameKey: `theme.${ThemeId}`; bounds: Bounds; spawn: Vec3; defaultObjects: RoomObject[]; zones: Zone[] };
 
-const box = (id: string, assetId: string, position: Vec3, rotationY = 0): RoomObject => ({ id, assetId, position, rotationY, collider: 'box' });
+// scale brings each model to room size (public/assets/CREDITS.md lists the sources).
+const box = (id: string, assetId: string, position: Vec3, rotationY = 0, scale?: number): RoomObject => ({ id, assetId, position, rotationY, collider: 'box', ...(scale && { scale }) });
 
 export const THEMES: Readonly<Record<ThemeId, Theme>> = {
   cafe: {
@@ -35,11 +36,11 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
     bounds: { min: [-8, 0, -8], max: [8, 4, 8] },
     spawn: [0, 0, 6],
     defaultObjects: [
-      box('shelf-1', 'bookshelf', [-7, 0, -4], Math.PI / 2),
-      box('shelf-2', 'bookshelf', [-7, 0, 0], Math.PI / 2),
-      box('shelf-3', 'bookshelf', [7, 0, -4], -Math.PI / 2),
+      box('shelf-1', 'bookshelf', [-7, 0, -4], Math.PI / 2, 0.7),
+      box('shelf-2', 'bookshelf', [-7, 0, 0], Math.PI / 2, 0.7),
+      box('shelf-3', 'bookshelf', [7, 0, -4], -Math.PI / 2, 0.7),
       box('desk', 'desk', [0, 0, -3]),
-      box('sofa', 'sofa', [4, 0, 3], -Math.PI / 2),
+      box('sofa', 'sofa', [4, 0, 3], -Math.PI / 2, 0.6),
       { id: 'lamp', assetId: 'lamp', position: [0, 0, -6], rotationY: 0, collider: 'none' },
     ],
     zones: [
@@ -55,14 +56,14 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
     bounds: { min: [-10, 0, -10], max: [10, 4, 10] },
     spawn: [0, 0, 8],
     defaultObjects: [
-      box('fountain', 'fountain', [0, 0, 0]),
-      box('tree-1', 'tree', [-6, 0, -6]),
-      box('tree-2', 'tree', [6, 0, -6]),
-      box('bench-1', 'bench', [-4, 0, 3], Math.PI / 4),
-      box('bench-2', 'bench', [4, 0, 3], -Math.PI / 4),
-      { id: 'flowers', assetId: 'flowers', position: [0, 0, -8], rotationY: 0, collider: 'none' },
+      box('well', 'well', [0, 0, 0], 0, 2),
+      box('tree-1', 'tree', [-6, 0, -6], 0, 2),
+      box('tree-2', 'tree', [6, 0, -6], 0, 2),
+      box('bench-1', 'bench', [-4, 0, 3], Math.PI / 4, 2.5),
+      box('bench-2', 'bench', [4, 0, 3], -Math.PI / 4, 2.5),
+      { id: 'flowers', assetId: 'flowers', position: [0, 0, -8], rotationY: 0, scale: 1.5, collider: 'none' },
     ],
-    zones: [{ nameKey: 'zone.entrance', area: [-10, 6, 10, 10] }, { nameKey: 'zone.fountain', area: [-3, -3, 3, 3] }, { nameKey: 'zone.trees' }],
+    zones: [{ nameKey: 'zone.entrance', area: [-10, 6, 10, 10] }, { nameKey: 'zone.well', area: [-3, -3, 3, 3] }, { nameKey: 'zone.trees' }],
   },
 };
 

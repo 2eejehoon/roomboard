@@ -2,7 +2,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { z } from 'zod';
-import { createRoomRequest, FIELD_ERRORS, listRoomsQuery } from '../core/api-schemas.ts';
+import { createRoomRequest, fieldErrors, listRoomsQuery } from '../core/api-schemas.ts';
 import { createChatFilter, parseWordList } from '../core/chat-filter.ts';
 import { roomIdSchema } from '../core/protocol.ts';
 import { createRoomData, type RoomData } from '../core/room-data.ts';
@@ -46,12 +46,7 @@ export async function requireRoom(db: D1Database, id: string): Promise<Room> {
 }
 
 const validation = (c: C, error?: z.ZodError) => {
-  const fields = Object.fromEntries(
-    (error?.issues ?? []).flatMap((i) => {
-      const key = i.path[0];
-      return typeof key === 'string' && key in FIELD_ERRORS ? [[key, FIELD_ERRORS[key as keyof typeof FIELD_ERRORS]]] : [];
-    }),
-  );
+  const fields = error ? fieldErrors(error) : {};
   return c.json(Object.keys(fields).length ? { code: 'validation', fields } : { code: 'validation' }, 400);
 };
 

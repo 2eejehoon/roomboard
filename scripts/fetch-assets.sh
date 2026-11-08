@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # T048: downloads the CC0 sources listed in public/assets/CREDITS.md and rebuilds public/assets/ from them.
-# Needs network access to drive.google.com, drive.usercontent.google.com and dl.polyhaven.org.
+# Needs network access to drive.google.com, drive.usercontent.google.com and dl.polyhaven.org, and Node (scripts/obj-to-glb.ts).
 # Usage: bash scripts/fetch-assets.sh
 # Builds into a temp folder, checks it against scripts/assets.sha256, and only then copies into public/assets/,
 # so a changed or broken download cannot slip in silently.
@@ -48,6 +48,29 @@ EOF
 
 # Poly Haven "Comfy Café" HDRI, 1k.
 curl -fsSL -o "$out/hdri/cafe.hdr" https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/comfy_cafe_1k.hdr
+
+# Library and garden: Quaternius packs that ship only OBJ + MTL (flat colors). scripts/obj-to-glb.ts converts, then weld + meshopt.
+# Columns: assetId (src/core/themes.ts), OBJ file ID, MTL file ID.
+while read -r name obj mtl; do
+  drive "$obj" "$src/$name.obj"
+  drive "$mtl" "$src/$name.mtl"
+  node scripts/obj-to-glb.ts "$src/$name.obj" "$src/$name.mtl" "$src/$name.raw.glb"
+  gt weld "$src/$name.raw.glb" "$src/$name.glb"
+  gt meshopt "$src/$name.glb" "$out/models/$name.glb"
+done <<'EOF'
+bookshelf 1hpa7I0QjHi_Hcg9_Dm-9TUN-Qb_a4WIN 1YEmYxrl6V9ORnZwHMSd64GWNxS-oPfTm
+desk 1HPJNsymf8OgAvYF_3sN0RsSS-yGjHpSt 1ng5h-xn7FfSeDceeioo9lBz8b5qsfrsF
+sofa 1Hju6oL6uFkl6VRzEMcYvlnGoRLFOT6Af 1Arw6gdvzN_DnvmWSeyIAOhdbJ5f_7Qje
+lamp 1nD6mSl6ABJb2ZRadlY6asOyIqJnTG6Vj 1NN7uOj3cV9N6NdHGEnAToLGTtcQvJnwi
+well 1WvIYKeSNeK5TuCdKdoHEjLpTWhy1Ccks 1gxjNIUoglw3TCXubV7svoNB9gbsvq5cM
+bench 1L50vmvVhtQEMlqu2e95h1ZjjGUsj2zjo 1agcaElbWrwjtDfdU09Mqe1iIGwSobu_-
+tree 1mZ9G3T_F76NU2ug3CmsMv-hLoomVrD6K 1duQHNFJxdzuLfpjYTR0-b3wFNiq4SOAu
+flowers 1oOzfuZTnGm9sygsquH1jvCm1wMyny5Ux 1t0d4ukZJhA3InosrBnOOHUQSPM8MPP-T
+EOF
+
+# Poly Haven "Reading Room" and "Garden Nook" HDRIs, 1k.
+curl -fsSL -o "$out/hdri/library.hdr" https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/reading_room_1k.hdr
+curl -fsSL -o "$out/hdri/garden.hdr" https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/garden_nook_1k.hdr
 
 (cd "$out" && sha256sum --check --quiet "$OLDPWD/scripts/assets.sha256")
 cp -R "$out/." public/assets/

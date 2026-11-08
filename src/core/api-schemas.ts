@@ -11,6 +11,11 @@ const themeId = z.enum(THEME_IDS);
 // Error.fields values: i18n keys (src/client/i18n/ko.ts), one per field.
 export const FIELD_ERRORS = { title: 'field.title', description: 'field.description', themeId: 'field.themeId', password: 'field.password' } as const;
 
+export type FieldErrors = Partial<Record<keyof typeof FIELD_ERRORS, (typeof FIELD_ERRORS)[keyof typeof FIELD_ERRORS]>>;
+// Error.fields from a failed parse, shared by the Worker's 400 and the S2 form's own check (precedent 2026-11-08-create-form-checks).
+export const fieldErrors = (error: z.ZodError): FieldErrors =>
+  Object.fromEntries(error.issues.flatMap(({ path: [key] }) => (typeof key === 'string' && key in FIELD_ERRORS ? [[key, FIELD_ERRORS[key as keyof typeof FIELD_ERRORS]]] : [])));
+
 export const createRoomRequest = z.object({ title, description: description.default(''), themeId, password, turnstileToken: z.string().min(1) });
 
 // GET /rooms. The cursor is "<createdAt>.<id>" of the last room on the previous page (ties on createdAt break by id).

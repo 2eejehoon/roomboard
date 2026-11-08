@@ -33,6 +33,7 @@
 | [2026-11-07-2d-view-rules](2026-11-07-2d-view-rules.md) | 2D 전환 규칙(WebGL 없으면 2D만, 버튼 눌렀을 때만 저장)과 구역 | 유효 |
 | [2026-11-08-create-room-check-order](2026-11-08-create-room-check-order.md) | 방 만들기는 입력 검사 뒤에 Turnstile, 목록 limit 범위 밖은 400 | 유효 |
 | [2026-11-08-turnstile-test-keys](2026-11-08-turnstile-test-keys.md) | Turnstile 테스트 비밀 키는 siteverify를 부르지 않는다 | 유효 |
+| [2026-11-08-create-form-checks](2026-11-08-create-form-checks.md) | 방 만들기 양식은 서버와 같은 스키마로 먼저 검사한다 | 유효 |
 
 ## 판례 쓰는 법
 

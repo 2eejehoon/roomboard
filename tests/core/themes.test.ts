@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { THEMES, THEME_IDS, zoneAt, type Vec3 } from '../../src/core/themes.ts';
 
@@ -44,7 +45,16 @@ describe('zoneAt', () => {
     expect(zoneAt('cafe', [0, 3, 4])).toBe('zone.entrance');
     expect(zoneAt('library', [-7, 0, -2])).toBe('zone.shelves');
     expect(zoneAt('library', [0, 0, -3])).toBe('zone.desk');
-    expect(zoneAt('garden', [0, 0, 0])).toBe('zone.fountain');
+    expect(zoneAt('garden', [0, 0, 0])).toBe('zone.well');
     expect(zoneAt('garden', [-6, 0, -6])).toBe('zone.trees');
+  });
+});
+
+// T067: the 3D room loads every object's GLB and the theme's HDRI from public/assets; a missing file fails the whole scene.
+describe('theme assets', () => {
+  it.each(THEME_IDS)('%s has its HDRI and a GLB for every object', (id) => {
+    const assets = new URL('../../public/assets/', import.meta.url);
+    const files = [`hdri/${id}.hdr`, ...THEMES[id].defaultObjects.map((o) => `models/${o.assetId}.glb`)];
+    expect(files.filter((f) => !existsSync(new URL(f, assets)))).toEqual([]);
   });
 });

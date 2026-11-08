@@ -33,13 +33,38 @@
 | `models/chair.glb` | `Environment/glTF/Environment_Chair2.gltf` |
 | `models/plant.glb` | `Decoration/glTF/Decoration_Plant2.gltf` |
 
+## Quaternius — 도서관·정원 가구 (OBJ 팩)
+
+아래 네 팩은 Drive에 OBJ + MTL만 있다(텍스처 없음, 단색 재질). 각 폴더의 `License.txt`는 CC0 1.0이다.
+가공: `scripts/obj-to-glb.ts`로 GLB를 만들고(재질마다 `Kd` 색 하나), gltf-transform weld 뒤 meshopt 압축.
+크기는 `src/core/themes.ts`의 `scale`로 맞춘다.
+
+| 파일 | 팩(페이지) | 원본 |
+|---|---|---|
+| `models/bookshelf.glb` | Ultimate Furniture (https://quaternius.com/packs/ultimatefurniture.html, Drive `1n85oUi0RN5ZUXEIMKA-AnBsPErVXWcma`) | `OBJ/Bookcase_Books.obj` |
+| `models/desk.glb` | Ultimate Furniture | `OBJ/Desk.obj` |
+| `models/sofa.glb` | Ultimate Furniture | `OBJ/Sofa.obj` |
+| `models/lamp.glb` | Ultimate Home Interior (https://quaternius.com/packs/ultimatehomeinterior.html, Drive `1SNK9PwPi8xqqxmpU5xEZeiQjB26C1oX6`) | `OBJ/Light_Floor1.obj` |
+| `models/well.glb` | Medieval Village (https://quaternius.com/packs/medievalvillage.html, Drive `18T92VcNldHG0ugWo1u0hSJGDLua-n7o5`) | `Props/OBJ/Well.obj` |
+| `models/bench.glb` | Medieval Village | `Props/OBJ/Bench_1.obj` |
+| `models/tree.glb` | Ultimate Nature (https://quaternius.com/packs/ultimatenature.html, Drive `1-Kl0L_Jg8awbh0S5T-z3zxh4mVlnxTpa`) | `OBJ/CommonTree_1.obj` |
+| `models/flowers.glb` | Ultimate Nature | `OBJ/Flowers.obj` |
+
 ## Poly Haven — HDRI
 
 | 파일 | 원본 |
 |---|---|
 | `hdri/cafe.hdr` | "Comfy Café" (Sergej Majboroda), https://polyhaven.com/a/comfy_cafe, 1k HDR. 라이선스: CC0 (https://polyhaven.com/license) |
+| `hdri/library.hdr` | "Reading Room" (Greg Zaal), https://polyhaven.com/a/reading_room, 1k HDR. 라이선스: CC0 |
+| `hdri/garden.hdr` | "Garden Nook" (Dimitrios Savva, Jarod Guest), https://polyhaven.com/a/garden_nook, 1k HDR. 라이선스: CC0 |
 
-## 용량 (카페 테마 첫 로딩)
+## 테마 미리보기
+
+`previews/<테마>.jpg`는 위 에셋으로 그린 우리 3D 방을 `scripts/theme-previews.ts`로 찍은 것이다(새 출처 없음).
+렌더는 기계마다 조금씩 달라 `scripts/assets.sha256`에 넣지 않는다. 테마나 에셋이 바뀌면 다시 찍는다.
+
+## 용량 (테마별 첫 로딩)
 
 캐릭터 8개 1.3MB(방에 있는 아바타만 받는다), 가구 43KB, HDRI 1.6MB — 합계 약 2.9MB로 목표 5MB 이하.
+도서관: 가구 0.17MB, HDRI 1.6MB, 캐릭터 포함 약 3.1MB. 정원: 가구 0.08MB, HDRI 1.8MB, 캐릭터 포함 약 3.2MB.
 3D 코드 청크(three, R3F, Rapier WASM)는 별도로 gzip 약 1.2MB다.
