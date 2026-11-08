@@ -122,8 +122,8 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [x] T051 [P] [US2] `tests/e2e/us2-fallback.spec.ts`: Q4(WebGL을 끈 컨텍스트 — `HTMLCanvasElement.prototype.getContext`에서 webgl/webgl2를 null로 — 로 입장하면 2D 자동, 오류 화면 없음, 3D 청크 요청 없음), 3D↔2D 전환 버튼, 다른 컨텍스트(3D)의 입장·퇴장이 2D 목록과 `aria-live` 영역에 반영, 키보드만으로 3D 전환 버튼 도달 — 완료. 도우미(`newPage`, `withoutWebGL`, `enter`, `state`, `move`)는 `tests/e2e/helpers.ts`로 옮겼다. 3D 청크 요청 확인은 URL 패턴(`/room3d/`, three, rapier, ecctrl, `Scene-*.js`)으로 하고, 같은 패턴이 3D 화면에서는 요청을 잡는지도 확인한다(dev 서버는 `Scene.tsx`와 사전 번들 의존성을 보낸다). 3D 로딩 실패는 `Scene` 요청을 끊어 만든다. T038 Q1의 2D 목록 갱신(1초)도 여기서 WebGL을 끈 두 컨텍스트로 잰다. US1의 "WebGL 없이도 머리글" 테스트는 Q4로 대체.
-- [x] T052 [P] [US2] `tests/worker/seo-html.test.ts`: Q5 — `GET /rooms/seedroom01` HTML에 방 제목이 `<title>`과 `<noscript>`에, 설명이 `<meta name="description">`에 있음, 제목에 `<script>`가 있으면 이스케이프됨, 없는 방 404·삭제된 방 410 상태 코드로 HTML 응답 — 완료. 테스트 풀에는 정적 에셋이 없어 `ASSETS`를 `index.html?raw`를 `/`에서만 주는 가짜로 바꿔 넣는다(플랫폼은 `/index.html`을 `/`로 넘긴다). 잘못된 `%` 이스케이프도 404.
+- [x] T051 [P] [US2] `tests/e2e/us2-fallback.spec.ts`: Q4(WebGL을 끈 컨텍스트 — `HTMLCanvasElement.prototype.getContext`에서 webgl/webgl2를 null로 — 로 입장하면 2D 자동, 오류 화면 없음, 3D 청크 요청 없음), 3D↔2D 전환 버튼, 다른 컨텍스트(3D)의 입장·퇴장이 2D 목록과 `aria-live` 영역에 반영, 키보드만으로 3D 전환 버튼 도달 — 완료. 도우미(`newPage`, `withoutWebGL`, `enter`, `state`, `move`)는 `tests/e2e/helpers.ts`로 옮겼다. 3D 청크 요청 확인은 URL 패턴(`/room3d/`, three, rapier, ecctrl, `Scene-*.js`)으로 하고, 같은 패턴이 3D 화면에서는 요청을 잡는지도 확인한다(dev 서버는 `Scene.tsx`와 사전 번들 의존성을 보낸다). 3D 로딩 실패는 `Scene` 요청을 끊어 만든다. T038 Q1의 2D 목록 갱신(1초)도 여기서 WebGL을 끈 두 컨텍스트로 잰다. US1의 "WebGL 없이도 머리글" 테스트는 Q4로 대체. 실행 확인: main CI run 42478521442 통과(US2 머지 뒤, 커밋 54780eb).
+- [x] T052 [P] [US2] `tests/worker/seo-html.test.ts`: Q5 — `GET /rooms/seedroom01` HTML에 방 제목이 `<title>`과 `<noscript>`에, 설명이 `<meta name="description">`에 있음, 제목에 `<script>`가 있으면 이스케이프됨, 없는 방 404·삭제된 방 410 상태 코드로 HTML 응답 — 완료. 테스트 풀에는 정적 에셋이 없어 `ASSETS`를 `index.html?raw`를 `/`에서만 주는 가짜로 바꿔 넣는다(플랫폼은 `/index.html`을 `/`로 넘긴다). 잘못된 `%` 이스케이프도 404. 실행 확인: main CI run 42478521442 통과(US2 머지 뒤, 커밋 54780eb).
 
 ### Implementation
 
