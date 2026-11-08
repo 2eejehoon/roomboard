@@ -38,6 +38,7 @@ async function roomPage(req: Request, env: Env, id: string): Promise<Response> {
   // "/" and not "/index.html": the asset server redirects /index.html to /.
   const shell = await env.ASSETS.fetch(new URL('/', req.url));
   const page = new Response(shell.body, { status: typeof room === 'number' ? room : 200, headers: shell.headers });
+  page.headers.delete('etag'); // index.html's ETag would let a cache keep one room's page for another, or a renamed room's old title
   if (typeof room === 'number') return page;
   return new HTMLRewriter()
     .on('title', { element: (e) => void e.setInnerContent(room.title) })

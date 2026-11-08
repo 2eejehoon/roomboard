@@ -10,7 +10,7 @@ import { insertRoom } from './rooms-helpers.ts';
 const ASSETS = {
   fetch: async (input: RequestInfo | URL) =>
     new URL(input instanceof Request ? input.url : input).pathname === '/'
-      ? new Response(indexHtml, { headers: { 'content-type': 'text/html' } })
+      ? new Response(indexHtml, { headers: { 'content-type': 'text/html', etag: '"index"' } })
       : new Response('not found', { status: 404 }),
 } as unknown as Fetcher;
 const get = (path: string) => worker.fetch(new Request(`https://roomboard.test${path}`), { ...env, ASSETS }, createExecutionContext());
@@ -21,6 +21,7 @@ describe('GET /rooms/:id HTML', () => {
     const res = await get(`/rooms/${id}`);
     expect(res.status).toBe(200);
     expect(res.headers.get('content-type')).toMatch(/text\/html/);
+    expect(res.headers.get('etag'), "not index.html's ETag").toBeNull();
     const html = await res.text();
     expect(html).toContain('<title>작은 카페</title>');
     expect(html).toContain('<meta name="description" content="쉬어 가는 &quot;방&quot;"');
