@@ -1,5 +1,5 @@
 import { createExecutionContext, env } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import indexHtml from '../../index.html?raw';
 import worker from '../../src/worker/index.ts';
 import { insertRoom } from './rooms-helpers.ts';
@@ -13,7 +13,8 @@ const ASSETS = {
       ? new Response(indexHtml, { headers: { 'content-type': 'text/html', etag: '"index"' } })
       : new Response('not found', { status: 404 }),
 } as unknown as Fetcher;
-const get = (path: string) => worker.fetch(new Request(`https://roomboard.test${path}`), { ...env, ASSETS }, createExecutionContext());
+const get = (path: string, bindings: Partial<Env> = {}) =>
+  worker.fetch(new Request(`https://roomboard.test${path}`), { ...env, ASSETS, ...bindings }, createExecutionContext());
 
 describe('GET /rooms/:id HTML', () => {
   it('puts the title in <title> and <noscript>, and the description in <meta name="description">', async () => {
@@ -54,5 +55,17 @@ describe('GET /rooms/:id HTML', () => {
     const res = await get(`/rooms/${await insertRoom({ deletedAt: 3000 })}`);
     expect(res.status).toBe(410);
     expect(await res.text()).toContain('<div id="root">');
+  });
+
+  // ai-review: before T057 the shell was a static asset, so a D1 outage still let RoomPage show its retry screen.
+  it('a D1 failure still serves the app shell, as 503, and logs no error message', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const DB = { prepare: () => { throw new Error('D1 down for room secret-title'); } } as unknown as D1Database;
+    const res = await get('/rooms/seedroom01', { DB });
+    expect(res.status).toBe(503);
+    expect(await res.text()).toContain('<div id="root">');
+    expect(log).toHaveBeenCalled();
+    expect(JSON.stringify(log.mock.calls)).not.toContain('secret-title');
+    log.mockRestore();
   });
 });
