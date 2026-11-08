@@ -34,7 +34,7 @@ export const ko = {
   'zone.tables': '테이블 쪽',
   'zone.shelves': '책장 쪽',
   'zone.desk': '책상 근처',
-  'zone.fountain': '분수 근처',
+  'zone.well': '우물 근처',
   'zone.trees': '나무 사이',
   'room3d.loading': '3D 불러오는 중 {n}%',
   'room3d.joystick': '이동',

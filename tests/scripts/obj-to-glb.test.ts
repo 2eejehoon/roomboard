@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { objToGlb } from '../../scripts/obj-to-glb.mjs';
+import { objToGlb } from '../../scripts/obj-to-glb.ts';
 
 // T067: Quaternius OBJ + MTL to GLB (scripts/fetch-assets.sh).
 const MTL = `newmtl Red\nKd 1.0 0.0 0.0\n\nnewmtl Blue\nKd 0.0 0.0 1.0\n`;
