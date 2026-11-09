@@ -24,13 +24,16 @@ export function navigate(path: string): void {
   dispatchEvent(new PopStateEvent('popstate'));
 }
 
-// An <a> that moves inside the app; modified clicks (new tab, etc.) keep the browser's behaviour.
-export const Link = ({ href, ...rest }: ComponentProps<'a'> & { href: string }) => (
+// An <a> that moves inside the app. Astryx renders its links with it too (LinkProvider, research R16), so anything but a
+// plain click on a same-origin path without a target stays with the browser, and the caller's onClick runs first.
+export const Link = ({ href, onClick, ...rest }: ComponentProps<'a'> & { href: string }) => (
   <a
     href={href}
     {...rest}
     onClick={(e) => {
-      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      onClick?.(e);
+      if (e.defaultPrevented || rest.target || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (new URL(href, location.href).origin !== location.origin) return;
       e.preventDefault();
       navigate(href);
     }}

@@ -34,13 +34,13 @@ describe('navigate', () => {
 
 describe('common states (screens.md 공통 상태)', () => {
   it('loading is a status message', () => {
-    expect(renderToStaticMarkup(<Loading />)).toMatch(/role="status".*불러오는 중/);
+    expect(renderToStaticMarkup(<Loading />)).toMatch(/role="status".*불러오는 중/s);
   });
 
   it('network error has a retry button', () => {
     const html = renderToStaticMarkup(<NetworkError onRetry={() => {}} />);
     expect(html).toContain('연결에 문제가 있어요');
-    expect(html).toMatch(/<button[^>]*>다시 시도<\/button>/);
+    expect(html).toMatch(/<button[^>]*>(?:(?!<\/button>).)*다시 시도(?:(?!<\/button>).)*<\/button>/s); // inside the button, whatever Astryx wraps it in
   });
 
   it('429 shows seconds rounded up from retryAfterMs', () => {
