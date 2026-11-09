@@ -32,7 +32,8 @@ test('T045, Q3: my input in the 3D room moves me for the other participant', asy
   await enter(b);
   await expect(a.locator('canvas')).toBeVisible();
   const joystick = a.getByRole('group', { name: ko['room3d.joystick'] });
-  await expect.poll(async () => (await state(b)).peers.find((p) => p.peerId === me.peerId)?.p).toEqual([0, 0, 4]);
+  // 30 s like enter(): both pages load software-rendered 3D at once, and B's page can answer slowly (CI runs 42603349133, 42604847932).
+  await expect.poll(async () => (await state(b)).peers.find((p) => p.peerId === me.peerId)?.p, { timeout: 30_000 }).toEqual([0, 0, 4]);
 
   const seen = () => state(b).then((s) => s.peers.find((p) => p.peerId === me.peerId));
   // The canvas shows before the models and physics load; retry the input until my avatar exists and B sees it move.
@@ -60,7 +61,7 @@ test('T045, Q3: my input in the 3D room moves me for the other participant', asy
 
 // T046: a remote avatar glides from its last pose to the new one instead of jumping. The nickname label follows it every frame.
 test('T046: a remote avatar moves through the poses in between', async ({ browser }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   // Small and 1x so software WebGL draws frames well under the 200 ms glide; at full size it can skip it entirely.
   const a = await newPage(browser, { viewport: { width: 400, height: 300 }, deviceScaleFactor: 1 });
   const b = await withoutWebGL(await newPage(browser));
@@ -74,22 +75,36 @@ test('T046: a remote avatar moves through the poses in between', async ({ browse
   await b.waitForTimeout(500);
   await moveB([1, 0, 4]);
   await expect.poll(async () => (await state(a)).peers.find((p) => p.peerId === peer.peerId)?.p).toEqual([1, 0, 4]);
-  await b.waitForTimeout(1000); // 2 m in over a second stays under 8 m/s
-  // Start sampling before B moves, so the first sample is the old pose.
-  await a.evaluate((name) => {
-    const el = [...document.querySelectorAll('span')].find((s) => s.textContent === name)!;
-    const xs: number[] = ((window as unknown as { xs: number[] }).xs = []);
-    const t0 = performance.now();
-    const sample = () => {
-      xs.push(Math.round(el.getBoundingClientRect().x));
-      if (performance.now() - t0 < 3000) requestAnimationFrame(sample);
-    };
-    sample();
-  }, peer.nickname);
-  await moveB([3, 0, 4]);
-  await a.waitForTimeout(3200);
-  const seen = await a.evaluate(() => (window as unknown as { xs: number[] }).xs);
-  const [first, last] = [seen[0], seen.at(-1)!];
-  expect(Math.abs(last - first), 'the avatar moved on screen').toBeGreaterThan(20);
-  expect(seen.some((x) => Math.min(first, last) + 5 < x && x < Math.max(first, last) - 5), `positions in between: ${seen.join(',')}`).toBe(true);
+  // Each try moves 2 m (over a second, under 8 m/s) and samples the label with frame times. A glide is only visible when a frame
+  // lands inside its 200 ms; CI's software WebGL sometimes stalls through it (runs 42603349133, 42609456809), so such a try is
+  // repeated, as T045 repeats its input. A label that jumps although frames did land in the glide fails every try.
+  let at = 1;
+  await expect(async () => {
+    await b.waitForTimeout(1000);
+    const target = (at = at === 1 ? 3 : 1);
+    await a.evaluate((name) => {
+      const el = [...document.querySelectorAll('span')].find((s) => s.textContent === name)!;
+      const w = window as unknown as { xs: [number, number][] };
+      w.xs = [];
+      const t0 = performance.now();
+      const sample = () => {
+        w.xs.push([performance.now(), Math.round(el.getBoundingClientRect().x)]);
+        if (performance.now() - t0 < 3000) requestAnimationFrame(sample);
+      };
+      sample();
+    }, peer.nickname);
+    await moveB([target, 0, 4]);
+    await a.waitForTimeout(3200);
+    const seen = await a.evaluate(() => (window as unknown as { xs: [number, number][] }).xs);
+    const xs = seen.map(([, x]) => x);
+    const [first, last] = [xs[0]!, xs.at(-1)!];
+    expect(Math.abs(last - first), 'the avatar moved on screen').toBeGreaterThan(20);
+    const between = (x: number) => Math.min(first, last) + 5 < x && x < Math.max(first, last) - 5;
+    // The glide starts between the last frame at the old position and the first one off it. A gap of 200 ms or more spans the
+    // whole glide, so no frame could show it: retry. A shorter gap that still lands on the end is a real jump.
+    const start = seen.findIndex(([, x]) => x !== first);
+    const gap = seen[start]![0] - seen[start - 1]![0];
+    expect(gap < 200, `frame stall of ${Math.round(gap)} ms over the glide, retrying: ${xs.join(',')}`).toBe(true);
+    expect(xs.some(between), `positions in between: ${xs.join(',')}`).toBe(true);
+  }).toPass({ timeout: 40_000 });
 });
