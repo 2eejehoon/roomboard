@@ -194,13 +194,13 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T075 [P] [US5] `tests/worker/channels-do.test.ts`: WebSocket 21개 접속 → 21번째 `welcome.channel === 2`, 채널 1 참가자는 21번째의 `peer_joined`·`peer_moved`·`chat`을 받지 않음, 채널 1에서 1명 나간 뒤 새 접속은 채널 1
-- [ ] T076 [P] [US5] `tests/e2e/us5-channel.spec.ts`: 방 머리글과 2D 화면에 "채널 N", "인원 n/20" 표시
+- [x] T075 [P] [US5] `tests/worker/channels-do.test.ts`: WebSocket 21개 접속 → 21번째 `welcome.channel === 2`, 채널 1 참가자는 21번째의 `peer_joined`·`peer_moved`·`chat`을 받지 않음, 채널 1에서 1명 나간 뒤 새 접속은 채널 1 — 완료. 채널 배정과 채널별 전송은 US1·US4에서 이미 있어서 처음부터 통과했다. 대신 깨뜨려 확인했다: 전송에서 채널 조건을 빼거나 정원을 21로 바꾸면 실패한다. "받지 않음"은 21번째가 이동·채팅한 뒤(자기 채팅 사본으로 DO 처리를 확인) 채널 1 참가자가 받는 다음 메시지가 같은 채널의 채팅인지로 본다.
+- [x] T076 [P] [US5] `tests/e2e/us5-channel.spec.ts`: 방 머리글과 2D 화면에 "채널 N", "인원 n/20" 표시 — 완료. 머리글(3D·2D 공통)에 "채널 1 · 2/20", 한 명이 나가면 "1/20". 2D 본문(`<h1>`이 있는 구역)에 "채널 1"(screens.md S3 2D는 채널만). 처음부터 통과했고, 인원을 하나 적게 세게 바꾸면 실패한다. 머리글은 `<main>` 안이라 `banner` 역할이 아니어서 `header`로 찾는다. 21명 채우기는 T075(Worker 테스트, Q10)가 맡는다.
 
 ### Implementation
 
-- [ ] T077 [US5] `src/worker/room-do.ts`·`src/core/room-session.ts`: 채널별 브로드캐스트 확인·보완(T075 통과까지)
-- [ ] T078 [US5] `src/client/room/RoomPage.tsx`·`room2d/Room2D.tsx`: 채널 번호·인원 표시(i18n 키)
+- [x] T077 [US5] `src/worker/room-do.ts`·`src/core/room-session.ts`: 채널별 브로드캐스트 확인·보완(T075 통과까지) — 완료. 고칠 것 없음(T075가 그대로 통과).
+- [x] T078 [US5] `src/client/room/RoomPage.tsx`·`room2d/Room2D.tsx`: 채널 번호·인원 표시(i18n 키) — 완료. 고칠 것 없음. `room.channel`·`room.people` 키로 이미 보인다(T076).
 
 ---
 
