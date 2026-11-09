@@ -79,6 +79,8 @@ test('T046: a remote avatar moves through the poses in between', async ({ browse
   // lands inside its 200 ms; CI's software WebGL sometimes stalls through it (runs 42603349133, 42609456809), so such a try is
   // repeated, as T045 repeats its input. A label that jumps although frames did land in the glide fails every try.
   let at = 1;
+  // A jump with frames inside the glide is a real failure, so it ends the retries and fails below instead of being retried away.
+  let jumped: string | undefined;
   await expect(async () => {
     await b.waitForTimeout(1000);
     const target = (at = at === 1 ? 3 : 1);
@@ -105,6 +107,7 @@ test('T046: a remote avatar moves through the poses in between', async ({ browse
     const start = seen.findIndex(([, x]) => x !== first);
     const gap = seen[start]![0] - seen[start - 1]![0];
     expect(gap < 200, `frame stall of ${Math.round(gap)} ms over the glide, retrying: ${xs.join(',')}`).toBe(true);
-    expect(xs.some(between), `positions in between: ${xs.join(',')}`).toBe(true);
+    if (!xs.some(between)) jumped = xs.join(',');
   }).toPass({ timeout: 40_000 });
+  expect(jumped, 'positions in between (frames landed inside the glide, yet the label jumped)').toBeUndefined();
 });
