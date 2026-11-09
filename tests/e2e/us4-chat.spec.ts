@@ -58,6 +58,22 @@ test('Q9: the 6th message within 10 seconds is not delivered and the sender is t
   await expect(messages(b).filter({ hasText: '메시지 6' })).toHaveCount(0);
 });
 
+// spec.md Edge Cases: an over-long message is not sent, and the sender is told (PR #26 review: it used to be cut to 200).
+test('a pasted message over 200 characters is not sent and the sender is told', async ({ browser }) => {
+  const a = await withoutWebGL(await newPage(browser));
+  const b = await withoutWebGL(await newPage(browser));
+  const me = await enter(a);
+  await enter(b);
+  await expect.poll(async () => (await state(b)).peers.some((p) => p.peerId === me.peerId)).toBe(true);
+
+  await say(a, '가'.repeat(201));
+  await expect(panel(a).getByRole('status')).toHaveText(ko['chat.tooLong']);
+  await expect(panel(a).getByRole('textbox', { name: ko['chat.input'] }), 'the text stays to be shortened').toHaveValue('가'.repeat(201));
+  await say(a, '가'.repeat(200));
+  await expect(messages(b)).toHaveCount(1);
+  await expect(messages(b)).toContainText('가'.repeat(200));
+});
+
 // T074 (screens.md S3 3D): Enter focuses the chat input, movement keys then type letters instead of moving, Esc lets go.
 test('T074: while typing a chat, movement keys do not move my avatar', async ({ browser, isMobile }) => {
   test.setTimeout(90_000);

@@ -95,15 +95,31 @@ describe('RoomStore', () => {
     expect(s.getState().chat.map((c) => c.text)).toEqual(Array.from({ length: 100 }, (_, i) => `m${i + 2}`));
   });
 
-  it('rate_limited shows the wait until my next message comes back; chat from others leaves it', () => {
+  it('rate_limited shows the wait only until it is over (PR #26 review)', () => {
+    vi.useFakeTimers();
     const s = new RoomStore();
     s.apply(welcome);
     s.apply({ t: 'rate_limited', scope: 'chat', retryAfterMs: 1800, nonce: 'c-6' });
     expect(s.getState().chatLimited).toBe(1800);
-    s.apply(chat('남의 말'));
-    expect(s.getState().chatLimited).toBe(1800);
-    s.apply({ ...chat('내 말'), peerId: 'me', nonce: 'c-7' });
+    vi.advanceTimersByTime(1000);
+    s.apply({ t: 'rate_limited', scope: 'chat', retryAfterMs: 1500, nonce: 'c-7' });
+    vi.advanceTimersByTime(1000);
+    expect(s.getState().chatLimited, 'a newer wait replaces the older one').toBe(1500);
+    vi.advanceTimersByTime(500);
     expect(s.getState().chatLimited).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('a welcome into another channel forgets the old channel chat; the same channel keeps it (PR #26 review)', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    s.apply(chat('채널 2'));
+    s.setConnection('reconnecting');
+    s.apply(welcome);
+    expect(s.getState().chat.map((c) => c.text)).toEqual(['채널 2']);
+    s.setConnection('reconnecting');
+    s.apply({ ...welcome, channel: 3 });
+    expect(s.getState().chat).toEqual([]);
   });
 
   it('tells subscribers about every change with a new state object', () => {
