@@ -75,10 +75,12 @@ export function ChatPanel({ state, send, view }: Props) {
   );
   if (view === '2d') return section;
   // Over the 3D canvas: folded on touch devices (a tap opens it), open with a keyboard.
+  const touch = matchMedia('(pointer: coarse)').matches;
   return (
     <details
-      open={!matchMedia('(pointer: coarse)').matches}
-      style={{ position: 'fixed', left: '50%', bottom: 0, transform: 'translateX(-50%)', width: 'min(100%, 22rem)', zIndex: 20, background: 'rgb(255 255 255 / 0.85)' }}
+      open={!touch}
+      // On touch devices sit above TouchControls (joystick box 200px at bottom 16) so moving and jumping stay possible.
+      style={{ position: 'fixed', left: '50%', bottom: touch ? 232 : 0, transform: 'translateX(-50%)', width: 'min(100%, 22rem)', zIndex: 20, background: 'rgb(255 255 255 / 0.85)' }}
     >
       <summary>{t('chat.heading')}</summary>
       {section}
