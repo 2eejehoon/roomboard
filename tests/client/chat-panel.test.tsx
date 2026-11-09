@@ -29,11 +29,12 @@ describe('ChatPanel', () => {
 
   it('turns the input and button off while reconnecting, and shows the wait after rate_limited', () => {
     const s = store();
-    expect(render(s, '2d')).not.toContain('disabled');
+    const off = (html: string) => ({ input: /<input\b[^>]*aria-disabled="true"/.test(html), button: /<button\b[^>]*\bdisabled=""/.test(html) });
+    expect(off(render(s, '2d'))).toEqual({ input: false, button: false });
     s.apply({ t: 'rate_limited', scope: 'chat', retryAfterMs: 1800 });
     s.setConnection('reconnecting');
     const html = render(s, '2d');
-    expect(html.match(/disabled/g)).toHaveLength(2);
+    expect(off(html)).toEqual({ input: true, button: true }); // Astryx keeps a disabled input focusable (aria-disabled + readOnly)
     expect(html).toContain('잠시 후 다시 시도해 주세요 (2초)');
   });
 });
