@@ -3,12 +3,16 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { t } from '../i18n/t.ts';
 import type { RoomState } from '../state/room-store.ts';
 
+const MAX_CHAT = 200; // protocol.ts chat text
+
 type Props = { state: RoomState; send: (text: string) => void; view: '3d' | '2d' };
 
 export function ChatPanel({ state, send, view }: Props) {
   const heading = useId();
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
+  // No maxLength: a paste would be cut silently. Over the limit it is not sent and the sender is told (spec.md Edge Cases).
+  const tooLong = text.trim().length > MAX_CHAT;
 
   // Enter focuses the input unless something else has focus (a focused button keeps its own Enter).
   useEffect(() => {
@@ -35,12 +39,13 @@ export function ChatPanel({ state, send, view }: Props) {
           ))}
         </ul>
       </div>
+      {tooLong && <p role="status">{t('chat.tooLong')}</p>}
       {state.chatLimited !== null && <p role="status">{t('common.rateLimited', { seconds: Math.ceil(state.chatLimited / 1000) })}</p>}
       <form
         onSubmit={(e) => {
           e.preventDefault();
           // A blank message would be a bad_message on the server, and five of those close the socket.
-          if (!text.trim()) return;
+          if (!text.trim() || tooLong) return;
           send(text.trim());
           setText('');
         }}
@@ -49,7 +54,6 @@ export function ChatPanel({ state, send, view }: Props) {
           ref={input}
           aria-label={t('chat.input')}
           value={text}
-          maxLength={200}
           disabled={state.connection !== 'open'}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}
