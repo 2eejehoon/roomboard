@@ -102,13 +102,13 @@ test('T046: a remote avatar moves through the poses in between', async ({ browse
     const [first, last] = [xs[0]!, xs.at(-1)!];
     expect(Math.abs(last - first), 'the avatar moved on screen').toBeGreaterThan(20);
     const between = (x: number) => Math.min(first, last) + 5 < x && x < Math.max(first, last) - 5;
-    // The glide starts somewhere between the last frame at the old position and the first one off it, and runs linearly for 200 ms.
-    // Only a gap short enough that the first moved frame must sit more than 5 px short of the end makes a jump certain; any other
-    // try may have glided unseen (CI's software WebGL stalls), so it is retried (PR #41 review).
-    const start = seen.findIndex(([, x]) => x !== first);
-    const gap = seen[start]![0] - seen[start - 1]![0];
-    const certain = 200 * (1 - 5 / Math.abs(last - first));
     if (xs.some(between)) return;
+    // No frame showed a position in between: every frame sat within 5 px of the start or the end. Take the first frame at the end and
+    // the one before it, still near the start. A 200 ms linear glide needs at least 200 × (1 − 10/D) ms to cross between them, so a
+    // shorter gap is a real jump; a longer one may have hidden a working glide (CI's software WebGL stalls), so retry (PR #41 review).
+    const end = xs.findIndex((x) => Math.abs(x - last) <= 5);
+    const gap = seen[end]![0] - seen[end - 1]![0];
+    const certain = 200 * (1 - 10 / Math.abs(last - first));
     expect(gap < certain, `frame gap of ${Math.round(gap)} ms may have hidden the glide, retrying: ${xs.join(',')}`).toBe(true);
     jumped = xs.join(',');
   }).toPass({ timeout: 40_000 });
