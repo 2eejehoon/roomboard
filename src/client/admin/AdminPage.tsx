@@ -26,12 +26,7 @@ type Report = {
   createdAt: number;
   reportCount: number;
 };
-// key: the tab and attempt it was loaded for; a load for another key reads as loading.
-type Load = { key: string } & (
-  | { kind: 'loading' | 'network' }
-  | { kind: 'rateLimited'; retryAfterMs: number }
-  | { kind: 'ok'; items: Report[]; nextCursor: string | null }
-);
+type Load = { kind: 'loading' | 'network' } | { kind: 'rateLimited'; retryAfterMs: number } | { kind: 'ok'; items: Report[]; nextCursor: string | null };
 
 // sessionStorage can throw (blocked storage); then the token lives as long as the page.
 const stored = () => {
@@ -102,8 +97,13 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
   const [status, setStatus] = useState<Status>('open');
   const [attempt, setAttempt] = useState(0);
   const key = `${status}.${attempt}`;
-  const [loaded, setLoad] = useState<Load>({ key: '', kind: 'loading' });
-  const load: Load = loaded.key === key ? loaded : { key, kind: 'loading' };
+  // Each tab-and-attempt keeps its own result, so a late answer for another key cannot overwrite this one (PR #39 review).
+  const [loads, setLoads] = useState<Record<string, Load>>({});
+  const load = loads[key] ?? { kind: 'loading' };
+  const setLoad = useCallback(
+    (l: Load | ((old: Load | undefined) => Load)) => setLoads((m) => ({ ...m, [key]: typeof l === 'function' ? l(m[key]) : l })),
+    [key],
+  );
   const [deleting, setDeleting] = useState<Report | null>(null);
 
   // Any answer but 2xx: 401 drops the token, 429 and the rest are the common states. 410 is a room deleted already, which is
@@ -115,13 +115,13 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
           if (res.ok || res.status === 410) return res;
           if (res.status === 401) onUnauthorized();
           else if (res.status === 429)
-            setLoad({ key, kind: 'rateLimited', retryAfterMs: ((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000 });
-          else setLoad({ key, kind: 'network' });
+            setLoad({ kind: 'rateLimited', retryAfterMs: ((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000 });
+          else setLoad({ kind: 'network' });
           return null;
         },
-        () => (setLoad({ key, kind: 'network' }), null),
+        () => (setLoad({ kind: 'network' }), null),
       ),
-    [token, onUnauthorized, key],
+    [token, onUnauthorized, setLoad],
   );
 
   const page = useCallback(
@@ -130,13 +130,12 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
         if (!res) return;
         const next = (await res.json()) as { items: Report[]; nextCursor: string | null };
         setLoad((old) => ({
-          key,
           kind: 'ok',
-          items: cursor && old.kind === 'ok' && old.key === key ? [...old.items, ...next.items] : next.items,
+          items: cursor && old?.kind === 'ok' ? [...old.items, ...next.items] : next.items,
           nextCursor: next.nextCursor,
         }));
       }),
-    [call, status, key],
+    [call, status, setLoad],
   );
 
   useEffect(() => void page(null), [page]);
