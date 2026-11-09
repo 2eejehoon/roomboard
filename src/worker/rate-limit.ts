@@ -8,7 +8,10 @@ export const rateLimit =
   (binding: (c: Context<AppEnv>) => RateLimit, periodMs: number): MiddlewareHandler<AppEnv> =>
   async (c, next) => {
     const { success } = await binding(c).limit({ key: c.req.header('cf-connecting-ip') ?? 'unknown' });
-    if (success) return next();
-    c.header('Retry-After', String(Math.ceil(periodMs / 1000)));
-    return c.json({ code: 'rate_limited', retryAfterMs: periodMs }, 429);
+    return success ? next() : tooMany(c, periodMs);
   };
+
+export function tooMany(c: Context<AppEnv>, periodMs: number): Response {
+  c.header('Retry-After', String(Math.ceil(periodMs / 1000)));
+  return c.json({ code: 'rate_limited', retryAfterMs: periodMs }, 429);
+}
