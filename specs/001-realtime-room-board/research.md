@@ -197,7 +197,8 @@
 - 0.x라 버전을 정확히 고정한다. `postinstall`(설정 안내 출력뿐)은 `allowScripts`에서 거부한다. CLI의 `init`은
   CLAUDE.md·AGENTS.md를 고치므로 쓰지 않는다.
 - **측정**(로컬 `npm run build`, 제공자와 CSS만 추가): 첫 JS 청크 gzip 103.3KB → 147.8KB, CSS 44.4KB(트리 셰이킹 없음, 2D 포함 모든 페이지).
-  4G(약 1.5Mbps)에서 약 0.5초 늘어서 SC-001(10초)과 3D 청크(gzip 1.16MB)에 비해 작다. 테마 CSS에 외부 폰트 요청이
+  4G(약 1.5Mbps)에서 약 0.5초 늘어서 SC-001(10초)과 3D 청크(gzip 1.16MB)에 비해 작다. S1과 공통 상태를 바꾼 뒤(T101) 첫 JS 청크는 199.1KB.
+  화면을 더 옮길 때마다 이 숫자를 다시 잰다. 테마 CSS에 외부 폰트 요청이
   없다(Figtree가 없으면 시스템 글꼴, 헌법 원칙 II). Node의 `renderToStaticMarkup`으로 TextInput·RadioList·Button이
   `<label for>`·`role="radiogroup"`으로 렌더링된다. E2E는 역할·라벨·문구로 찾으므로 대부분 그대로 쓴다.
 - **Alternatives**: StyleX 빌드 플러그인 경로 — 우리 스타일이 거의 없어 컴파일할 것이 없다, 기각. 디자인 시스템 없이
