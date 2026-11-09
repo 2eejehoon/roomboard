@@ -46,7 +46,7 @@
 - 인덱스: `(status, created_at DESC)` — 관리자 목록.
 - 관리자 목록은 상태별로 대상마다 한 줄(가장 최근 신고가 대표, 신고 수 집계), 처리 완료는 그 대상의 `open` 신고 전부에 적용된다
   (판례 2026-11-09-report-list-per-target).
-- 관리자가 방을 삭제하면 그 방의 `open` 신고는 모두 `resolved`가 된다. 메시지 신고는 `resolved`로만
+- 관리자가 방을 삭제하면 그 방의 `open` 신고는 모두 `resolved`가 된다. 이미 삭제된 방이면 410으로 답하지만 신고는 그때도 `resolved`가 된다. 메시지 신고는 `resolved`로만
   바뀐다(지울 채팅 원본이 없음, FR-041).
 
 ## 방 데이터 (RoomData, `rooms.room_data`)
