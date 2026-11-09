@@ -1,4 +1,9 @@
 // screens.md S4 (T084). Checks with the server's schema before sending, as S2 does (precedent 2026-11-08-create-form-checks).
+import { AlertDialog } from '@astryxdesign/core/AlertDialog';
+import { Button } from '@astryxdesign/core/Button';
+import { Heading } from '@astryxdesign/core/Heading';
+import { Stack } from '@astryxdesign/core/Stack';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { useEffect, useState, type FormEvent } from 'react';
 import { deleteRoomRequest, fieldErrors, updateRoomRequest, type FieldErrors } from '../../core/api-schemas.ts';
 import type { ThemeId } from '../../core/themes.ts';
@@ -6,7 +11,7 @@ import { navigate } from '../App.tsx';
 import { t } from '../i18n/t.ts';
 import { Notice } from '../room/RoomPage.tsx';
 import { Loading, NetworkError, RateLimited } from '../Status.tsx';
-import { FieldError, RoomFields, type Fields } from './CreateRoomPage.tsx';
+import { errorStatus, RoomFields, type Fields } from './CreateRoomPage.tsx';
 
 type Load = { status: 'loading' | 'error' | 404 | 410 } | { status: 'ok'; themeId: ThemeId };
 type Failure = { kind: 'wrongPassword' | 'network' } | { kind: 'rateLimited'; retryAfterMs: number } | null;
@@ -73,36 +78,36 @@ export function EditRoomPage({ id }: { id: string }) {
   if (load.status === 'error') return <NetworkError onRetry={() => setAttempt((n) => n + 1)} />;
   if (load.status !== 'ok') return <Notice text={t(load.status === 404 ? 'room.notFound' : 'room.gone')} />;
   return (
-    <form onSubmit={save} noValidate>
-      <h1>{t('edit.heading')}</h1>
-      <RoomFields value={fields} onChange={setFields} errors={errors} />
-      {fields.themeId !== load.themeId && <p role="status">{t('edit.themeNotice')}</p>}
-      <label>
-        {t('create.password')}
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={64} required aria-describedby="password-error" />
-      </label>
-      <FieldError errors={errors} field="password" />
-      {failure?.kind === 'wrongPassword' && <p role="alert">{t('edit.wrongPassword')}</p>}
-      {failure?.kind === 'rateLimited' && <RateLimited retryAfterMs={failure.retryAfterMs} />}
-      {failure?.kind === 'network' && <NetworkError onRetry={() => setFailure(null)} />}
-      <button type="submit" disabled={sending}>
-        {t('edit.save')}
-      </button>
-      <button type="button" disabled={sending} onClick={() => setConfirming(true)}>
-        {t('edit.delete')}
-      </button>
-      {confirming && (
-        // showModal: focus moves in, the page behind is inert, and Escape closes it.
-        <dialog ref={(el) => void (el && !el.open && el.showModal())} onClose={() => setConfirming(false)}>
-          <p>{t('edit.confirmDelete')}</p>
-          <button type="button" onClick={remove}>
-            {t('edit.delete')}
-          </button>
-          <button type="button" onClick={() => setConfirming(false)}>
-            {t('edit.cancel')}
-          </button>
-        </dialog>
-      )}
+    <form onSubmit={save}>
+      <Stack gap={4} padding={4}>
+        <Heading level={1}>{t('edit.heading')}</Heading>
+        <RoomFields value={fields} onChange={setFields} errors={errors} />
+        {fields.themeId !== load.themeId && <p role="status">{t('edit.themeNotice')}</p>}
+        <TextInput
+          type="password"
+          label={t('create.password')}
+          value={password}
+          onChange={(v) => setPassword(v.slice(0, 64))}
+          isRequired
+          status={errorStatus(errors, 'password')}
+        />
+        {failure?.kind === 'wrongPassword' && <p role="alert">{t('edit.wrongPassword')}</p>}
+        {failure?.kind === 'rateLimited' && <RateLimited retryAfterMs={failure.retryAfterMs} />}
+        {failure?.kind === 'network' && <NetworkError onRetry={() => setFailure(null)} />}
+        <Stack direction="horizontal" gap={2}>
+          <Button type="submit" label={t('edit.save')} isDisabled={sending} />
+          <Button label={t('edit.delete')} variant="destructive" isDisabled={sending} onClick={() => setConfirming(true)} />
+        </Stack>
+      </Stack>
+      <AlertDialog
+        isOpen={confirming}
+        onOpenChange={setConfirming}
+        title={t('edit.delete')}
+        description={t('edit.confirmDelete')}
+        actionLabel={t('edit.delete')}
+        cancelLabel={t('edit.cancel')}
+        onAction={remove}
+      />
     </form>
   );
 }
