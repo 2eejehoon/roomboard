@@ -119,6 +119,16 @@ describe('POST /api/admin/reports/:id/resolve', () => {
     expect((await call('POST', `/admin/reports/${room!.id}/resolve`)).status).toBe(204); // already resolved
   });
 
+  it('resolving an already resolved report leaves a newer open report on the same target alone (PR #38 review)', async () => {
+    const a = await insertRoom();
+    await reportRoom(a, 1);
+    const [first] = await list('open', a);
+    expect((await call('POST', `/admin/reports/${first!.id}/resolve`)).status).toBe(204);
+    await reportRoom(a, 2); // a new report after the first was handled
+    expect((await call('POST', `/admin/reports/${first!.id}/resolve`)).status).toBe(204);
+    expect(await list('open', a)).toMatchObject([{ targetType: 'room', reportCount: 1 }]);
+  });
+
   it('404 for an unknown report id', async () => {
     expect((await call('POST', '/admin/reports/999999999/resolve')).status).toBe(404);
     expect((await call('POST', '/admin/reports/abc/resolve')).status).toBe(404);

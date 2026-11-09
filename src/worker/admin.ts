@@ -26,7 +26,18 @@ export const adminAuth: MiddlewareHandler<AppEnv> = async (c, next) => {
 };
 
 const listQuery = z.object({ status: z.enum(['open', 'resolved']).default('open'), cursor: z.string().regex(/^\d+$/).optional() });
-type Row = { id: number; target_type: 'room' | 'message'; room_id: string; message_id: string; message_snapshot: string | null; reason: string; status: string; created_at: number; room_title: string | null; report_count: number };
+type Row = {
+  id: number;
+  target_type: 'room' | 'message';
+  room_id: string;
+  message_id: string;
+  message_snapshot: string | null;
+  reason: string;
+  status: string;
+  created_at: number;
+  room_title: string | null;
+  report_count: number;
+};
 const SAME_TARGET = 'x.status = r.status AND x.target_type = r.target_type AND x.room_id = r.room_id AND x.message_id = r.message_id';
 
 // One row per target: its newest report in that status stands for it, with the count of that target's reports in that status.
@@ -58,13 +69,17 @@ export async function listReports(c: C): Promise<Response> {
   return c.json({ items, nextCursor: results.length > PAGE ? String(items.at(-1)!.id) : null });
 }
 
-// Resolves every open report on the same target as this one (the list shows the target once).
+// Resolves every open report on the same target as this one (the list shows the target once). A report already resolved changes
+// nothing, so a stale click cannot close newer reports on that target (PR #38 review).
 export async function resolveReport(c: C): Promise<Response> {
   const id = c.req.param('reportId')!;
   const target = /^\d+$/.test(id)
-    ? await c.env.DB.prepare('SELECT target_type, room_id, message_id FROM reports WHERE id = ?').bind(Number(id)).first<Pick<Row, 'target_type' | 'room_id' | 'message_id'>>()
+    ? await c.env.DB.prepare('SELECT target_type, room_id, message_id, status FROM reports WHERE id = ?')
+        .bind(Number(id))
+        .first<Pick<Row, 'target_type' | 'room_id' | 'message_id' | 'status'>>()
     : null;
   if (!target) return c.json({ code: 'not_found' }, 404);
+  if (target.status !== 'open') return c.body(null, 204);
   await c.env.DB.prepare("UPDATE reports SET status = 'resolved', resolved_at = ? WHERE status = 'open' AND target_type = ? AND room_id = ? AND message_id = ?")
     .bind(Date.now(), target.target_type, target.room_id, target.message_id)
     .run();
