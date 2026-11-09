@@ -26,7 +26,7 @@ type Report = {
   createdAt: number;
   reportCount: number;
 };
-type Fail = { kind: 'network' } | { kind: 'rateLimited'; retryAfterMs: number };
+type Fail = { kind: 'network' };
 type Load = { kind: 'loading' } | Fail | { kind: 'ok'; items: Report[]; nextCursor: string | null };
 
 // sessionStorage can throw (blocked storage); then the token lives as long as the page.
@@ -49,11 +49,12 @@ const time = (ms: number) => new Date(ms).toLocaleString(LOCALE);
 
 export function AdminPage() {
   const [token, setToken] = useState(stored);
-  const [refused, setRefused] = useState(false);
-  const signOut = useCallback(() => {
+  // retryAfterMs: the failed-token limit (RL_ADMIN) was hit, so wait before trying another token.
+  const [refused, setRefused] = useState<{ retryAfterMs?: number } | null>(null);
+  const signOut = useCallback((retryAfterMs?: number) => {
     store(null);
     setToken(null);
-    setRefused(true);
+    setRefused({ retryAfterMs });
   }, []);
   if (!token) {
     return (
@@ -69,7 +70,7 @@ export function AdminPage() {
   return <Reports token={token} onUnauthorized={signOut} />;
 }
 
-function TokenForm({ refused, onSubmit }: { refused: boolean; onSubmit: (token: string) => void }) {
+function TokenForm({ refused, onSubmit }: { refused: { retryAfterMs?: number } | null; onSubmit: (token: string) => void }) {
   const [value, setValue] = useState('');
   return (
     <form
@@ -80,6 +81,7 @@ function TokenForm({ refused, onSubmit }: { refused: boolean; onSubmit: (token: 
     >
       <Stack gap={4} padding={4}>
         <Heading level={1}>{t('admin.heading')}</Heading>
+        {refused?.retryAfterMs !== undefined && <RateLimited retryAfterMs={refused.retryAfterMs} />}
         <TextInput
           type="password"
           label={t('admin.token')}
@@ -94,7 +96,7 @@ function TokenForm({ refused, onSubmit }: { refused: boolean; onSubmit: (token: 
   );
 }
 
-function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () => void }) {
+function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (retryAfterMs?: number) => void }) {
   const [status, setStatus] = useState<Status>('open');
   const [attempt, setAttempt] = useState(0);
   const key = `${status}.${attempt}`;
@@ -110,15 +112,15 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
   // retry: the next page's cursor, or the action's path and method.
   const [failed, setFailed] = useState<{ fail: Fail; retry: string | [string, string] } | null>(null);
 
-  // 410 is a room deleted already, which is what an admin delete wanted. 401 drops the token; other failures go to the caller.
+  // 410 is a room deleted already, which is what an admin delete wanted. 401 and 429 drop the token: RL_ADMIN counts only wrong
+  // tokens, so a 429 here always means this one is wrong (PR #39 review). Other failures go to the caller.
   const call = useCallback(
     (path: string, method = 'GET'): Promise<Response | Fail | null> =>
       fetch(`/api/admin/${path}`, { method, headers: { authorization: `Bearer ${token}` } }).then(
         async (res) => {
           if (res.ok || res.status === 410) return res;
           if (res.status === 401) return (onUnauthorized(), null);
-          if (res.status === 429)
-            return { kind: 'rateLimited', retryAfterMs: ((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000 } as const;
+          if (res.status === 429) return (onUnauthorized(((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000), null);
           return { kind: 'network' } as const;
         },
         () => ({ kind: 'network' }) as const,
@@ -162,10 +164,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
         {failed?.fail.kind === 'network' && (
           <NetworkError onRetry={() => void (typeof failed.retry === 'string' ? (setFailed(null), page(failed.retry)) : act(...failed.retry))} />
         )}
-        {failed?.fail.kind === 'rateLimited' && <RateLimited retryAfterMs={failed.fail.retryAfterMs} />}
         {load.kind === 'loading' && <Loading />}
         {load.kind === 'network' && <NetworkError onRetry={() => setAttempt((n) => n + 1)} />}
-        {load.kind === 'rateLimited' && <RateLimited retryAfterMs={load.retryAfterMs} />}
         {load.kind === 'ok' && load.items.length === 0 && (
           <div role="status">
             <Banner status="info" title={t('admin.empty')} />
