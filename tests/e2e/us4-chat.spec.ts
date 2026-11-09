@@ -96,6 +96,16 @@ test('T074: while typing a chat, movement keys do not move my avatar', async ({ 
   const input = panel(a).getByRole('textbox', { name: ko['chat.input'] });
   const pose = async () => (await state(a)).you!;
 
+  if (isMobile) {
+    // PR #26 review: the open panel must not cover the joystick or the jump button (constitution: touch input stays usable).
+    const box = async (l: ReturnType<Page['locator']>) => (await l.boundingBox())!;
+    const chat = await box(a.locator('details'));
+    for (const control of [a.getByRole('group', { name: ko['room3d.joystick'] }), a.getByRole('button', { name: ko['room3d.jump'] })]) {
+      const c = await box(control);
+      expect(chat.y + chat.height <= c.y || c.y + c.height <= chat.y || chat.x + chat.width <= c.x || c.x + c.width <= chat.x, 'chat clear of the touch controls').toBe(true);
+    }
+  }
+
   // First prove W moves me here: the canvas shows before the models and physics load, so retry until it does.
   await expect(async () => {
     await a.keyboard.down('KeyW');
