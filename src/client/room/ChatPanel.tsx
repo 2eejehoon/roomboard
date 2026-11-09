@@ -11,6 +11,7 @@ export function ChatPanel({ state, send, view }: Props) {
   const heading = useId();
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
+  const lastSent = useRef('');
   // No maxLength: a paste would be cut silently. Over the limit it is not sent and the sender is told (spec.md Edge Cases).
   const tooLong = text.trim().length > MAX_CHAT;
 
@@ -24,6 +25,12 @@ export function ChatPanel({ state, send, view }: Props) {
     addEventListener('keydown', onKey);
     return () => removeEventListener('keydown', onKey);
   }, []);
+
+  // The server dropped my last message (rate_limited): put it back unless I already started another.
+  // shortcut: restores only the latest send; two sends before rate_limited arrives lose the first. Match rate_limited.nonce if that shows up.
+  useEffect(() => {
+    if (state.chatLimited !== null) setText((now) => now || lastSent.current);
+  }, [state.chatLimited]);
 
   const section = (
     <section aria-labelledby={heading}>
@@ -45,7 +52,9 @@ export function ChatPanel({ state, send, view }: Props) {
         onSubmit={(e) => {
           e.preventDefault();
           // A blank message would be a bad_message on the server, and five of those close the socket.
-          if (!text.trim() || tooLong) return;
+          // While rate-limited the server would drop it too; keep it in the input until the wait is over.
+          if (!text.trim() || tooLong || state.chatLimited !== null) return;
+          lastSent.current = text.trim();
           send(text.trim());
           setText('');
         }}
