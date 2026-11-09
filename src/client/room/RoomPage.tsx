@@ -117,7 +117,7 @@ export function ClosedNotice({ code }: { code: number }) {
   return <Notice text={t(code === CLOSE.unsupportedVersion ? 'room.outdated' : 'room.ended')} reload />;
 }
 
-function Notice({ text, reload = false }: { text: string; reload?: boolean }) {
+export function Notice({ text, reload = false }: { text: string; reload?: boolean }) {
   return (
     <div role="alert">
       <p>{text}</p>

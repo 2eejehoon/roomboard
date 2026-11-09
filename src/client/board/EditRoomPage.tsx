@@ -4,6 +4,7 @@ import { deleteRoomRequest, fieldErrors, updateRoomRequest, type FieldErrors } f
 import type { ThemeId } from '../../core/themes.ts';
 import { navigate } from '../App.tsx';
 import { t } from '../i18n/t.ts';
+import { Notice } from '../room/RoomPage.tsx';
 import { Loading, NetworkError, RateLimited } from '../Status.tsx';
 import { FieldError, RoomFields, type Fields } from './CreateRoomPage.tsx';
 
@@ -70,16 +71,7 @@ export function EditRoomPage({ id }: { id: string }) {
 
   if (load.status === 'loading') return <Loading />;
   if (load.status === 'error') return <NetworkError onRetry={() => setAttempt((n) => n + 1)} />;
-  if (load.status !== 'ok') {
-    return (
-      <div role="alert">
-        <p>{t(load.status === 404 ? 'room.notFound' : 'room.gone')}</p>
-        <button type="button" onClick={() => navigate('/')}>
-          {t('room.toBoard')}
-        </button>
-      </div>
-    );
-  }
+  if (load.status !== 'ok') return <Notice text={t(load.status === 404 ? 'room.notFound' : 'room.gone')} />;
   return (
     <form onSubmit={save} noValidate>
       <h1>{t('edit.heading')}</h1>
