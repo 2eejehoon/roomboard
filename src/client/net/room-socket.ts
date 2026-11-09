@@ -12,7 +12,7 @@ const FINAL = new Set<number>([CLOSE.normal, CLOSE.binary, CLOSE.tooLarge, CLOSE
 const round = (n: number) => Math.round(n * 100) / 100;
 
 type Options = { url: string; deviceKey: string; store: RoomStore; WS?: typeof WebSocket; random?: () => number };
-export type RoomSocket = { move(p: Vec3, r: number, a: Pose['a']): void; close(): void };
+export type RoomSocket = { move(p: Vec3, r: number, a: Pose['a']): void; chat(text: string): void; close(): void };
 
 export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random = Math.random }: Options): RoomSocket {
   let ws: WebSocket;
@@ -25,6 +25,7 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
   let pending: { p: Vec3; r: number; a: Pose['a'] } | null = null;
   let lastSentAt = -Infinity;
   let flush: ReturnType<typeof setTimeout> | undefined;
+  let nonce = 0;
 
   const poseKey = (p: Vec3, r: number, a: string) => JSON.stringify([p, r, a]);
 
@@ -79,6 +80,9 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
       }
       pending = pose;
       flush ??= setTimeout(send, Math.max(0, lastSentAt + MOVE_INTERVAL_MS - Date.now()));
+    },
+    chat(text) {
+      if (store.getState().connection === 'open') ws.send(JSON.stringify({ t: 'chat', text, nonce: `c-${++nonce}` }));
     },
     close() {
       stopped = true;

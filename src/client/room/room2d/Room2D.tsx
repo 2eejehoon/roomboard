@@ -1,4 +1,4 @@
-// screens.md S3 2D: the same room state as text. App's <main> holds it; chat (US4) and reports (US7) join later.
+// screens.md S3 2D: the same room state as text. App's <main> holds it and the ChatPanel after it; reports (US7) join later.
 import type { RoomInfo } from '../../../core/room-session.ts';
 import { THEMES, zoneAt } from '../../../core/themes.ts';
 import { t } from '../../i18n/t.ts';

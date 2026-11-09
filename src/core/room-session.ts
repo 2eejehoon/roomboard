@@ -15,7 +15,7 @@ type Chat = Extract<ServerMessage, { t: 'chat' }>;
 // What the signature covers besides the room id (websocket.md `chat.sig`).
 export type ChatFields = Pick<Chat, 'messageId' | 'nickname' | 'text' | 'sentAt' | 'channel'>;
 // The DO passes the word list filter and an HMAC signer bound to the room and SERVER_SECRET; core holds no crypto (T071).
-export type SessionDeps = { filter: (text: string) => string; sign: (chat: ChatFields) => Promise<string> };
+type SessionDeps = { filter: (text: string) => string; sign: (chat: ChatFields) => Promise<string> };
 
 const BAD_LIMIT = 5;
 const BAD_WINDOW_MS = 10_000;

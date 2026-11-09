@@ -34,6 +34,8 @@
 | [2026-11-08-create-room-check-order](2026-11-08-create-room-check-order.md) | 방 만들기는 입력 검사 뒤에 Turnstile, 목록 limit 범위 밖은 400 | 유효 |
 | [2026-11-08-turnstile-test-keys](2026-11-08-turnstile-test-keys.md) | Turnstile 테스트 비밀 키는 siteverify를 부르지 않는다 | 유효 |
 | [2026-11-08-create-form-checks](2026-11-08-create-form-checks.md) | 방 만들기 양식은 서버와 같은 스키마로 먼저 검사한다 | 유효 |
+| [2026-11-09-chat-sig-separator](2026-11-09-chat-sig-separator.md) | 채팅 서명 검증은 본문 앞 필드에 구분자가 있으면 거부한다 | 유효 |
+| [2026-11-09-chat-panel](2026-11-09-chat-panel.md) | 채팅 패널: 읽어 주는 영역은 메시지 목록, 최근 100개만 둔다 | 유효 |
 
 ## 판례 쓰는 법
 

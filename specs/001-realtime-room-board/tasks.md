@@ -171,16 +171,16 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T068 [P] [US4] `tests/core/room-session.test.ts`에 채팅 케이스 추가: 필터 적용 후 같은 채널 전원에게 `chat`(보낸 사람 사본에만 `nonce`), 다른 채널에는 안 감, "10초에 5개" 초과 시 보낸 사람에게만 `rate_limited`(`nonce` 포함), 공백만 있는 메시지·201자 거부
-- [ ] T069 [P] [US4] `tests/worker/chat-sign.test.ts`: DO가 보낸 `chat.sig`가 `HMAC-SHA256(SERVER_SECRET, "chat|" + roomId|messageId|nickname|text|sentAt|channel)`(base64url)와 일치, 필드 하나라도 바꾸면 검증 실패
-- [ ] T070 [P] [US4] `tests/e2e/us4-chat.spec.ts`: Q8(A 전송 → B에 1초 안에 3D·2D 모두 표시, 금칙어 가려짐), Q9(10초 안에 6개 → 6번째 미전달, A에게 안내), 채팅 입력 중 이동 키가 아바타를 움직이지 않음
+- [x] T068 [P] [US4] `tests/core/room-session.test.ts`에 채팅 케이스 추가: 필터 적용 후 같은 채널 전원에게 `chat`(보낸 사람 사본에만 `nonce`), 다른 채널에는 안 감, "10초에 5개" 초과 시 보낸 사람에게만 `rate_limited`(`nonce` 포함), 공백만 있는 메시지·201자 거부 — 완료. `receive`는 비동기다(서명이 WebCrypto라서). 메시지 id가 Hibernation 뒤에도 겹치지 않는지, 채팅 버킷이 이동 버킷과 따로인지도 검사. 공백만·201자는 스키마에서 `bad_message`(4008 횟수에 들어감).
+- [x] T069 [P] [US4] `tests/worker/chat-sign.test.ts`: DO가 보낸 `chat.sig`가 `HMAC-SHA256(SERVER_SECRET, "chat|" + roomId|messageId|nickname|text|sentAt|channel)`(base64url)와 일치, 필드 하나라도 바꾸면 검증 실패 — 완료. 기대 서명은 테스트가 WebCrypto로 따로 계산한다. 서명은 패딩 없는 base64url 43자. 방·비밀 키·서명이 바뀌어도 실패, 본문을 닉네임 쪽으로 `|` 너머 옮기면 서명 문자열은 같아도 실패(판례 2026-11-09-chat-sig-separator). `SERVER_SECRET`은 `wrangler.jsonc` `secrets.required`와 vitest 바인딩에 있다.
+- [x] T070 [P] [US4] `tests/e2e/us4-chat.spec.ts`: Q8(A 전송 → B에 1초 안에 3D·2D 모두 표시, 금칙어 가려짐), Q9(10초 안에 6개 → 6번째 미전달, A에게 안내), 채팅 입력 중 이동 키가 아바타를 움직이지 않음 — 완료. Q8·Q9의 시간은 WebGL을 끈 2D 컨텍스트로 재고, 3D 표시는 따로 3D 컨텍스트에서 시간 제한 없이 본다(T038 메모). T074 확인은 먼저 W로 실제로 움직이는 것을 본 뒤 입력 중에는 움직이지 않는지 본다. Scene의 막기를 빼면 이 테스트가 실패하는 것을 확인했다. 모바일은 Enter 대신 입력창을 누른다(방금 누른 `<summary>`에서 Enter는 패널을 접는다). 2D에 `aria-live`가 둘(알림·채팅)이 되어 `us2-fallback`의 알림 찾기를 `div`로 좁혔다.
 
 ### Implementation
 
-- [ ] T071 [US4] `src/core/room-session.ts`에 채팅 처리 추가(필터, 버킷, `messageId` 생성, 서명은 주입된 함수로 — core는 crypto 구현에 기대지 않음)
-- [ ] T072 [US4] `src/worker/chat-sign.ts`: WebCrypto HMAC 서명·검증, `room-do.ts`에서 `RoomSession`에 서명 함수 주입
-- [ ] T073 [US4] `src/client/room/ChatPanel.tsx`(3D·2D 공용): 메시지 목록, 200자 입력, Enter 포커스/Esc 해제, `rate_limited` 안내, 2D에서는 `aria-live="polite"`, 모바일 접힘 패널
-- [ ] T074 [US4] `src/client/room/room3d/Scene.tsx`: 채팅 입력 포커스 중 이동 입력 비활성
+- [x] T071 [US4] `src/core/room-session.ts`에 채팅 처리 추가(필터, 버킷, `messageId` 생성, 서명은 주입된 함수로 — core는 crypto 구현에 기대지 않음) — 완료. `RoomSession(room, { filter, sign })`. 버킷 → 필터 → 서명 → 같은 채널 전원(보낸 사람 사본에만 `nonce`). 버킷은 서명을 기다리기 전에 쓴다. `messageId`는 `m_<ms 36진수>.<순번>`(방 안에서 유일).
+- [x] T072 [US4] `src/worker/chat-sign.ts`: WebCrypto HMAC 서명·검증, `room-do.ts`에서 `RoomSession`에 서명 함수 주입 — 완료. `signChat`·`verifyChat`(`crypto.subtle.verify`로 비교). 필터는 `rooms.ts`의 것을 같이 쓴다. 미리보기 배포 워크플로가 아직 없어 `SERVER_SECRET` 저장소 Secret 연결은 그때 한다.
+- [x] T073 [US4] `src/client/room/ChatPanel.tsx`(3D·2D 공용): 메시지 목록, 200자 입력, Enter 포커스/Esc 해제, `rate_limited` 안내, 2D에서는 `aria-live="polite"`, 모바일 접힘 패널 — 완료. 메시지 목록에만 `aria-live`(2D), 최근 100개, 연결이 열려 있을 때만 입력, 공백만 있으면 보내지 않음(서버에서는 `bad_message`). 3D에서는 `<details>`(터치 기기는 접힘). Enter는 다른 곳에 포커스가 없을 때만 입력창으로 간다(판례 2026-11-09-chat-panel). `tests/client/chat-panel.test.tsx`.
+- [x] T074 [US4] `src/client/room/room3d/Scene.tsx`: 채팅 입력 포커스 중 이동 입력 비활성 — 완료. 입력창에 포커스가 있으면 키보드 이동을 모두 끈다(조이스틱은 그대로).
 
 **Checkpoint**: 채팅 동작, 신고 버튼은 US7에서 연결.
 

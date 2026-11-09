@@ -67,7 +67,7 @@ test('a participant in 3D joining and leaving shows in the 2D list and is read o
   await enter(a);
   const b = await newPage(browser);
   const peer = await enter(b);
-  const live = a.locator('[aria-live="polite"]');
+  const live = a.locator('div[aria-live="polite"]'); // the join/leave notices; the chat list (ul) is the other live region
   await expect(person(a, peer.nickname)).toBeVisible({ timeout: 15_000 });
   await expect(live).toContainText(t('room2d.joined', { nickname: peer.nickname }));
 

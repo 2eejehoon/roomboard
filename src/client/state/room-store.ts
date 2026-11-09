@@ -14,12 +14,14 @@ export type RoomState = {
   channel: number | null;
   peers: Peer[];
   chat: Extract<ServerMessage, { t: 'chat' }>[];
+  // retryAfterMs of my last rate_limited chat, until one of mine gets through.
+  chatLimited: number | null;
   notices: Notice[];
   connection: Connection;
   closeCode: number | null;
 };
 
-const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], notices: [], connection: 'connecting', closeCode: null };
+const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], chatLimited: null, notices: [], connection: 'connecting', closeCode: null };
 
 export class RoomStore {
   private state = initial;
@@ -48,7 +50,12 @@ export class RoomStore {
         return this.set({ peers: s.peers.map((p) => (p.peerId === msg.peerId ? { ...p, p: msg.p, r: msg.r, a: msg.a } : p)) });
       case 'correction':
         return s.you ? this.set({ you: { ...s.you, p: msg.p, r: msg.r } }) : undefined;
-      // chat (US4), room_updated / room_deleted (US6) are applied by those stories.
+      case 'chat':
+        // Only the sender's copy has a nonce. The server keeps no chat, so the last 100 are all there is to scroll back to.
+        return this.set({ chat: [...s.chat, msg].slice(-100), chatLimited: msg.nonce === undefined ? s.chatLimited : null });
+      case 'rate_limited':
+        return this.set({ chatLimited: msg.retryAfterMs });
+      // room_updated / room_deleted (US6) are applied by that story.
     }
   }
 

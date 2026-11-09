@@ -59,7 +59,7 @@ test('Q9: the 6th message within 10 seconds is not delivered and the sender is t
 });
 
 // T074 (screens.md S3 3D): Enter focuses the chat input, movement keys then type letters instead of moving, Esc lets go.
-test('T074: while typing a chat, movement keys do not move my avatar', async ({ browser }) => {
+test('T074: while typing a chat, movement keys do not move my avatar', async ({ browser, isMobile }) => {
   test.setTimeout(90_000);
   const a = await newPage(browser);
   await enter(a);
@@ -78,7 +78,9 @@ test('T074: while typing a chat, movement keys do not move my avatar', async ({ 
   await expect.poll(async () => (await pose()).a, { timeout: 15_000 }).toBe('idle');
   const stopped = (await pose()).p;
 
-  await a.keyboard.press('Enter');
+  // A phone has no Enter to reach the input (and Enter on the summary just tapped would fold the panel): tap it.
+  if (isMobile) await input.click();
+  else await a.keyboard.press('Enter');
   await expect(input).toBeFocused();
   await a.keyboard.down('KeyW');
   await a.waitForTimeout(600);
