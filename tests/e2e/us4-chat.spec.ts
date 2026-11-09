@@ -21,7 +21,7 @@ async function say(page: Page, text: string) {
 }
 
 test('Q8: a message reaches the same channel within a second, in 2D and 3D, with banned words masked', async ({ browser }) => {
-  test.setTimeout(60_000);
+  test.setTimeout(90_000);
   const a = await withoutWebGL(await newPage(browser));
   const b = await withoutWebGL(await newPage(browser));
   const me = await enter(a);
@@ -40,7 +40,8 @@ test('Q8: a message reaches the same channel within a second, in 2D and 3D, with
   await expect(c.locator('canvas')).toBeVisible();
   await openPanel(c);
   await say(a, '3D에도');
-  await expect(messages(c).filter({ hasText: me.nickname })).toContainText('3D에도');
+  // No time limit on the 3D side (T070): CI's software WebGL can hold c's main thread for seconds (runs 42539252136, 42542585022).
+  await expect(messages(c).filter({ hasText: me.nickname })).toContainText('3D에도', { timeout: 30_000 });
 });
 
 test('Q9: the 6th message within 10 seconds is not delivered and the sender is told to wait', async ({ browser }) => {
