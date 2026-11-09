@@ -246,6 +246,20 @@ description: "Task list for 001-realtime-room-board"
 
 ---
 
+## Phase 9a: 디자인 시스템 도입 (research R16)
+
+**Goal**: 화면을 Astryx 컴포넌트로 바꾼다. 동작·문구·스펙은 그대로, E2E는 역할·라벨·문구로 계속 통과.
+
+- [x] T100 `package.json`·`src/client/main.tsx`: Astryx·테마·`@stylexjs/stylex` 정확한 버전 설치, CSS 세 개와 `Theme`·`InternationalizationProvider`(ko-KR)·`LinkProvider`(앱 `Link`). 화면은 그대로 두고 E2E 전체 통과로 3D·터치에 리셋 CSS 영향이 없는지 확인 — 완료. 로컬 E2E 38개 모두 통과(us1 3D·모바일 터치 포함, 2.6분). 측정은 research R16.
+- [ ] T101 [P] `src/client/board/BoardPage.tsx`, `src/client/Status.tsx`: S1과 공통 상태
+- [ ] T102 [P] `src/client/board/CreateRoomPage.tsx`: S2(입력 필드·테마 라디오·제출 버튼)
+- [ ] T103 `src/client/board/EditRoomPage.tsx`: S4(삭제 확인은 `AlertDialog`). PR #31 머지 뒤
+- [ ] T104 `src/client/room/RoomPage.tsx`·`room2d/Room2D.tsx`: S3 머리글·안내·2D 본문, S6
+- [ ] T105 `src/client/room/ChatPanel.tsx`·`room3d/TouchControls.tsx`: 3D 위 겹침. 마지막에, 가장 작게
+- [ ] T106 [P] `tests/client/room-header.test.tsx`·`room2d.test.tsx`: HTML 정규식 대신 역할·문구로 확인(Astryx 마크업이 바뀌어도 깨지지 않게). 바꾸는 화면과 같은 PR에서
+
+---
+
 ## Phase 10: Polish & Cross-Cutting
 
 - [ ] T093 [P] `tests/worker/privacy-audit.test.ts`: Q14 — 전체 시나리오 실행 후 D1 모든 테이블 덤프에 이메일·전화번호·IPv4/IPv6 형식 문자열과 UUID 형식 기기 키가 없음(헌법 원칙 II)

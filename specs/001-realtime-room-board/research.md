@@ -19,6 +19,8 @@
 | ecctrl | 2.0.x | peer: fiber ≥9.4, rapier ≥2.2, three ≥0.184, react ≥19.2.7. `ecctrl/input`에 DOM 조이스틱 포함 |
 | hono | 4.13.x | Worker 라우팅 |
 | zod | 4.6.x | HTTP·WebSocket 입력 검증 |
+| @astryxdesign/core / theme-neutral | 0.7.11 (정확히 고정) | 화면 컴포넌트(R16). peer: react ≥19, @stylexjs/stylex ^0.19 |
+| @stylexjs/stylex | 0.19.0 | Astryx peer. 우리 코드에서 직접 쓰지 않음 |
 | vitest | 5.1.x | |
 | @cloudflare/vitest-plugin | 1.6.x | DO·Worker를 workerd 안에서 테스트. `@cloudflare/vitest-pool-workers`의 새 이름(옛 패키지는 지원 종료), vitest `^4.1 \|\| ^5` 지원 |
 | eslint / typescript-eslint | 10.14 / 8.72 | typescript-eslint는 TypeScript `<6.1` 지원 |
@@ -184,6 +186,22 @@
 
 - `.devcontainer/devcontainer.json`: Node 22 이미지, `postCreateCommand`로 `npm ci`와 `npx playwright install --with-deps chromium`.
   웹 세션·Codespaces·Actions에서 같은 npm 스크립트로 개발·테스트한다(헌법 원칙 I).
+
+## R16. 화면 컴포넌트 (디자인 시스템)
+
+- **Decision**: 2D·폼·목록·안내 화면은 Astryx(`@astryxdesign/core` + `theme-neutral`)의 **미리 빌드된 CSS**를 쓴다
+  (`reset.css` → `astryx.css` → `theme.css` 순서, `main.tsx`). StyleX 빌드 플러그인(`@astryxdesign/build`)은 쓰지 않는다.
+  컴포넌트는 하위 경로(`@astryxdesign/core/Button`)로 가져온다. 컴포넌트 안 문구는 `ko-KR` 카탈로그
+  (`InternationalizationProvider`), 링크는 앱의 `Link`(`LinkProvider`)로 앱 안 이동을 유지한다. 3D 장면 위의 겹침
+  (채팅 패널, 터치 컨트롤)은 마지막에 가장 작게 바꾼다.
+- 0.x라 버전을 정확히 고정한다. `postinstall`(설정 안내 출력뿐)은 `allowScripts`에서 거부한다. CLI의 `init`은
+  CLAUDE.md·AGENTS.md를 고치므로 쓰지 않는다.
+- **측정**(로컬 `npm run build`, 제공자와 CSS만 추가): 첫 JS 청크 gzip 103.3KB → 147.8KB, CSS 44.4KB(트리 셰이킹 없음, 2D 포함 모든 페이지).
+  4G(약 1.5Mbps)에서 약 0.5초 늘어서 SC-001(10초)과 3D 청크(gzip 1.16MB)에 비해 작다. 테마 CSS에 외부 폰트 요청이
+  없다(Figtree가 없으면 시스템 글꼴, 헌법 원칙 II). Node의 `renderToStaticMarkup`으로 TextInput·RadioList·Button이
+  `<label for>`·`role="radiogroup"`으로 렌더링된다. E2E는 역할·라벨·문구로 찾으므로 대부분 그대로 쓴다.
+- **Alternatives**: StyleX 빌드 플러그인 경로 — 우리 스타일이 거의 없어 컴파일할 것이 없다, 기각. 디자인 시스템 없이
+  직접 CSS — 화면마다 접근성·모바일 처리를 다시 만들어야 해서 기각.
 
 ## Sources
 
