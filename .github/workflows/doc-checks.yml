@@ -28,14 +28,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # Paths: agent rules, workflows, and every script a required check or the agent gate runs (with its imports).
-      # --no-renames: a rename would otherwise list only the new path.
-      - name: Human-merge PRs (agent/ branch, constitution, CLAUDE.md, .claude/, .github/, gate scripts)
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Human-merge PRs (scripts/merge-gate.mjs)
         env:
           BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
-        run: |
-          if [[ "$HEAD_REF" == agent/* ]]; then echo "수정 에이전트 PR($HEAD_REF): 운영자가 머지합니다(FR-066)."; exit 1; fi
-          hits=$(git diff --no-renames --name-only "origin/$BASE_REF...HEAD" | grep -E '^(\.specify/memory/constitution\.md|CLAUDE\.md|scripts/(agent-gate|agent-branch-check|test-first-check|check-docs)\.mjs|src/core/(agent-gate|doc-rules)\.ts)$|^\.(claude|github)/' || true)
-          if [[ -n "$hits" ]]; then printf '사람이 머지할 경로를 바꿨습니다(FR-066). 운영자가 머지합니다:\n%s\n' "$hits"; exit 1; fi
-          echo "auto-merge 가능"
+        run: node scripts/merge-gate.mjs --base "origin/$BASE_REF" --head-ref "$HEAD_REF"
