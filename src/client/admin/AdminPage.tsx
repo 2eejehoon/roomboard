@@ -107,7 +107,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
   );
   const [deleting, setDeleting] = useState<Report | null>(null);
   // A failed resolve or delete keeps the list and says so above it, with a retry that sends the same action (PR #39 review).
-  const [failed, setFailed] = useState<{ fail: Fail; retry: () => void } | null>(null);
+  // retry: the next page's cursor, or the action's path and method.
+  const [failed, setFailed] = useState<{ fail: Fail; retry: string | [string, string] } | null>(null);
 
   // 410 is a room deleted already, which is what an admin delete wanted. 401 drops the token; other failures go to the caller.
   const call = useCallback(
@@ -128,7 +129,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
   const page = useCallback(
     (cursor: string | null) =>
       call(`reports?status=${status}${cursor ? `&cursor=${cursor}` : ''}`).then(async (res) => {
-        if (!(res instanceof Response)) return res && setLoad(res);
+        // A failed next page keeps the rows already loaded, like a failed action (PR #39 review).
+        if (!(res instanceof Response)) return res && (cursor ? setFailed({ fail: res, retry: cursor }) : setLoad(res));
         const next = (await res.json()) as { items: Report[]; nextCursor: string | null };
         setLoad((old) => ({
           kind: 'ok',
@@ -146,7 +148,7 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
     setFailed(null);
     const res = await call(path, method);
     if (res instanceof Response) setAttempt((n) => n + 1);
-    else if (res) setFailed({ fail: res, retry: () => void act(path, method) });
+    else if (res) setFailed({ fail: res, retry: [path, method] });
   };
 
   return (
@@ -157,7 +159,9 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
         <Tab value="resolved" panelId={PANEL} label={t('admin.resolved')} />
       </TabList>
       <Stack id={PANEL} role="tabpanel" gap={4}>
-        {failed?.fail.kind === 'network' && <NetworkError onRetry={failed.retry} />}
+        {failed?.fail.kind === 'network' && (
+          <NetworkError onRetry={() => void (typeof failed.retry === 'string' ? (setFailed(null), page(failed.retry)) : act(...failed.retry))} />
+        )}
         {failed?.fail.kind === 'rateLimited' && <RateLimited retryAfterMs={failed.fail.retryAfterMs} />}
         {load.kind === 'loading' && <Loading />}
         {load.kind === 'network' && <NetworkError onRetry={() => setAttempt((n) => n + 1)} />}
