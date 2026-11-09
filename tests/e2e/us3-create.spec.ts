@@ -71,7 +71,7 @@ test('S1: an empty board offers to create the first room', async ({ browser }) =
     route.request().method() === 'GET' ? route.fulfill({ json: { items: [], nextCursor: null } }) : route.fallback(),
   );
   await page.goto('/');
-  await expect(page.getByText(ko['board.empty'])).toBeVisible();
+  await expect(page.getByRole('heading', { name: ko['board.empty'] })).toBeVisible(); // EmptyState also says it in a live region
   await page.getByRole('link', { name: ko['board.createFirst'] }).click();
   await expect(page).toHaveURL(/\/new$/);
 });

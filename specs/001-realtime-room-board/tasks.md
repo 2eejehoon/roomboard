@@ -251,7 +251,7 @@ description: "Task list for 001-realtime-room-board"
 **Goal**: 화면을 Astryx 컴포넌트로 바꾼다. 동작·문구·스펙은 그대로, E2E는 역할·라벨·문구로 계속 통과.
 
 - [x] T100 `package.json`·`src/client/main.tsx`: Astryx·테마·`@stylexjs/stylex` 정확한 버전 설치, CSS 세 개와 `Theme`·`InternationalizationProvider`(ko-KR)·`LinkProvider`(앱 `Link`). 화면은 그대로 두고 E2E 전체 통과로 3D·터치에 리셋 CSS 영향이 없는지 확인 — 완료. 로컬 E2E 38개 모두 통과(us1 3D·모바일 터치 포함, 2.6분). 측정은 research R16.
-- [ ] T101 [P] `src/client/board/BoardPage.tsx`, `src/client/Status.tsx`: S1과 공통 상태
+- [x] T101 [P] `src/client/board/BoardPage.tsx`, `src/client/Status.tsx`: S1과 공통 상태 — 완료. 목록은 `List`·`ListItem`(li 안 링크), 빈 목록은 `EmptyState`, 더 보기는 `Button`. Astryx `Spinner`·`Banner`에는 알림 역할이 없어 `role="status"`·`role="alert"` 감싸기를 유지한다. `EmptyState`는 제목을 live region에도 써서 E2E는 빈 목록 문구를 제목 역할로 찾는다. 앱 `Link`는 받은 `onClick`을 먼저 부르고 다른 출처·`target`·수정 클릭·`defaultPrevented`는 브라우저에 맡긴다(PR #32 리뷰, `app.test.tsx`, 고치기 전 커밋 d03e6ad에서 실패). 첫 JS 청크 gzip 147.8KB → 199.1KB(4G에서 약 0.3초 추가). 로컬 E2E 40개 통과(빈 목록 문구 1건 고친 뒤 us3 8개 재실행).
 - [ ] T102 [P] `src/client/board/CreateRoomPage.tsx`: S2(입력 필드·테마 라디오·제출 버튼)
 - [ ] T103 `src/client/board/EditRoomPage.tsx`: S4(삭제 확인은 `AlertDialog`). PR #31 머지 뒤
 - [ ] T104 `src/client/room/RoomPage.tsx`·`room2d/Room2D.tsx`: S3 머리글·안내·2D 본문, S6
