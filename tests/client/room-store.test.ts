@@ -15,9 +15,12 @@ const welcome: ServerMessage = {
   spawn: [0, 0, 4],
 };
 
+let seq = 0;
+const chat = (text: string): Extract<ServerMessage, { t: 'chat' }> => ({ t: 'chat', messageId: `m_${++seq}`, peerId: 'a', nickname: '닉 a', text, sentAt: 1000, channel: 2, sig: 's' });
+
 describe('RoomStore', () => {
   it('starts connecting with nothing known', () => {
-    expect(new RoomStore().getState()).toEqual({ room: null, you: null, channel: null, peers: [], chat: [], notices: [], connection: 'connecting', closeCode: null });
+    expect(new RoomStore().getState()).toEqual({ room: null, you: null, channel: null, peers: [], chat: [], chatLimited: null, notices: [], connection: 'connecting', closeCode: null });
   });
 
   it('welcome sets me at the spawn, the channel, the room and the peers, and marks the connection open', () => {
@@ -83,6 +86,24 @@ describe('RoomStore', () => {
     s.apply(welcome);
     for (let i = 0; i < 7; i++) s.apply({ t: 'peer_joined', peer: peer(`n${i}`) });
     expect(s.getState().notices.map((n) => n.nickname)).toEqual(['닉 n2', '닉 n3', '닉 n4', '닉 n5', '닉 n6']);
+  });
+
+  it('appends chat in arrival order and keeps the last 100', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    for (let i = 0; i < 102; i++) s.apply(chat(`m${i}`));
+    expect(s.getState().chat.map((c) => c.text)).toEqual(Array.from({ length: 100 }, (_, i) => `m${i + 2}`));
+  });
+
+  it('rate_limited shows the wait until my next message comes back; chat from others leaves it', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    s.apply({ t: 'rate_limited', scope: 'chat', retryAfterMs: 1800, nonce: 'c-6' });
+    expect(s.getState().chatLimited).toBe(1800);
+    s.apply(chat('남의 말'));
+    expect(s.getState().chatLimited).toBe(1800);
+    s.apply({ ...chat('내 말'), peerId: 'me', nonce: 'c-7' });
+    expect(s.getState().chatLimited).toBeNull();
   });
 
   it('tells subscribers about every change with a new state object', () => {

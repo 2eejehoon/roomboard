@@ -1,7 +1,7 @@
 import { expect, test, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from '@playwright/test';
 
 // Shared by the room specs. seedroom01 comes from npm run seed:dev.
-export type HookState = { you: { peerId: string; nickname: string } | null; peers: { peerId: string; p: number[]; a: string }[]; connection: string };
+export type HookState = { you: { peerId: string; nickname: string; p: number[]; a: string } | null; peers: { peerId: string; p: number[]; a: string }[]; connection: string };
 type Hooks = { __roomboard: { state(): HookState; move(p: number[], r: number): void } };
 export const state = (page: Page) => page.evaluate(() => (window as unknown as Hooks).__roomboard.state());
 export const move = (page: Page, p: number[], r = 0) => page.evaluate(([p, r]) => (window as unknown as Hooks).__roomboard.move(p as number[], r as number), [p, r]);
