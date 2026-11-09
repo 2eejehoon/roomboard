@@ -221,7 +221,7 @@ paths:
     delete:
       tags: [admin]
       summary: 관리자 방 삭제 (FR-041)
-      description: 방을 삭제하고 그 방의 open 신고를 모두 resolved로 바꾼다. 접속 중인 참가자에게 room_deleted.
+      description: 방을 삭제하고 그 방의 open 신고를 모두 resolved로 바꾼다. 접속 중인 참가자에게 room_deleted. 이미 삭제된 방은 410이지만 open 신고는 그때도 resolved가 된다.
       security: [{ adminToken: [] }]
       responses:
         '204': { description: 삭제됨 }

@@ -143,6 +143,18 @@ describe('DELETE /api/admin/rooms/:id', () => {
     expect((await app.request(`/api/rooms/${a}`, {}, env)).status).toBe(410);
   });
 
+  it('410 for a room the owner deleted, and its open reports still resolve (PR #39 review)', async () => {
+    const a = await insertRoom();
+    await reportRoom(a, 1);
+    await reportMessage(a, 2);
+    await env.DB.prepare("UPDATE rooms SET deleted_at = 5000, deleted_by = 'owner' WHERE id = ?").bind(a).run();
+    expect((await call('DELETE', `/admin/rooms/${a}`)).status).toBe(410);
+    expect(await list('open', a)).toHaveLength(0);
+    expect(await list('resolved', a)).toHaveLength(2);
+    const row = await env.DB.prepare('SELECT deleted_by FROM rooms WHERE id = ?').bind(a).first();
+    expect(row).toEqual({ deleted_by: 'owner' }); // who deleted it stays as it was
+  });
+
   it('404 unknown, 410 already deleted', async () => {
     expect((await call('DELETE', '/admin/rooms/nosuchroom')).status).toBe(404);
     const gone = await insertRoom({ deletedAt: 5000 });
