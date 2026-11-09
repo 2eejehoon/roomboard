@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
 import { HTTPException } from 'hono/http-exception';
+import { adminAuth, adminDeleteRoom, listReports, resolveReport } from './admin.ts';
 import { rateLimit } from './rate-limit.ts';
+import { createReport } from './reports.ts';
 import { createRoom, deleteRoom, listRooms, requireRoom, updateRoom } from './rooms.ts';
 
 export { RoomDurableObject } from './room-do.ts';
@@ -33,6 +35,12 @@ app.post('/rooms', rateLimit((c) => c.env.RL_CREATE, 60_000), createRoom);
 app.get('/rooms/:roomId', async (c) => c.json(await requireRoom(c.env.DB, c.req.param('roomId'))));
 app.patch('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), updateRoom);
 app.delete('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), deleteRoom);
+
+app.post('/reports', rateLimit((c) => c.env.RL_REPORT, 60_000), createReport);
+app.use('/admin/*', adminAuth);
+app.get('/admin/reports', listReports);
+app.post('/admin/reports/:reportId/resolve', resolveReport);
+app.delete('/admin/rooms/:roomId', adminDeleteRoom);
 
 app.get('/rooms/:roomId/ws', async (c) => {
   const { id } = await requireRoom(c.env.DB, c.req.param('roomId'));

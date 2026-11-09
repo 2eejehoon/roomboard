@@ -233,14 +233,14 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T086 [P] [US7] `tests/worker/reports.test.ts`: 방 신고 201 → 같은 `deviceKey` 재신고 200 `duplicate:true`; `reporter_hash`가 `HMAC-SHA256(SERVER_SECRET, "reporter|" + 기기 키)` hex이고 기기 키 원문이 D1 어디에도 없음; 메시지 신고(서명 유효) 201 + `message_snapshot` 저장; `text`를 바꾼 신고 400; `sentAt` 24시간 초과 400; 삭제된 방 410; 11번째 요청 429 — 메모: `chat.sig`는 패딩 없는 base64url 43자라 마지막 글자 하위 2비트가 버려져, 한 메시지에 통과하는 `sig` 문자열이 4가지다. 중복 판정은 `reporter_hash` + 신고 대상으로 하고 `sig`를 식별자로 쓰지 않는다. 쓰게 되면 다시 인코딩해 같은지 비교한다(PR #26 리뷰).
-- [ ] T087 [P] [US7] `tests/worker/admin.test.ts`: 토큰 없음·틀림 401(6번째 429), 신고 목록 `status` 필터·`reportCount` 집계·`roomTitle`, `resolve` 204, 관리자 방 삭제 204 → 그 방 `open` 신고 전부 `resolved`, `deleted_by='admin'`, 접속 중 소켓 `room_deleted {by:"admin"}`
+- [x] T086 [P] [US7] `tests/worker/reports.test.ts`: 방 신고 201 → 같은 `deviceKey` 재신고 200 `duplicate:true`; `reporter_hash`가 `HMAC-SHA256(SERVER_SECRET, "reporter|" + 기기 키)` hex이고 기기 키 원문이 D1 어디에도 없음; 메시지 신고(서명 유효) 201 + `message_snapshot` 저장; `text`를 바꾼 신고 400; `sentAt` 24시간 초과 400; 삭제된 방 410; 11번째 요청 429 — 메모: `chat.sig`는 패딩 없는 base64url 43자라 마지막 글자 하위 2비트가 버려져, 한 메시지에 통과하는 `sig` 문자열이 4가지다. 중복 판정은 `reporter_hash` + 신고 대상으로 하고 `sig`를 식별자로 쓰지 않는다. 쓰게 되면 다시 인코딩해 같은지 비교한다(PR #26 리뷰). — 완료. 서명이 맞고 24시간이 지났을 때만 `fields.message = "report.expired"`, 고친 오래된 메시지는 그냥 400. 다른 방 서명 400, 404, 잘못된 본문 400도 검사. 구현 전 22개 중 21개 실패 확인.
+- [x] T087 [P] [US7] `tests/worker/admin.test.ts`: 토큰 없음·틀림 401(6번째 429), 신고 목록 `status` 필터·`reportCount` 집계·`roomTitle`, `resolve` 204, 관리자 방 삭제 204 → 그 방 `open` 신고 전부 `resolved`, `deleted_by='admin'`, 접속 중 소켓 `room_deleted {by:"admin"}` — 완료. 목록은 대상마다 한 줄, 처리 완료는 대상 단위(판례 2026-11-09-report-list-per-target). 맞는 토큰은 횟수에 들지 않고, `ADMIN_TOKEN`이 비면 아무것도 통과하지 않는다. 50개 페이지 넘김도 검사. 테스트의 `ADMIN_TOKEN`은 `app.request`의 env로 넣는다.
 - [ ] T088 [P] [US7] `tests/e2e/us7-report.spec.ts`: 방 신고 대화상자(접수·중복 문구), 채팅 메시지 신고, 관리자 화면 토큰 입력 → 목록에 스냅샷 → 방 삭제 → 방 주소 "삭제된 방"(Q12, Q15), 토큰 없이 접근 거부(Q13)
 
 ### Implementation
 
-- [ ] T089 [US7] `src/worker/reports.ts`: `POST /api/reports`(rate limit `RL_REPORT` → zod → 방 확인 → 메시지면 서명·24시간 검증 → `reporter_hash` 계산 → `INSERT ... ON CONFLICT DO NOTHING`으로 중복 판별)
-- [ ] T090 [US7] `src/worker/admin.ts`: Bearer `ADMIN_TOKEN` 상수 시간 비교 미들웨어(실패 시 `RL_ADMIN`), `GET /api/admin/reports`, `POST /api/admin/reports/:id/resolve`, `DELETE /api/admin/rooms/:id`(DO `roomDeleted("admin")`)
+- [x] T089 [US7] `src/worker/reports.ts`: `POST /api/reports`(rate limit `RL_REPORT` → zod → 방 확인 → 메시지면 서명·24시간 검증 → `reporter_hash` 계산 → `INSERT ... ON CONFLICT DO NOTHING`으로 중복 판별) — 완료. `wrangler.jsonc`에 `RL_REPORT`(10/60s)·`RL_ADMIN`(5/60s)과 비밀값 `ADMIN_TOKEN`.
+- [x] T090 [US7] `src/worker/admin.ts`: Bearer `ADMIN_TOKEN` 상수 시간 비교 미들웨어(실패 시 `RL_ADMIN`), `GET /api/admin/reports`, `POST /api/admin/reports/:id/resolve`, `DELETE /api/admin/rooms/:id`(DO `roomDeleted("admin")`) — 완료. 토큰은 SHA-256 다이제스트끼리 `timingSafeEqual`(길이를 드러내지 않음). 방 삭제와 신고 처리는 D1 `batch` 하나.
 - [ ] T091 [US7] `src/client/room/ReportDialog.tsx`(3D·2D 공용): 사유 5개, 결과 문구(접수·중복·만료), 방 메뉴와 `ChatPanel` 메시지에 연결
 - [ ] T092 [US7] `src/client/admin/AdminPage.tsx`: screens.md S5 — 토큰은 sessionStorage, 열린/처리된 탭, 스냅샷 표시, 방 삭제·처리 완료
 

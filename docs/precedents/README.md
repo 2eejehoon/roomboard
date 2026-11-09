@@ -39,6 +39,7 @@
 | [2026-11-09-session-auto-merge](2026-11-09-session-auto-merge.md) | 세션 PR은 독립 리뷰를 포함한 필수 검사를 통과하면 auto-merge | 유효 |
 | [2026-11-09-room-gone-check](2026-11-09-room-gone-check.md) | welcome 전에 닫히면 방을 조회, 테마가 바뀌면 서버도 스폰으로 | 유효 |
 | [2026-11-09-astryx-prebuilt](2026-11-09-astryx-prebuilt.md) | 화면 컴포넌트는 Astryx, 미리 빌드된 CSS로 | 유효 |
+| [2026-11-09-report-list-per-target](2026-11-09-report-list-per-target.md) | 관리자 신고 목록은 대상마다 한 줄, 처리 완료는 대상 단위 | 유효 |
 
 ## 판례 쓰는 법
 

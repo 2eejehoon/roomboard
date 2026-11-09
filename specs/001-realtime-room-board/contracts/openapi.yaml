@@ -139,6 +139,7 @@ paths:
       description: |
         메시지 신고는 클라이언트가 받은 chat 메시지 필드와 서버 서명(sig)을 그대로 보내고, 서버가 서명을 검증한 뒤 스냅샷으로 저장한다
         (서버는 채팅을 저장하지 않는다, research R14). 서명이 틀리거나 sentAt에서 24시간이 지났으면 400.
+        서명은 맞고 24시간이 지났을 때만 400 `{code: validation, fields: {message: report.expired}}`(신고 대화상자의 만료 문구).
         같은 기기·같은 대상의 중복 신고는 200 duplicate=true.
       requestBody:
         required: true
@@ -169,6 +170,9 @@ paths:
     get:
       tags: [admin]
       summary: 신고 목록 (FR-041)
+      description: |
+        대상(방, 또는 방의 메시지 하나)마다 한 줄이다. 그 상태의 가장 최근 신고가 대표(id, reason, createdAt)이고,
+        reportCount는 그 상태에서 같은 대상의 신고 수다. 최신순 50개씩, nextCursor는 마지막 줄의 id.
       security: [{ adminToken: [] }]
       parameters:
         - name: status
@@ -198,6 +202,7 @@ paths:
     post:
       tags: [admin]
       summary: 신고 처리 완료 표시 (메시지 신고 숨김 처리 포함)
+      description: 그 신고와 같은 대상의 open 신고 중 id가 그 신고 이하인 것을 모두 resolved로 바꾼다(목록의 한 줄이 대상 하나라서, 목록을 연 뒤 들어온 신고는 남는다). 이미 처리됐으면 아무것도 바꾸지 않고 204.
       security: [{ adminToken: [] }]
       parameters:
         - name: reportId
@@ -216,7 +221,7 @@ paths:
     delete:
       tags: [admin]
       summary: 관리자 방 삭제 (FR-041)
-      description: 방을 삭제하고 그 방의 open 신고를 모두 resolved로 바꾼다. 접속 중인 참가자에게 room_deleted.
+      description: 방을 삭제하고 그 방의 open 신고를 모두 resolved로 바꾼다. 접속 중인 참가자에게 room_deleted. 이미 삭제된 방은 410이지만 open 신고는 그때도 resolved가 된다.
       security: [{ adminToken: [] }]
       responses:
         '204': { description: 삭제됨 }
