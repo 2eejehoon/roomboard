@@ -72,23 +72,19 @@ export async function resolveReport(c: C): Promise<Response> {
 }
 
 // data-model.md: the room's open reports, room and message alike, resolve with it. A room the owner deleted first still answers
-// 410, but its open reports resolve too, or the admin list would keep a row nothing can clear (PR #39 review).
+// 410, but its open reports resolve too, or the admin list would keep a row nothing can clear (PR #39 review). The UPDATE itself
+// decides "already deleted", so an owner delete landing after the 404 check is neither overwritten nor announced twice.
 export async function adminDeleteRoom(c: C): Promise<Response> {
   const id = c.req.param('roomId')!;
-  const gone = await requireRoom(c.env.DB, id).then(
-    () => false,
-    (e: unknown) => {
-      if (e instanceof HTTPException && e.status === 410) return true;
-      throw e;
-    },
-  );
+  await requireRoom(c.env.DB, id).catch((e: unknown) => {
+    if (!(e instanceof HTTPException && e.status === 410)) throw e;
+  });
   const now = Date.now();
-  const resolve = c.env.DB.prepare("UPDATE reports SET status = 'resolved', resolved_at = ? WHERE room_id = ? AND status = 'open'").bind(now, id);
-  if (gone) {
-    await resolve.run();
-    return c.json({ code: 'gone' }, 410);
-  }
-  await c.env.DB.batch([c.env.DB.prepare("UPDATE rooms SET deleted_at = ?, deleted_by = 'admin' WHERE id = ?").bind(now, id), resolve]);
+  const [room] = await c.env.DB.batch([
+    c.env.DB.prepare("UPDATE rooms SET deleted_at = ?, deleted_by = 'admin' WHERE id = ? AND deleted_at IS NULL").bind(now, id),
+    c.env.DB.prepare("UPDATE reports SET status = 'resolved', resolved_at = ? WHERE room_id = ? AND status = 'open'").bind(now, id),
+  ]);
+  if (room!.meta.changes === 0) return c.json({ code: 'gone' }, 410);
   await c.env.ROOM.getByName(id).roomDeleted('admin');
   return c.body(null, 204);
 }
