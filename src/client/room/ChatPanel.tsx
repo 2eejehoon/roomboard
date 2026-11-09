@@ -1,4 +1,7 @@
 // T073: screens.md S3 채팅 패널, shared by 3D and 2D. Report buttons per message come with US7.
+import { Heading } from '@astryxdesign/core/Heading';
+import { Stack } from '@astryxdesign/core/Stack';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { useEffect, useId, useRef, useState } from 'react';
 import { t } from '../i18n/t.ts';
 import type { RoomState } from '../state/room-store.ts';
@@ -34,7 +37,9 @@ export function ChatPanel({ state, send, view }: Props) {
 
   const section = (
     <section aria-labelledby={heading}>
-      <h2 id={heading}>{t('chat.heading')}</h2>
+      <Heading level={2} id={heading}>
+        {t('chat.heading')}
+      </Heading>
       {/* column-reverse keeps a scrolled 3D list pinned to the newest message without script */}
       <div style={view === '3d' ? { maxHeight: '30vh', overflowY: 'auto', display: 'flex', flexDirection: 'column-reverse' } : undefined}>
         {/* Only the list is live: nothing in it changes while typing. 2D only (screens.md S3 2D). */}
@@ -59,17 +64,21 @@ export function ChatPanel({ state, send, view }: Props) {
           setText('');
         }}
       >
-        <input
-          ref={input}
-          aria-label={t('chat.input')}
-          value={text}
-          disabled={state.connection !== 'open'}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}
-        />
-        <button type="submit" disabled={state.connection !== 'open'}>
-          {t('chat.send')}
-        </button>
+        <Stack direction="horizontal" gap={2} vAlign="end">
+          <TextInput
+            ref={input}
+            label={t('chat.input')}
+            isLabelHidden
+            value={text}
+            isDisabled={state.connection !== 'open'}
+            onChange={setText}
+            onKeyDown={(e) => e.key === 'Escape' && e.currentTarget.blur()}
+          />
+          {/* Native: Astryx Button carries its own empty live region, and only the message list may be live (precedent 2026-11-09-chat-panel). */}
+          <button type="submit" disabled={state.connection !== 'open'}>
+            {t('chat.send')}
+          </button>
+        </Stack>
       </form>
     </section>
   );

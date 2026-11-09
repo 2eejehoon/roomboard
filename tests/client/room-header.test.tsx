@@ -55,6 +55,8 @@ describe('ClosedNotice (websocket.md 닫힘 코드 표)', () => {
     expect(html(4001)).toMatch(role('alertdialog', '이 방은 삭제됐어요'));
     expect(html(4001)).toMatch(within('button', '확인'));
     expect(html(4001).match(/<button\b/g)).toHaveLength(1); // no cancel: there is no room to stay in
+    expect(html(4001)).toMatch(/role="alertdialog"[^>]*aria-labelledby="room-deleted"/); // named by its text (PR #36 review)
+    expect(html(4001)).toMatch(/id="room-deleted"[^>]*>이 방은 삭제됐어요/);
   });
 
   it.each([4008, 1003, 1009])('%i says the connection ended and offers a reload', (code) => {
