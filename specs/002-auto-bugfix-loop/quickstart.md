@@ -7,7 +7,8 @@
 
 | 항목 | 어디 | 용도 |
 |---|---|---|
-| 기본 브랜치 보호 | Settings → Rules → Rulesets → New branch ruleset (대상: 기본 브랜치) | PR 필수(승인 0명, FR-066), 필수 검사 `ci`·`test-first`·`doc-checks`·`ai-review`·`merge-gate`(브랜치 최신 상태 요구), force push 차단, 삭제 차단. 우회 목록에 Repository admin(`merge-gate`가 실패하는 PR의 운영자 머지용, PR로만). Settings → General에서 "Allow auto-merge" 켜기 (FR-022·FR-066). **순서**: `merge-gate`가 PR 하나에서 한 번 돈 뒤 필수 검사 5개를 먼저 걸고, 그다음에 승인 0명·auto-merge를 켠다(반대로 하면 그 사이 세션 PR이 보호 경로를 바꾼 채 머지될 수 있다) |
+| 기본 브랜치 보호 | Settings → Rules → Rulesets → New branch ruleset (대상: 기본 브랜치) | PR 필수(승인 0명, FR-066), 필수 검사 `ci`·`test-first`·`doc-checks`·`ai-review`·`merge-gate`(브랜치 최신 상태 요구), force push 차단, 삭제 차단. 우회 목록에 Repository admin(`merge-gate`가 실패하는 PR의 운영자 머지용, PR로만). Settings → General에서 "Allow auto-merge" 켜기 (FR-022·FR-066). **순서**: `merge-gate`가 PR 하나에서 한 번 돈 뒤 필수 검사 5개와 아래 세션 브랜치 보호를 먼저 걸고, 그다음에 승인 0명·auto-merge를 켠다(반대로 하면 그 사이 세션 PR이 보호 경로를 바꾼 채 머지될 수 있다) |
+| 세션 브랜치 보호 (FR-066) | Settings → Rules → Rulesets → New branch ruleset (대상: `refs/heads/**`, 제외: 기본 브랜치·`agent/**`) | Restrict updates·Restrict creations·Restrict deletions, 우회 목록에 Repository admin만. 세션은 운영자 계정으로 push하므로 통과하고, 수정 에이전트(App 토큰)는 `agent/**`에만 push할 수 있다. 없으면 에이전트가 auto-merge가 걸린 세션 브랜치에 커밋을 올려 사람 없이 머지될 수 있다 |
 | `CLAUDE_CODE_OAUTH_TOKEN` | 저장소 Secrets (`claude setup-token`으로 발급, 클라우드 세션에서 실행) | 에이전트 인증, 구독 사용량 |
 | `AGENT_PR_TOKEN` | 저장소 Secrets (fine-grained PAT: 이 저장소, Pull requests·Issues 쓰기, Contents 읽기, 만료일 기록) | 에이전트가 고친 브랜치로 PR 열기(CI·리뷰가 돌게). PR 작성자가 운영자로 표시되어 본인 승인이 안 되므로 관리자 우회로 머지 |
 | `GITHUB_ISSUES_TOKEN` | Worker Secret (fine-grained PAT: 이 저장소, Issues RW, 만료일 기록) | 자동 이슈 생성 |
