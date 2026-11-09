@@ -81,9 +81,6 @@ export function CreateRoomPage() {
 
 export type Fields = { title: string; description: string; themeId: ThemeId | '' };
 
-export const FieldError = ({ errors, field }: { errors: FieldErrors; field: keyof FieldErrors }) =>
-  errors[field] ? <p id={`${field}-error`}>{t(errors[field])}</p> : null;
-
 // The field's error under it, wired to aria-invalid and aria-describedby.
 export const errorStatus = (errors: FieldErrors, field: keyof FieldErrors) =>
   errors[field] ? { type: 'error' as const, message: t(errors[field]) } : undefined;

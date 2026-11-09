@@ -53,7 +53,7 @@ test('Q11: wrong password is refused; an edit reaches the board and the room; a 
   await openEdit(owner, id);
   await owner.getByLabel(ko['create.password']).fill(PASSWORD);
   await owner.getByRole('button', { name: ko['edit.delete'] }).click();
-  const confirm = owner.getByRole('dialog');
+  const confirm = owner.getByRole('alertdialog');
   await expect(confirm).toContainText(ko['edit.confirmDelete']);
   await confirm.getByRole('button', { name: ko['edit.delete'] }).click();
   await expect(owner).toHaveURL(/\/$/);
