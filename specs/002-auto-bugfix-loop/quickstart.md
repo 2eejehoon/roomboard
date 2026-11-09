@@ -7,7 +7,7 @@
 
 | 항목 | 어디 | 용도 |
 |---|---|---|
-| 기본 브랜치 보호 | Settings → Rules → Rulesets → New branch ruleset (대상: 기본 브랜치) | PR 필수(승인 1명), force push 차단, 삭제 차단. 우회 목록에 Repository admin(운영자 본인 머지용, PR로만). CI 필수 검사는 CI 워크플로가 한 번 돈 뒤 추가 (FR-022 보장) |
+| 기본 브랜치 보호 | Settings → Rules → Rulesets → New branch ruleset (대상: 기본 브랜치) | PR 필수(승인 0명, FR-066), 필수 검사 `ci`·`test-first`·`doc-checks`·`ai-review`(브랜치 최신 상태 요구), force push 차단, 삭제 차단. 우회 목록에 Repository admin(리뷰 워크플로를 바꾸는 PR 등 운영자 머지용, PR로만). Settings → General에서 "Allow auto-merge" 켜기 (FR-022·FR-066) |
 | `CLAUDE_CODE_OAUTH_TOKEN` | 저장소 Secrets (`claude setup-token`으로 발급, 클라우드 세션에서 실행) | 에이전트 인증, 구독 사용량 |
 | `AGENT_PR_TOKEN` | 저장소 Secrets (fine-grained PAT: 이 저장소, Pull requests·Issues 쓰기, Contents 읽기, 만료일 기록) | 에이전트가 고친 브랜치로 PR 열기(CI·리뷰가 돌게). PR 작성자가 운영자로 표시되어 본인 승인이 안 되므로 관리자 우회로 머지 |
 | `GITHUB_ISSUES_TOKEN` | Worker Secret (fine-grained PAT: 이 저장소, Issues RW, 만료일 기록) | 자동 이슈 생성 |

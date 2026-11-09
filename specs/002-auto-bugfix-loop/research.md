@@ -127,7 +127,7 @@
 - `--json-schema`로 `{blocking: 정수, suggestions: 정수, summary: 문자열}`을 받아, `blocking > 0`이면 `ai-review` 잡을 실패시킨다.
   이 잡 이름을 Ruleset 필수 검사에 넣는다.
 - 권한: `contents: read`, `pull-requests: write`. push·승인·머지 도구 없음(FR-064).
-- 한계: 작성 에이전트와 같은 회사 모델이라 맹점이 겹칠 수 있다. 그래서 근거 필수, 차단 판정은 검사로만, 머지는 사람.
+- 한계: 작성 에이전트와 같은 회사 모델이라 맹점이 겹칠 수 있다. 그래서 근거 필수, 차단 판정은 검사로만. 머지는 FR-066(세션 PR은 검사 통과 시 auto-merge, 나머지는 사람).
 
 ## Sources
 
