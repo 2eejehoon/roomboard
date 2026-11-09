@@ -2,6 +2,7 @@
 import { Heading } from '@astryxdesign/core/Heading';
 import { Stack } from '@astryxdesign/core/Stack';
 import { TextInput } from '@astryxdesign/core/TextInput';
+import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden';
 import { useEffect, useId, useRef, useState } from 'react';
 import { t } from '../i18n/t.ts';
 import type { RoomState } from '../state/room-store.ts';
@@ -45,8 +46,7 @@ export function ChatPanel({ roomId, state, send, view }: Props) {
       </Heading>
       {/* column-reverse keeps a scrolled 3D list pinned to the newest message without script */}
       <div style={view === '3d' ? { maxHeight: '30vh', overflowY: 'auto', display: 'flex', flexDirection: 'column-reverse' } : undefined}>
-        {/* Only the list is live: nothing in it changes while typing. 2D only (screens.md S3 2D). */}
-        <ul aria-live={view === '2d' ? 'polite' : undefined}>
+        <ul>
           {state.chat.map((c) => (
             <li key={c.messageId}>
               <strong>{c.nickname}</strong> {c.text}{' '}
@@ -58,6 +58,16 @@ export function ChatPanel({ roomId, state, send, view }: Props) {
           ))}
         </ul>
       </div>
+      {/* 2D reads new messages from this hidden copy: nickname and text only, not the report buttons (precedent 2026-11-09-chat-live-text). */}
+      {view === '2d' && (
+        <VisuallyHidden as="div">
+          <ul aria-live="polite">
+            {state.chat.map((c) => (
+              <li key={c.messageId}>{t('chat.spoken', { nickname: c.nickname, text: c.text })}</li>
+            ))}
+          </ul>
+        </VisuallyHidden>
+      )}
       {tooLong && <p role="status">{t('chat.tooLong')}</p>}
       {state.chatLimited !== null && <p role="status">{t('common.rateLimited', { seconds: Math.ceil(state.chatLimited / 1000) })}</p>}
       <form

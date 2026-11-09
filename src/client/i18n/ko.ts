@@ -36,6 +36,7 @@ export const ko = {
   'chat.heading': '채팅',
   'chat.input': '메시지',
   'chat.send': '보내기',
+  'chat.spoken': '{nickname}: {text}',
   'chat.tooLong': '메시지는 200자까지 보낼 수 있어요',
   'room.channel': '채널 {n}',
   'room.people': '{n}/{max}',
