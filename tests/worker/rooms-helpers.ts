@@ -2,22 +2,24 @@
 import { env, exports } from 'cloudflare:workers';
 import { createRoomData } from '../../src/core/room-data.ts';
 import type { ServerMessage } from '../../src/core/protocol.ts';
+import { hashPassword } from '../../src/worker/password.ts';
 
 let seq = 0;
 // A fresh room per test: DO instances and D1 rows outlive a single test.
 export async function insertRoom(
-  opts: { deletedAt?: number; title?: string; description?: string; createdAt?: number; onlineCount?: number } = {},
+  opts: { deletedAt?: number; title?: string; description?: string; createdAt?: number; onlineCount?: number; password?: string } = {},
 ): Promise<string> {
   const id = `room${String(++seq).padStart(2, '0')}${Math.random().toString(36).slice(2, 6).padEnd(4, '0')}`;
   await env.DB.prepare(
     `INSERT INTO rooms (id, title, description, room_data, theme_id, password_hash, online_count, created_at, updated_at, deleted_at, deleted_by)
-     VALUES (?, ?, ?, ?, 'cafe', 'x', ?, ?, 2000, ?, ?)`,
+     VALUES (?, ?, ?, ?, 'cafe', ?, ?, ?, 2000, ?, ?)`,
   )
     .bind(
       id,
       opts.title ?? '테스트 방',
       opts.description ?? '설명',
       JSON.stringify(createRoomData('cafe')),
+      opts.password ? await hashPassword(opts.password) : 'x',
       opts.onlineCount ?? 0,
       opts.createdAt ?? 1000,
       opts.deletedAt ?? null,

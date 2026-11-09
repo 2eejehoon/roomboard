@@ -136,6 +136,26 @@ describe('openRoomSocket', () => {
     expect(store.getState().connection).toBe('open');
   });
 
+  // T082 follow-up (websocket.md 닫힘 코드): a deleted room refuses the upgrade with 410, which the browser reports as 1006.
+  it('a close before welcome asks whether the room is gone; if so it stops as 4001, if not it keeps reconnecting', async () => {
+    const roomGone = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+    const store = new RoomStore();
+    openRoomSocket({ url: 'wss://x', deviceKey: KEY, store, WS: FakeSocket as never, random: () => 0.5, roomGone });
+    last().open();
+    last().receive(welcome);
+    last().close(1006);
+    expect(roomGone, 'not after a connection that got its welcome').not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1000);
+    last().close(1006);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(FakeSocket.all).toHaveLength(3);
+    last().close(1006);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(roomGone).toHaveBeenCalledTimes(2);
+    expect(FakeSocket.all).toHaveLength(3);
+    expect(store.getState()).toMatchObject({ connection: 'closed', closeCode: 4001 });
+  });
+
   it('close() stops for good', () => {
     const { socket, store } = joined();
     socket.close();
