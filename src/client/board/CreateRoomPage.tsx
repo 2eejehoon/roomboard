@@ -1,4 +1,4 @@
-// screens.md S2 (T066). Checks with the server's schema before sending (precedent 2026-11-08-create-form-checks).
+// screens.md S2 (T066). Checks with the server's schema before sending (precedent 2026-11-08-create-form-checks). S4 shares the fields.
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoomRequest, fieldErrors, type FieldErrors } from '../../core/api-schemas.ts';
 import { THEME_IDS, THEMES, type ThemeId } from '../../core/themes.ts';
@@ -9,9 +9,8 @@ import { NetworkError, RateLimited } from '../Status.tsx';
 type Failure = { kind: 'turnstile' | 'network' } | { kind: 'rateLimited'; retryAfterMs: number } | null;
 
 export function CreateRoomPage() {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [themeId, setThemeId] = useState<ThemeId | ''>('');
+  const [fields, setFields] = useState<Fields>({ title: '', description: '', themeId: '' });
+  const { title, themeId } = fields;
   const [password, setPassword] = useState('');
   const [token, setToken] = useState('');
   const [widget, setWidget] = useState(0); // a new key renders a fresh widget: tokens are single-use
@@ -28,7 +27,7 @@ export function CreateRoomPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
-    const parsed = createRoomRequest.safeParse({ title, description, themeId, password, turnstileToken: token });
+    const parsed = createRoomRequest.safeParse({ ...fields, password, turnstileToken: token });
     setErrors(parsed.success ? {} : fieldErrors(parsed.error));
     setFailure(null);
     if (!parsed.success) return;
@@ -43,39 +42,16 @@ export function CreateRoomPage() {
     retryWidget();
   }
 
-  const error = (field: keyof FieldErrors) => errors[field] && <p id={`${field}-error`}>{t(errors[field])}</p>;
   return (
     <form onSubmit={submit} noValidate>
       <h1>{t('create.heading')}</h1>
-      <label>
-        {t('create.title')}
-        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} required aria-describedby="title-error" />
-      </label>
-      <p>{t('create.remaining', { n: 60 - title.length })}</p>
-      {error('title')}
-      <label>
-        {t('create.description')}
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={300} aria-describedby="description-error" />
-      </label>
-      <p>{t('create.remaining', { n: 300 - description.length })}</p>
-      {error('description')}
-      <fieldset aria-describedby="themeId-error">
-        <legend>{t('create.theme')}</legend>
-        {THEME_IDS.map((id) => (
-          <label key={id}>
-            <input type="radio" name="theme" value={id} checked={themeId === id} onChange={() => setThemeId(id)} />
-            <img src={`/assets/previews/${id}.jpg`} alt="" width={160} height={90} />
-            {t(THEMES[id].nameKey)}
-          </label>
-        ))}
-      </fieldset>
-      {error('themeId')}
+      <RoomFields value={fields} onChange={setFields} errors={errors} />
       <label>
         {t('create.password')}
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={64} required aria-describedby="password-hint password-error" />
       </label>
       <p id="password-hint">{t('create.passwordHint')}</p>
-      {error('password')}
+      <FieldError errors={errors} field="password" />
       <Turnstile key={widget} onToken={setToken} onError={scriptFailed} />
       {failure?.kind === 'turnstile' && <p role="alert">{t('create.turnstileFailed')}</p>}
       {failure?.kind === 'rateLimited' && <RateLimited retryAfterMs={failure.retryAfterMs} />}
@@ -91,6 +67,43 @@ export function CreateRoomPage() {
         {t('create.submit')}
       </button>
     </form>
+  );
+}
+
+export type Fields = { title: string; description: string; themeId: ThemeId | '' };
+
+export const FieldError = ({ errors, field }: { errors: FieldErrors; field: keyof FieldErrors }) =>
+  errors[field] ? <p id={`${field}-error`}>{t(errors[field])}</p> : null;
+
+// Title, description and theme: S2 and S4 (T084).
+export function RoomFields({ value, onChange, errors }: { value: Fields; onChange: (v: Fields) => void; errors: FieldErrors }) {
+  const { title, description, themeId } = value;
+  return (
+    <>
+      <label>
+        {t('create.title')}
+        <input value={title} onChange={(e) => onChange({ ...value, title: e.target.value })} maxLength={60} required aria-describedby="title-error" />
+      </label>
+      <p>{t('create.remaining', { n: 60 - title.length })}</p>
+      <FieldError errors={errors} field="title" />
+      <label>
+        {t('create.description')}
+        <textarea value={description} onChange={(e) => onChange({ ...value, description: e.target.value })} maxLength={300} aria-describedby="description-error" />
+      </label>
+      <p>{t('create.remaining', { n: 300 - description.length })}</p>
+      <FieldError errors={errors} field="description" />
+      <fieldset aria-describedby="themeId-error">
+        <legend>{t('create.theme')}</legend>
+        {THEME_IDS.map((id) => (
+          <label key={id}>
+            <input type="radio" name="theme" value={id} checked={themeId === id} onChange={() => onChange({ ...value, themeId: id })} />
+            <img src={`/assets/previews/${id}.jpg`} alt="" width={160} height={90} />
+            {t(THEMES[id].nameKey)}
+          </label>
+        ))}
+      </fieldset>
+      <FieldError errors={errors} field="themeId" />
+    </>
   );
 }
 

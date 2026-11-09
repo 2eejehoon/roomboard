@@ -212,16 +212,16 @@ description: "Task list for 001-realtime-room-board"
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T079 [P] [US6] `tests/worker/rooms-update.test.ts`: `PATCH` 맞는 비밀번호 200·`updated_at` 갱신, 테마 변경 시 `room_data.objects`가 새 테마 기본값, 접속 중 소켓에 `room_updated`; 틀린 비밀번호 403·변경 없음; 6번째 시도 429; 비밀번호만 보내면 400(`minProperties: 2`)
-- [ ] T080 [P] [US6] `tests/worker/rooms-delete.test.ts`: `DELETE` 맞는 비밀번호 204, `deleted_at`·`deleted_by='owner'`, 접속 중 소켓에 `room_deleted {by:"owner"}` 후 4001, 이후 `GET` 410·목록 제외; 틀린 비밀번호 403
-- [ ] T081 [P] [US6] `tests/e2e/us6-edit.spec.ts`: 제목 수정이 목록·방 안에 반영, 방 안 참가자가 삭제 모달 → 목록으로 이동(재연결 안 함)
+- [x] T079 [P] [US6] `tests/worker/rooms-update.test.ts`: `PATCH` 맞는 비밀번호 200·`updated_at` 갱신, 테마 변경 시 `room_data.objects`가 새 테마 기본값, 접속 중 소켓에 `room_updated`; 틀린 비밀번호 403·변경 없음; 6번째 시도 429; 비밀번호만 보내면 400(`minProperties: 2`) — 완료. 접속 중 소켓은 DO를 내보낸(Hibernation) 뒤에도 `room_updated`를 받고, 다음 참가자는 새 방·새 스폰과 스폰으로 옮겨진 다른 참가자를 본다(attachment에도 기록됐는지 한 번 더 내보낸 뒤 확인). 제목은 필터를 거친다. 코어 `RoomSession.update` 테스트(모든 채널, 테마가 바뀔 때만 스폰으로)와 `room-store`의 `room_updated` 테스트를 같이 두었다. 구현 전 커밋(383038a)에서 모두 실패. 필터 단어를 실제 목록에 있는 것으로 바꾼 수정은 구현 커밋에 있다.
+- [x] T080 [P] [US6] `tests/worker/rooms-delete.test.ts`: `DELETE` 맞는 비밀번호 204, `deleted_at`·`deleted_by='owner'`, 접속 중 소켓에 `room_deleted {by:"owner"}` 후 4001, 이후 `GET` 410·목록 제외; 틀린 비밀번호 403 — 완료. DO를 내보낸 뒤 삭제해도 두 참가자 모두 `room_deleted` 뒤 4001을 받는다. 구현 전 커밋에서 실패.
+- [x] T081 [P] [US6] `tests/e2e/us6-edit.spec.ts`: 제목 수정이 목록·방 안에 반영, 방 안 참가자가 삭제 모달 → 목록으로 이동(재연결 안 함) — 완료. 틀린 비밀번호 403 문구, 맞는 비밀번호로 저장 → 방 안 손님의 제목 갱신·목록 반영, 삭제 확인 대화상자 → 주인은 목록, 손님은 "이 방은 삭제됐어요" 모달(3초 동안 새 WebSocket 없음) → 확인 → 목록(삭제된 방 없음). 방은 테스트가 API로 만든다(`seedroom01`은 다른 스펙과 같이 씀). 만들기 제한(60초 3회)을 us3 Q6·다른 프로젝트와 같이 쓰므로 429면 `Retry-After`만큼 한 번 기다린다. 구현 전에는 머리글에 수정 링크가 없어 실패했다.
 
 ### Implementation
 
-- [ ] T082 [US6] `src/worker/rooms.ts`: `PATCH /api/rooms/:id`, `DELETE /api/rooms/:id`(rate limit `RL_PASSWORD` → DO RPC `verifyPassword` → D1 → DO RPC `roomUpdated(room)` / `roomDeleted(by)`) 후속(PR #21 리뷰 제안): 재연결 대기 중 방이 삭제되면 업그레이드가 410이라 브라우저는 1006으로만 알고 계속 재연결한다. websocket.md 닫힘 표에 줄을 먼저 추가하고(예: welcome 없이 몇 번 실패하면 `GET /api/rooms/:id`로 확인해 S6), 테스트 먼저.
-- [ ] T083 [US6] `src/worker/room-do.ts`: RPC `roomUpdated`(모든 채널에 `room_updated`), `roomDeleted`(`room_deleted` 후 4001로 전부 닫기)
-- [ ] T084 [US6] `src/client/board/EditRoomPage.tsx`: screens.md S4 — 현재 값, 테마 변경 안내, 삭제 확인 대화상자, 403 문구
-- [ ] T085 [US6] `src/client/room/RoomPage.tsx`: `room_updated` 시 장면 재구성·스폰 이동, `room_deleted` 모달 → 목록
+- [x] T082 [US6] `src/worker/rooms.ts`: `PATCH /api/rooms/:id`, `DELETE /api/rooms/:id`(rate limit `RL_PASSWORD` → DO RPC `verifyPassword` → D1 → DO RPC `roomUpdated(room)` / `roomDeleted(by)`) 후속(PR #21 리뷰 제안): 재연결 대기 중 방이 삭제되면 업그레이드가 410이라 브라우저는 1006으로만 알고 계속 재연결한다. websocket.md 닫힘 표에 줄을 먼저 추가하고(예: welcome 없이 몇 번 실패하면 `GET /api/rooms/:id`로 확인해 S6), 테스트 먼저. — 완료. 순서는 rate limit(`RL_PASSWORD` 5/60s, `wrangler.jsonc`에 추가) → 입력 검사(400) → D1(404/410) → DO RPC `verifyPassword`(403 `wrong_password`) → D1 → DO RPC. 해시는 `rooms.ts` 밖으로 나가지 않고 DO에만 넘긴다. 테마가 같으면 `room_data`를 그대로 둔다. 후속(재연결 중 삭제)도 처리: websocket.md 닫힘 표 아래에 규칙을 먼저 적고, `welcome` 전에 닫힌 연결마다 `GET /api/rooms/:id`로 확인해 404·410이면 4001처럼 멈춘다(판례 2026-11-09-room-gone-check, `room-socket` 테스트).
+- [x] T083 [US6] `src/worker/room-do.ts`: RPC `roomUpdated`(모든 채널에 `room_updated`), `roomDeleted`(`room_deleted` 후 4001로 전부 닫기) — 완료. `roomUpdated(room, respawn)`: 테마가 바뀌었는지는 Worker가 알린다(깨어난 세션은 이미 새 방을 읽어 비교할 수 없다). 바뀐 자세는 attachment에도 쓴다. `roomDeleted`는 세션을 거치지 않고 소켓 전부에 보내고 닫으며, 그 DO는 세션을 다시 만들지 않는다(판례 2026-11-09-room-gone-check).
+- [x] T084 [US6] `src/client/board/EditRoomPage.tsx`: screens.md S4 — 현재 값, 테마 변경 안내, 삭제 확인 대화상자, 403 문구 — 완료. 제목·설명·테마 입력은 S2와 같은 `RoomFields`를 쓴다(`CreateRoomPage.tsx`에서 꺼냄). 삭제 확인은 `<dialog>`의 `showModal()`. 머리글에 "방 수정·삭제" 링크(S3 메뉴).
+- [x] T085 [US6] `src/client/room/RoomPage.tsx`: `room_updated` 시 장면 재구성·스폰 이동, `room_deleted` 모달 → 목록 — 완료. 장면 재구성은 `Scene`이 store의 `room`을 읽어 이미 된다. store가 테마 변경 때 나와 참가자를 스폰으로 옮기고, 기존 `onStorePose`가 몸을 옮긴다. `room_deleted`는 뒤따르는 4001 닫힘으로 끝나고, 4001 화면을 S3 "방이 삭제됨" 모달(`alertdialog`, 확인 → S1)로 바꿨다(이전에는 S6 문구였다).
 
 ---
 

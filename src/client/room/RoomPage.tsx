@@ -2,7 +2,7 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
 import { CLOSE } from '../../core/protocol.ts';
-import { navigate } from '../App.tsx';
+import { Link, navigate } from '../App.tsx';
 import { deviceKey, readView, saveView, type View } from '../device.ts';
 import { t } from '../i18n/t.ts';
 import { openRoomSocket, type RoomSocket } from '../net/room-socket.ts';
@@ -57,7 +57,8 @@ export function RoomPage({ id }: { id: string }) {
   useEffect(() => {
     if (!ready) return;
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/rooms/${encodeURIComponent(id)}/ws`;
-    const s = (socket.current = openRoomSocket({ url, deviceKey: deviceKey(), store }));
+    const roomGone = () => fetch(`/api/rooms/${encodeURIComponent(id)}`).then((res) => res.status === 404 || res.status === 410);
+    const s = (socket.current = openRoomSocket({ url, deviceKey: deviceKey(), store, roomGone }));
     installTestHooks(store, s);
     return () => s.close();
   }, [ready, id, store]);
@@ -69,7 +70,7 @@ export function RoomPage({ id }: { id: string }) {
   const room = state.room ?? load.room;
   return (
     <>
-      <RoomHeader title={room.title} state={state} view={view} onSwitch={webgl ? switchView : undefined} />
+      <RoomHeader id={id} title={room.title} state={state} view={view} onSwitch={webgl ? switchView : undefined} />
       {view === '3d' ? (
         <SceneBoundary
           onError={() => {
@@ -102,7 +103,17 @@ class SceneBoundary extends Component<{ children: ReactNode; onError: () => void
 
 // Final close codes (websocket.md 닫힘 코드 표): no reconnect, so say what happened instead of a room that looks live.
 export function ClosedNotice({ code }: { code: number }) {
-  if (code === CLOSE.roomDeleted) return <Notice text={t('room.gone')} />;
+  // screens.md S3 방이 삭제됨: the modal is the whole page, since nothing behind it is live any more.
+  if (code === CLOSE.roomDeleted) {
+    return (
+      <div role="alertdialog" aria-modal="true" aria-labelledby="room-deleted">
+        <p id="room-deleted">{t('room.deleted')}</p>
+        <button type="button" onClick={() => navigate('/')}>
+          {t('room.ok')}
+        </button>
+      </div>
+    );
+  }
   return <Notice text={t(code === CLOSE.unsupportedVersion ? 'room.outdated' : 'room.ended')} reload />;
 }
 
@@ -118,7 +129,7 @@ function Notice({ text, reload = false }: { text: string; reload?: boolean }) {
 }
 
 // onSwitch is absent without WebGL: there is no 3D to switch to.
-export function RoomHeader({ title, state, view, onSwitch }: { title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
+export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
   return (
     <header>
       {state.connection === 'reconnecting' && <p role="status">{t('room.reconnecting')}</p>}
@@ -134,6 +145,7 @@ export function RoomHeader({ title, state, view, onSwitch }: { title: string; st
           {t(view === '3d' ? 'room.view2d' : 'room.view3d')}
         </button>
       )}
+      {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}
     </header>
   );
 }

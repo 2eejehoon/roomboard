@@ -27,7 +27,7 @@ const newConn = (participant: Participant | null): Conn => ({ participant, moves
 
 export class RoomSession {
   private readonly conns = new Map<string, Conn>();
-  private readonly room: RoomInfo;
+  private room: RoomInfo;
   private readonly deps: SessionDeps;
   private chatSeq = 0;
 
@@ -63,6 +63,15 @@ export class RoomSession {
     if (!me) return { send: [{ to: peerId, msg: { t: 'error', code: 'not_joined' } }] };
     if (msg.t === 'move') return this.move(me, conn, msg, now);
     return this.chat(me, conn, msg, now);
+  }
+
+  // The owner's edit (T083), to every channel. respawn: the theme changed, so old poses mean nothing in the new bounds. The
+  // Worker says so, because a session rebuilt after hibernation already holds the new room.
+  update(room: RoomInfo, respawn: boolean, now: number): Outbox {
+    this.room = room;
+    const joined = this.joined();
+    if (respawn) for (const p of joined) [p.pose, p.lastMoveAt] = [{ p: THEMES[room.roomData.themeId].spawn, r: 0, a: 'idle' }, now];
+    return { send: joined.map((p) => ({ to: p.peerId, msg: { t: 'room_updated', room } })) };
   }
 
   leave(peerId: string): Outbox {

@@ -1,12 +1,15 @@
 import { evictDurableObject } from 'cloudflare:test';
 import { env, exports } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
+import { createChatFilter, parseWordList } from '../../src/core/chat-filter.ts';
 import { createRoomData } from '../../src/core/room-data.ts';
+import list from '../../src/data/profanity-ko.txt?raw';
 import { insertRoom, joinRoom } from './rooms-helpers.ts';
 
 // T079: PATCH /api/rooms/:id (contracts/openapi.yaml, quickstart Q11). Each request gets its own client IP so the password
 // limit (5 per 60 s) only bites where a test means it to.
 const PASSWORD = 'owner-pass';
+const filter = createChatFilter(parseWordList(list));
 let ipSeq = 0;
 const patch = (id: string, body: unknown, ip = `198.51.100.${++ipSeq}`) =>
   exports.default.fetch(`https://roomboard.test/api/rooms/${id}`, {
@@ -19,12 +22,13 @@ const row = (id: string) => env.DB.prepare('SELECT title, description, theme_id,
 describe('PATCH /api/rooms/:id', () => {
   it('200 with the Room; updated_at moves, the title is filtered, room_data stays without a theme change', async () => {
     const id = await insertRoom({ password: PASSWORD });
-    const res = await patch(id, { password: PASSWORD, title: '바보 같은 새 제목' });
+    const res = await patch(id, { password: PASSWORD, title: '씨발 새 제목' });
     expect(res.status).toBe(200);
     const room = await res.json<Record<string, unknown>>();
-    expect(room).toMatchObject({ id, title: '** 같은 새 제목', description: '설명', themeId: 'cafe', roomData: createRoomData('cafe') });
+    expect(filter('씨발 새 제목')).not.toBe('씨발 새 제목');
+    expect(room).toMatchObject({ id, title: filter('씨발 새 제목'), description: '설명', themeId: 'cafe', roomData: createRoomData('cafe') });
     const saved = await row(id);
-    expect(saved).toMatchObject({ title: '** 같은 새 제목', theme_id: 'cafe' });
+    expect(saved).toMatchObject({ title: filter('씨발 새 제목'), theme_id: 'cafe' });
     expect(saved!.updated_at).toBeGreaterThan(2000);
     expect(room.updatedAt).toBe(saved!.updated_at);
   });
