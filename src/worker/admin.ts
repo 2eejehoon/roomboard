@@ -1,5 +1,6 @@
 // T090: /api/admin/* (contracts/openapi.yaml, precedents 2026-11-06-admin-token, 2026-11-09-report-list-per-target).
 import type { Context, MiddlewareHandler } from 'hono';
+import { HTTPException } from 'hono/http-exception';
 import { z } from 'zod';
 import { tooMany } from './rate-limit.ts';
 import { requireRoom } from './rooms.ts';
@@ -70,14 +71,24 @@ export async function resolveReport(c: C): Promise<Response> {
   return c.body(null, 204);
 }
 
-// data-model.md: the room's open reports, room and message alike, resolve with it.
+// data-model.md: the room's open reports, room and message alike, resolve with it. A room the owner deleted first still answers
+// 410, but its open reports resolve too, or the admin list would keep a row nothing can clear (PR #39 review).
 export async function adminDeleteRoom(c: C): Promise<Response> {
-  const { id } = await requireRoom(c.env.DB, c.req.param('roomId')!);
+  const id = c.req.param('roomId')!;
+  const gone = await requireRoom(c.env.DB, id).then(
+    () => false,
+    (e: unknown) => {
+      if (e instanceof HTTPException && e.status === 410) return true;
+      throw e;
+    },
+  );
   const now = Date.now();
-  await c.env.DB.batch([
-    c.env.DB.prepare("UPDATE rooms SET deleted_at = ?, deleted_by = 'admin' WHERE id = ?").bind(now, id),
-    c.env.DB.prepare("UPDATE reports SET status = 'resolved', resolved_at = ? WHERE room_id = ? AND status = 'open'").bind(now, id),
-  ]);
+  const resolve = c.env.DB.prepare("UPDATE reports SET status = 'resolved', resolved_at = ? WHERE room_id = ? AND status = 'open'").bind(now, id);
+  if (gone) {
+    await resolve.run();
+    return c.json({ code: 'gone' }, 410);
+  }
+  await c.env.DB.batch([c.env.DB.prepare("UPDATE rooms SET deleted_at = ?, deleted_by = 'admin' WHERE id = ?").bind(now, id), resolve]);
   await c.env.ROOM.getByName(id).roomDeleted('admin');
   return c.body(null, 204);
 }
