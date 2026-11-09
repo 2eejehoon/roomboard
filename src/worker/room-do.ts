@@ -1,9 +1,10 @@
 // One DO per room (research R6): Hibernation WebSockets in, RoomSession decides, results out.
 import { DurableObject } from 'cloudflare:workers';
 import { CLOSE } from '../core/protocol.ts';
-import { RoomSession, type Outbox, type Participant } from '../core/room-session.ts';
+import { RoomSession, type ChatFields, type Outbox, type Participant } from '../core/room-session.ts';
+import { signChat } from './chat-sign.ts';
 import { hashPassword } from './password.ts';
-import { requireRoom } from './rooms.ts';
+import { filter, requireRoom } from './rooms.ts';
 
 // Socket attachment (data-model.md "Participant"), plus the connect time for the join deadline. No device key.
 type Attachment = { peerId: string; connectedAt: number; participant: Participant | null };
@@ -48,7 +49,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     const { peerId, connectedAt } = att(ws);
     const wasJoined = session.participant(peerId) !== null;
     const now = Date.now();
-    const out = session.receive(peerId, message, now);
+    const out = await session.receive(peerId, message, now);
     const participant = session.participant(peerId);
     if (participant) ws.serializeAttachment({ peerId, connectedAt, participant } satisfies Attachment);
     await this.deliver(out);
@@ -83,7 +84,8 @@ export class RoomDurableObject extends DurableObject<Env> {
   private session(): Promise<RoomSession | null> {
     this.loading ??= requireRoom(this.env.DB, this.ctx.id.name!).then(
       ({ id, title, description, roomData }) => {
-        const session = new RoomSession({ id, title, description, roomData });
+        const sign = (c: ChatFields) => signChat(this.env.SERVER_SECRET, id, c);
+        const session = new RoomSession({ id, title, description, roomData }, { filter, sign });
         for (const ws of this.sockets.values()) {
           const { peerId, participant } = att(ws);
           if (participant) session.restore(participant);
