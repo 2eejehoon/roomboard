@@ -91,3 +91,21 @@ test('the failed-token limit (429) drops the token and shows the wait on the tok
   await expect(page.getByRole('alert').filter({ hasText: '42초' })).toBeVisible();
   expect(await page.evaluate(() => sessionStorage.getItem('rb.adminToken'))).toBeNull();
 });
+
+test('a next page that fails after a tab switch does not show its error on the new tab', async ({ browser }) => {
+  const page = await newPage(browser);
+  let releaseMore: () => void = () => {};
+  const moreHeld = new Promise<void>((r) => (releaseMore = r));
+  await page.route('**/api/admin/reports?*', async (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    if (params.get('cursor')) return moreHeld.then(() => route.fulfill({ status: 500 }));
+    await json(route, { items: [row(params.get('status') === 'open' ? 9 : 8)], nextCursor: params.get('status') === 'open' ? '9' : null });
+  });
+  await open(page);
+  await page.getByRole('button', { name: ko['board.more'] }).click();
+  await page.getByRole('tab', { name: ko['admin.resolved'] }).click();
+  await expect(rows(page)).toHaveCount(1);
+  releaseMore();
+  await page.waitForTimeout(300);
+  await expect(page.getByRole('alert').filter({ hasText: ko['common.networkError'] })).toHaveCount(0);
+});

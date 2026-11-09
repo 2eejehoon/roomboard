@@ -110,7 +110,9 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
   const [deleting, setDeleting] = useState<Report | null>(null);
   // A failed resolve or delete keeps the list and says so above it, with a retry that sends the same action (PR #39 review).
   // retry: the next page's cursor, or the action's path and method.
-  const [failed, setFailed] = useState<{ fail: Fail; retry: string | [string, string] } | null>(null);
+  // key: the tab and attempt it failed in, like loads, so a late failure never shows on another tab (PR #39 review).
+  const [failedAt, setFailed] = useState<{ key: string; fail: Fail; retry: string | [string, string] } | null>(null);
+  const failed = failedAt?.key === key ? failedAt : null;
 
   // 410 is a room deleted already, which is what an admin delete wanted. 401 and 429 drop the token: RL_ADMIN counts only wrong
   // tokens, so a 429 here always means this one is wrong (PR #39 review). Other failures go to the caller.
@@ -132,7 +134,7 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
     (cursor: string | null) =>
       call(`reports?status=${status}${cursor ? `&cursor=${cursor}` : ''}`).then(async (res) => {
         // A failed next page keeps the rows already loaded, like a failed action (PR #39 review).
-        if (!(res instanceof Response)) return res && (cursor ? setFailed({ fail: res, retry: cursor }) : setLoad(res));
+        if (!(res instanceof Response)) return res && (cursor ? setFailed({ key, fail: res, retry: cursor }) : setLoad(res));
         const next = (await res.json()) as { items: Report[]; nextCursor: string | null };
         setLoad((old) => ({
           kind: 'ok',
@@ -141,7 +143,7 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
           nextCursor: next.nextCursor,
         }));
       }),
-    [call, status, setLoad],
+    [call, status, setLoad, key],
   );
 
   useEffect(() => void page(null), [page]);
@@ -150,13 +152,13 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
     setFailed(null);
     const res = await call(path, method);
     if (res instanceof Response) setAttempt((n) => n + 1);
-    else if (res) setFailed({ fail: res, retry: [path, method] });
+    else if (res) setFailed({ key, fail: res, retry: [path, method] });
   };
 
   return (
     <Stack gap={4} padding={4}>
       <Heading level={1}>{t('admin.heading')}</Heading>
-      <TabList role="tablist" value={status} onChange={(v) => (setFailed(null), setStatus(v as Status))}>
+      <TabList role="tablist" value={status} onChange={(v) => setStatus(v as Status)}>
         <Tab value="open" panelId={PANEL} label={t('admin.open')} />
         <Tab value="resolved" panelId={PANEL} label={t('admin.resolved')} />
       </TabList>
