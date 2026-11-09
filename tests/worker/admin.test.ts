@@ -129,6 +129,15 @@ describe('POST /api/admin/reports/:id/resolve', () => {
     expect(await list('open', a)).toMatchObject([{ targetType: 'room', reportCount: 1 }]);
   });
 
+  it('resolve closes the target up to the report shown, not one that came in after the list loaded (PR #39 review)', async () => {
+    const a = await insertRoom();
+    await reportRoom(a, 1);
+    const [shown] = await list('open', a);
+    await reportRoom(a, 2, 'illegal'); // arrives after the admin opened the list
+    expect((await call('POST', `/admin/reports/${shown!.id}/resolve`)).status).toBe(204);
+    expect(await list('open', a)).toMatchObject([{ reason: 'illegal', reportCount: 1 }]);
+  });
+
   it('404 for an unknown report id', async () => {
     expect((await call('POST', '/admin/reports/999999999/resolve')).status).toBe(404);
     expect((await call('POST', '/admin/reports/abc/resolve')).status).toBe(404);

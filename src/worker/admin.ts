@@ -70,7 +70,8 @@ export async function listReports(c: C): Promise<Response> {
 }
 
 // Resolves every open report on the same target as this one (the list shows the target once). A report already resolved changes
-// nothing, so a stale click cannot close newer reports on that target (PR #38 review).
+// nothing, so a stale click cannot close newer reports on that target (PR #38 review). The row shown is the target's newest report,
+// so `id <= ` it closes what the admin saw and leaves one that came in after the list loaded (PR #39 review).
 export async function resolveReport(c: C): Promise<Response> {
   const id = c.req.param('reportId')!;
   const target = /^\d+$/.test(id)
@@ -80,8 +81,10 @@ export async function resolveReport(c: C): Promise<Response> {
     : null;
   if (!target) return c.json({ code: 'not_found' }, 404);
   if (target.status !== 'open') return c.body(null, 204);
-  await c.env.DB.prepare("UPDATE reports SET status = 'resolved', resolved_at = ? WHERE status = 'open' AND target_type = ? AND room_id = ? AND message_id = ?")
-    .bind(Date.now(), target.target_type, target.room_id, target.message_id)
+  await c.env.DB.prepare(
+    "UPDATE reports SET status = 'resolved', resolved_at = ? WHERE status = 'open' AND target_type = ? AND room_id = ? AND message_id = ? AND id <= ?",
+  )
+    .bind(Date.now(), target.target_type, target.room_id, target.message_id, Number(id))
     .run();
   return c.body(null, 204);
 }

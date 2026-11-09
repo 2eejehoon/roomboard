@@ -9,7 +9,7 @@
 
 - 목록은 상태(`open`/`resolved`)별로 대상(방, 또는 방의 메시지 하나)마다 한 줄이다. 그 상태의 가장 최근 신고가 대표(`id`, `reason`, `createdAt`)이고, `reportCount`는 그 상태에서 같은 대상의 신고 수다.
 - 페이지는 대표 신고 `id` 내림차순 50개, `nextCursor`는 마지막 줄의 `id`.
-- 처리 완료(`resolve/:id`)는 그 신고와 같은 대상의 `open` 신고를 모두 `resolved`로 바꾼다.
+- 처리 완료(`resolve/:id`)는 그 신고와 같은 대상의 `open` 신고 중 그 신고 `id` 이하를 모두 `resolved`로 바꾼다. 목록을 연 뒤 들어온 신고는 남는다. 그 신고가 이미 처리됐으면 아무것도 바꾸지 않는다.
 - 관리자 방 삭제(`DELETE /admin/rooms/:id`)가 이미 삭제된 방(소유자가 먼저 지움)을 만나면 410으로 답하되, 그 방의 `open` 신고는 그때도 모두 `resolved`로 바꾼다. `deleted_by`는 바꾸지 않는다.
 - 메시지 신고가 서명은 맞고 24시간이 지났으면 400 `fields.message = "report.expired"`. 서명이 틀리면 `fields` 없는 400(만료 여부를 말하지 않는다).
 
