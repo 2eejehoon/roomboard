@@ -57,6 +57,17 @@ test('Q9: the 6th message within 10 seconds is not delivered and the sender is t
   await b.waitForTimeout(500);
   await expect(messages(b)).toHaveCount(5);
   await expect(messages(b).filter({ hasText: '메시지 6' })).toHaveCount(0);
+
+  // PR #26 review: the held message stays in the input, Enter does not send it while the wait is on, and it goes after.
+  const input = panel(a).getByRole('textbox', { name: ko['chat.input'] });
+  await expect(input).toHaveValue('메시지 6');
+  await input.press('Enter');
+  await b.waitForTimeout(300);
+  await expect(messages(b)).toHaveCount(5);
+  await expect(panel(a).getByRole('status')).toHaveCount(0, { timeout: 5000 });
+  await input.press('Enter');
+  await expect(messages(b).filter({ hasText: '메시지 6' })).toHaveCount(1);
+  await expect(input).toHaveValue('');
 });
 
 // spec.md Edge Cases: an over-long message is not sent, and the sender is told (PR #26 review: it used to be cut to 200).
