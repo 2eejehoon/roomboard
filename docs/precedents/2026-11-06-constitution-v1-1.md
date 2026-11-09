@@ -16,3 +16,5 @@
 ## 검토한 대안
 
 개정 이력을 헌법 본문(Sync Impact Report)에 누적 — 본문이 비대해져서 기각. 판례 번호 순번(NNNN) — 동시 PR 충돌로 날짜 기반 채택.
+
+대체됨: 2026-11-09-session-auto-merge.md
