@@ -26,7 +26,8 @@ type Report = {
   createdAt: number;
   reportCount: number;
 };
-type Load = { kind: 'loading' | 'network' } | { kind: 'rateLimited'; retryAfterMs: number } | { kind: 'ok'; items: Report[]; nextCursor: string | null };
+type Fail = { kind: 'network' } | { kind: 'rateLimited'; retryAfterMs: number };
+type Load = { kind: 'loading' } | Fail | { kind: 'ok'; items: Report[]; nextCursor: string | null };
 
 // sessionStorage can throw (blocked storage); then the token lives as long as the page.
 const stored = () => {
@@ -105,29 +106,29 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
     [key],
   );
   const [deleting, setDeleting] = useState<Report | null>(null);
+  // A failed resolve or delete keeps the list and says so above it, with a retry that sends the same action (PR #39 review).
+  const [failed, setFailed] = useState<{ fail: Fail; retry: () => void } | null>(null);
 
-  // Any answer but 2xx: 401 drops the token, 429 and the rest are the common states. 410 is a room deleted already, which is
-  // what an admin delete wanted.
+  // 410 is a room deleted already, which is what an admin delete wanted. 401 drops the token; other failures go to the caller.
   const call = useCallback(
-    (path: string, method = 'GET'): Promise<Response | null> =>
+    (path: string, method = 'GET'): Promise<Response | Fail | null> =>
       fetch(`/api/admin/${path}`, { method, headers: { authorization: `Bearer ${token}` } }).then(
         async (res) => {
           if (res.ok || res.status === 410) return res;
-          if (res.status === 401) onUnauthorized();
-          else if (res.status === 429)
-            setLoad({ kind: 'rateLimited', retryAfterMs: ((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000 });
-          else setLoad({ kind: 'network' });
-          return null;
+          if (res.status === 401) return (onUnauthorized(), null);
+          if (res.status === 429)
+            return { kind: 'rateLimited', retryAfterMs: ((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000 } as const;
+          return { kind: 'network' } as const;
         },
-        () => (setLoad({ kind: 'network' }), null),
+        () => ({ kind: 'network' }) as const,
       ),
-    [token, onUnauthorized, setLoad],
+    [token, onUnauthorized],
   );
 
   const page = useCallback(
     (cursor: string | null) =>
       call(`reports?status=${status}${cursor ? `&cursor=${cursor}` : ''}`).then(async (res) => {
-        if (!res) return;
+        if (!(res instanceof Response)) return res && setLoad(res);
         const next = (await res.json()) as { items: Report[]; nextCursor: string | null };
         setLoad((old) => ({
           kind: 'ok',
@@ -142,17 +143,22 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
   useEffect(() => void page(null), [page]);
 
   const act = async (path: string, method: string) => {
-    if (await call(path, method)) setAttempt((n) => n + 1);
+    setFailed(null);
+    const res = await call(path, method);
+    if (res instanceof Response) setAttempt((n) => n + 1);
+    else if (res) setFailed({ fail: res, retry: () => void act(path, method) });
   };
 
   return (
     <Stack gap={4} padding={4}>
       <Heading level={1}>{t('admin.heading')}</Heading>
-      <TabList role="tablist" value={status} onChange={(v) => setStatus(v as Status)}>
+      <TabList role="tablist" value={status} onChange={(v) => (setFailed(null), setStatus(v as Status))}>
         <Tab value="open" panelId={PANEL} label={t('admin.open')} />
         <Tab value="resolved" panelId={PANEL} label={t('admin.resolved')} />
       </TabList>
       <Stack id={PANEL} role="tabpanel" gap={4}>
+        {failed?.fail.kind === 'network' && <NetworkError onRetry={failed.retry} />}
+        {failed?.fail.kind === 'rateLimited' && <RateLimited retryAfterMs={failed.fail.retryAfterMs} />}
         {load.kind === 'loading' && <Loading />}
         {load.kind === 'network' && <NetworkError onRetry={() => setAttempt((n) => n + 1)} />}
         {load.kind === 'rateLimited' && <RateLimited retryAfterMs={load.retryAfterMs} />}
