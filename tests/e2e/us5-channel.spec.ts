@@ -1,5 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
-import { enter, newPage, state, withoutWebGL } from './helpers.ts';
+import { expect, type Page } from '@playwright/test';
+import { enter, newPage, state, test, withoutWebGL } from './helpers.ts';
 
 // T076 (US5): the header shows the channel and its head count, and 2D's <main> shows the channel (screens.md S3).
 // Filling a channel to 21 is the Worker test's job (T075, quickstart Q10); here the count follows one more visitor.

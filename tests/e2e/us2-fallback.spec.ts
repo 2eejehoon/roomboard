@@ -1,7 +1,7 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
 import { t } from '../../src/client/i18n/t.ts';
-import { enter, move, newPage, withoutWebGL } from './helpers.ts';
+import { enter, move, newPage, test, withoutWebGL } from './helpers.ts';
 
 // quickstart Q4 and the 2D half of Q1 (US2, T051). The dev server serves the 3D code as room3d/*.tsx and pre-bundled deps,
 // a build as Scene-*.js.

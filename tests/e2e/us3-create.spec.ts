@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
-import { newPage, withoutWebGL } from './helpers.ts';
+import { newPage, test, withoutWebGL } from './helpers.ts';
 
 // T061 / quickstart Q6·Q7, screens.md S1·S2. Only Q6 really creates a room: the create limit is 3 per 60 s for every test client.
 // Pages run without WebGL so a new room's 3D scene does not hold the CPU (T038).
