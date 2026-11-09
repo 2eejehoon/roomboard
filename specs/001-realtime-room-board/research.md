@@ -197,7 +197,7 @@
 - 0.x라 버전을 정확히 고정한다. `postinstall`(설정 안내 출력뿐)은 `allowScripts`에서 거부한다. CLI의 `init`은
   CLAUDE.md·AGENTS.md를 고치므로 쓰지 않는다.
 - **측정**(로컬 `npm run build`, 제공자와 CSS만 추가): 첫 JS 청크 gzip 103.3KB → 147.8KB, CSS 44.4KB(트리 셰이킹 없음, 2D 포함 모든 페이지).
-  4G(약 1.5Mbps)에서 약 0.5초 늘어서 SC-001(10초)과 3D 청크(gzip 1.16MB)에 비해 작다. S1과 공통 상태를 바꾼 뒤(T101) 첫 JS 청크는 199.1KB.
+  4G(약 1.5Mbps)에서 약 0.5초 늘어서 SC-001(10초)과 3D 청크(gzip 1.16MB)에 비해 작다. S1과 공통 상태를 바꾼 뒤(T101) 첫 JS 청크는 199.1KB, S2(T102) 뒤 205.9KB.
   첫 청크 구성(source map 기준, 압축 전): Astryx theme 런타임 54KB, Layer 32KB(Button의 tooltip이 끌어옴), utils 33KB,
   i18n+ICU 메시지 파서 약 51KB, 컴포넌트 하나당 1~8KB. 대부분 한 번 드는 공통 비용이라 다음 화면마다 늘어나는 양은 작다.
   화면을 더 옮길 때마다 이 숫자를 다시 잰다. 테마 CSS에 외부 폰트 요청이

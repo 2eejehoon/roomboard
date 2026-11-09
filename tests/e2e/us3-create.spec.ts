@@ -45,7 +45,8 @@ test('Q7: a title of spaces shows the field error and sends nothing', async ({ b
   await page.goto('/new');
   await fillForm(page, '   ');
   await send(page);
-  await expect(page.getByText(ko['field.title'])).toBeVisible();
+  // The error is tied to the field (Astryx also announces it in a live region, so getByText finds two).
+  await expect(page.getByLabel(ko['create.title'])).toHaveAccessibleDescription(new RegExp(ko['field.title']));
   await expect(page).toHaveURL(/\/new$/);
   expect(posts).toEqual([]);
 });
@@ -74,4 +75,28 @@ test('S1: an empty board offers to create the first room', async ({ browser }) =
   await expect(page.getByRole('heading', { name: ko['board.empty'] })).toBeVisible(); // EmptyState also says it in a live region
   await page.getByRole('link', { name: ko['board.createFirst'] }).click();
   await expect(page).toHaveURL(/\/new$/);
+});
+
+test('S1: scrolling to the end loads the next page without a click', async ({ browser }) => {
+  const page = await newPage(browser);
+  const items = Array.from({ length: 30 }, (_, i) => ({
+    id: `room${String(i).padStart(6, '0')}`,
+    title: `방 ${i}`,
+    themeId: 'cafe',
+    onlineCount: 0,
+    createdAt: Date.now(),
+  }));
+  const cursors: string[] = [];
+  await page.route(/\/api\/rooms(\?|$)/, (route) => {
+    const cursor = new URL(route.request().url()).searchParams.get('cursor');
+    if (cursor) cursors.push(cursor);
+    return route.fulfill({
+      json: cursor ? { items: [], nextCursor: null } : { items, nextCursor: 'next-page' },
+    });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: ko['board.more'] })).not.toBeInViewport(); // 30 rows push it below the fold
+  expect(cursors).toEqual([]);
+  await page.mouse.wheel(0, 10_000);
+  await expect.poll(() => cursors).toEqual(['next-page']);
 });
