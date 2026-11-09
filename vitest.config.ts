@@ -14,7 +14,7 @@ export default defineConfig({
         },
       },
       {
-        plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' }, miniflare: { bindings: { TEST_MIGRATIONS: migrations, TURNSTILE_SECRET: 'secret-that-siteverify-accepts' } } })],
+        plugins: [cloudflareTest({ wrangler: { configPath: './wrangler.jsonc' }, miniflare: { bindings: { TEST_MIGRATIONS: migrations, TURNSTILE_SECRET: 'secret-that-siteverify-accepts', SERVER_SECRET: 'test-server-secret' } } })],
         test: { name: 'worker', include: ['tests/worker/**/*.test.ts'], setupFiles: ['tests/worker/apply-migrations.ts'] },
       },
     ],

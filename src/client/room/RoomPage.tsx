@@ -1,4 +1,4 @@
-// screens.md S3 공통 영역 and S6, the 3D body (T045), the 2D body and the 3D↔2D switch (T054, T056).
+// screens.md S3 공통 영역 and S6, the 3D body (T045), the 2D body and the 3D↔2D switch (T054, T056), chat (T073).
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
 import { CLOSE } from '../../core/protocol.ts';
@@ -10,6 +10,7 @@ import { RoomStore, type RoomState } from '../state/room-store.ts';
 import type { RoomInfo } from '../../core/room-session.ts';
 import { Loading, NetworkError } from '../Status.tsx';
 import { installTestHooks } from '../test-hooks.ts';
+import { ChatPanel } from './ChatPanel.tsx';
 import { Room2D } from './room2d/Room2D.tsx';
 import { hasWebGL, initialView } from './webgl.ts';
 
@@ -25,6 +26,7 @@ export function RoomPage({ id }: { id: string }) {
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const socket = useRef<RoomSocket | null>(null);
   const move = useCallback<RoomSocket['move']>((p, r, a) => socket.current?.move(p, r, a), []);
+  const chat = useCallback((text: string) => socket.current?.chat(text), []);
   const [webgl] = useState(hasWebGL);
   const [view, setView] = useState<View>(() => initialView(readView(), webgl));
   const [failed3d, setFailed3d] = useState(false);
@@ -85,6 +87,7 @@ export function RoomPage({ id }: { id: string }) {
           <Room2D room={room} state={state} />
         </>
       )}
+      <ChatPanel state={state} send={chat} view={view} />
     </>
   );
 }

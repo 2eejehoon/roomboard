@@ -14,17 +14,20 @@ export type RoomState = {
   channel: number | null;
   peers: Peer[];
   chat: Extract<ServerMessage, { t: 'chat' }>[];
+  // retryAfterMs of my last rate_limited chat, until that wait is over.
+  chatLimited: number | null;
   notices: Notice[];
   connection: Connection;
   closeCode: number | null;
 };
 
-const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], notices: [], connection: 'connecting', closeCode: null };
+const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], chatLimited: null, notices: [], connection: 'connecting', closeCode: null };
 
 export class RoomStore {
   private state = initial;
   private readonly listeners = new Set<() => void>();
   private noticeId = 0;
+  private limitTimer?: ReturnType<typeof setTimeout>;
 
   getState = (): RoomState => this.state;
 
@@ -37,7 +40,8 @@ export class RoomStore {
     const s = this.state;
     switch (msg.t) {
       case 'welcome':
-        return this.set({ room: msg.room, you: { ...msg.you, p: msg.spawn, r: 0, a: 'idle' }, channel: msg.channel, peers: msg.peers, connection: 'open' });
+        // A reconnect into another channel must not mix the old channel's chat into the new one.
+        return this.set({ room: msg.room, you: { ...msg.you, p: msg.spawn, r: 0, a: 'idle' }, channel: msg.channel, peers: msg.peers, connection: 'open', chat: msg.channel === s.channel ? s.chat : [] });
       case 'peer_joined':
         return this.set({ peers: [...s.peers.filter((p) => p.peerId !== msg.peer.peerId), msg.peer], notices: this.notice('joined', msg.peer.nickname) });
       case 'peer_left': {
@@ -48,7 +52,14 @@ export class RoomStore {
         return this.set({ peers: s.peers.map((p) => (p.peerId === msg.peerId ? { ...p, p: msg.p, r: msg.r, a: msg.a } : p)) });
       case 'correction':
         return s.you ? this.set({ you: { ...s.you, p: msg.p, r: msg.r } }) : undefined;
-      // chat (US4), room_updated / room_deleted (US6) are applied by those stories.
+      case 'chat':
+        // The server keeps no chat, so the last 100 are all there is to scroll back to.
+        return this.set({ chat: [...s.chat, msg].slice(-100) });
+      case 'rate_limited':
+        clearTimeout(this.limitTimer);
+        this.limitTimer = setTimeout(() => this.set({ chatLimited: null }), msg.retryAfterMs);
+        return this.set({ chatLimited: msg.retryAfterMs });
+      // room_updated / room_deleted (US6) are applied by that story.
     }
   }
 

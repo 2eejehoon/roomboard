@@ -31,6 +31,7 @@ const KEYS: { name: Control; keys: string[] }[] = [
 // The protocol's p is the feet.
 const FEET = 0.8;
 const euler = new Euler(0, 0, 0, 'YXZ');
+const STILL: Record<Control, boolean> = { forward: false, backward: false, leftward: false, rightward: false, jump: false, run: false };
 
 // memo: RoomPage re-renders on every store change, including my own pose each frame; store and move never change.
 export default memo(function Scene({ store, move }: { store: RoomStore; move: Move }) {
@@ -116,7 +117,8 @@ function Me({ store, move, avatarId }: { store: RoomStore; move: Move; avatarId:
   useFrame(() => {
     const h = ecctrl.current;
     if (!h || !camera.current) return;
-    const keys = getKeys();
+    // T074: while the chat input has focus the movement keys are letters (screens.md S3 3D).
+    const keys = document.activeElement instanceof HTMLInputElement ? STILL : getKeys();
     const stick = useJoystickStore.getState().joysticks.default;
     const jump = keys.jump || !!useButtonStore.getState().buttons.jump;
     h.setMovement({ ...keys, jump, joystick: { x: stick.x, y: stick.y } });

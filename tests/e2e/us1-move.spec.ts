@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
-import { enter, newPage, state, withoutWebGL } from './helpers.ts';
+import { enter, newPage, state, test, withoutWebGL } from './helpers.ts';
 
 // quickstart Q1~Q3 (US1).
 // Q1/Q2 time the sync path, so they run without the 3D scene: software WebGL on the CI machine starves the local Worker

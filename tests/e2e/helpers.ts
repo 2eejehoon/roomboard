@@ -1,14 +1,19 @@
-import { expect, test, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from '@playwright/test';
+import { expect, test as base, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from '@playwright/test';
 
 // Shared by the room specs. seedroom01 comes from npm run seed:dev.
-export type HookState = { you: { peerId: string; nickname: string } | null; peers: { peerId: string; p: number[]; a: string }[]; connection: string };
+export type HookState = { you: { peerId: string; nickname: string; p: number[]; a: string } | null; peers: { peerId: string; p: number[]; a: string }[]; connection: string };
 type Hooks = { __roomboard: { state(): HookState; move(p: number[], r: number): void } };
 export const state = (page: Page) => page.evaluate(() => (window as unknown as Hooks).__roomboard.state());
 export const move = (page: Page, p: number[], r = 0) => page.evaluate(([p, r]) => (window as unknown as Hooks).__roomboard.move(p as number[], r as number), [p, r]);
 
 // Contexts from browser.newContext() outlive the test; an earlier test's 3D pages would keep rendering and starve the next one.
+// An auto fixture, not a top-level test.afterEach: this module is evaluated once per worker, so such a hook registered only in
+// the first spec that imported it, and every later spec left its pages open (13 extra peers by T074, T070).
 const contexts: BrowserContext[] = [];
-test.afterEach(() => Promise.all(contexts.splice(0).map((c) => c.close())));
+export const test = base.extend<{ closeContexts: void }>({
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads the fixture's dependencies from this destructuring
+  closeContexts: [async ({}, use) => { await use(); await Promise.all(contexts.splice(0).map((c) => c.close())); }, { auto: true }],
+});
 export async function newPage(browser: Browser, options?: BrowserContextOptions) {
   const context = await browser.newContext(options);
   contexts.push(context);
@@ -28,9 +33,10 @@ export async function withoutWebGL(page: Page) {
 
 export async function enter(page: Page, path = '/rooms/seedroom01') {
   await page.goto(path);
-  // Generous: another context's software-rendered 3D scene can hold the CPU while this one connects.
+  // Generous: a software-rendered 3D scene, this page's or another context's, can hold the CPU while it connects. 15 s ran
+  // out for a mobile 3D page in CI (runs 42539252136, 42541919523).
   await expect
-    .poll(async () => (await page.evaluate(() => '__roomboard' in window)) && (await state(page)).connection, { timeout: 15_000 })
+    .poll(async () => (await page.evaluate(() => '__roomboard' in window)) && (await state(page)).connection, { timeout: 30_000 })
     .toBe('open');
   return (await state(page)).you!;
 }

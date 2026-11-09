@@ -10,7 +10,7 @@ import words from '../data/profanity-ko.txt';
 import { verifyTurnstile } from './turnstile.ts';
 
 type C = Context<{ Bindings: Env }>;
-const filter = createChatFilter(parseWordList(words));
+export const filter = createChatFilter(parseWordList(words));
 
 export type Room = {
   id: string;

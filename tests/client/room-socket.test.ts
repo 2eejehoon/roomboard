@@ -205,4 +205,16 @@ describe('move throttle', () => {
     vi.advanceTimersByTime(1000);
     expect(last().moves()).toEqual([]);
   });
+
+  it('sends chat with a fresh nonce each time, and nothing while not connected', () => {
+    const { socket } = start();
+    socket.chat('먼저');
+    last().open();
+    socket.chat('아직');
+    last().receive(welcome);
+    socket.chat('안녕');
+    socket.chat('또');
+    const chats = last().sent.filter((s) => s.startsWith('{"t":"chat"')).map((s) => JSON.parse(s));
+    expect(chats).toEqual([{ t: 'chat', text: '안녕', nonce: 'c-1' }, { t: 'chat', text: '또', nonce: 'c-2' }]);
+  });
 });
