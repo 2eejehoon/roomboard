@@ -1,4 +1,10 @@
 // screens.md S2 (T066). Checks with the server's schema before sending (precedent 2026-11-08-create-form-checks). S4 shares the fields.
+import { Button } from '@astryxdesign/core/Button';
+import { Heading } from '@astryxdesign/core/Heading';
+import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
+import { Stack } from '@astryxdesign/core/Stack';
+import { TextArea } from '@astryxdesign/core/TextArea';
+import { TextInput } from '@astryxdesign/core/TextInput';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { createRoomRequest, fieldErrors, type FieldErrors } from '../../core/api-schemas.ts';
 import { THEME_IDS, THEMES, type ThemeId } from '../../core/themes.ts';
@@ -43,29 +49,32 @@ export function CreateRoomPage() {
   }
 
   return (
-    <form onSubmit={submit} noValidate>
-      <h1>{t('create.heading')}</h1>
-      <RoomFields value={fields} onChange={setFields} errors={errors} />
-      <label>
-        {t('create.password')}
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} maxLength={64} required aria-describedby="password-hint password-error" />
-      </label>
-      <p id="password-hint">{t('create.passwordHint')}</p>
-      <FieldError errors={errors} field="password" />
-      <Turnstile key={widget} onToken={setToken} onError={scriptFailed} />
-      {failure?.kind === 'turnstile' && <p role="alert">{t('create.turnstileFailed')}</p>}
-      {failure?.kind === 'rateLimited' && <RateLimited retryAfterMs={failure.retryAfterMs} />}
-      {failure?.kind === 'network' && (
-        <NetworkError
-          onRetry={() => {
-            setFailure(null);
-            retryWidget();
-          }}
+    <form onSubmit={submit}>
+      <Stack gap={4} padding={4}>
+        <Heading level={1}>{t('create.heading')}</Heading>
+        <RoomFields value={fields} onChange={setFields} errors={errors} />
+        <TextInput
+          type="password"
+          label={t('create.password')}
+          description={t('create.passwordHint')}
+          value={password}
+          onChange={(v) => setPassword(v.slice(0, 64))}
+          isRequired
+          status={errorStatus(errors, 'password')}
         />
-      )}
-      <button type="submit" disabled={!title || !themeId || !password || !token || sending}>
-        {t('create.submit')}
-      </button>
+        <Turnstile key={widget} onToken={setToken} onError={scriptFailed} />
+        {failure?.kind === 'turnstile' && <p role="alert">{t('create.turnstileFailed')}</p>}
+        {failure?.kind === 'rateLimited' && <RateLimited retryAfterMs={failure.retryAfterMs} />}
+        {failure?.kind === 'network' && (
+          <NetworkError
+            onRetry={() => {
+              setFailure(null);
+              retryWidget();
+            }}
+          />
+        )}
+        <Button type="submit" label={t('create.submit')} isDisabled={!title || !themeId || !password || !token || sending} />
+      </Stack>
     </form>
   );
 }
@@ -75,34 +84,46 @@ export type Fields = { title: string; description: string; themeId: ThemeId | ''
 export const FieldError = ({ errors, field }: { errors: FieldErrors; field: keyof FieldErrors }) =>
   errors[field] ? <p id={`${field}-error`}>{t(errors[field])}</p> : null;
 
+// The field's error under it, wired to aria-invalid and aria-describedby.
+export const errorStatus = (errors: FieldErrors, field: keyof FieldErrors) =>
+  errors[field] ? { type: 'error' as const, message: t(errors[field]) } : undefined;
+
 // Title, description and theme: S2 and S4 (T084).
 export function RoomFields({ value, onChange, errors }: { value: Fields; onChange: (v: Fields) => void; errors: FieldErrors }) {
   const { title, description, themeId } = value;
   return (
     <>
-      <label>
-        {t('create.title')}
-        <input value={title} onChange={(e) => onChange({ ...value, title: e.target.value })} maxLength={60} required aria-describedby="title-error" />
-      </label>
-      <p>{t('create.remaining', { n: 60 - title.length })}</p>
-      <FieldError errors={errors} field="title" />
-      <label>
-        {t('create.description')}
-        <textarea value={description} onChange={(e) => onChange({ ...value, description: e.target.value })} maxLength={300} aria-describedby="description-error" />
-      </label>
-      <p>{t('create.remaining', { n: 300 - description.length })}</p>
-      <FieldError errors={errors} field="description" />
-      <fieldset aria-describedby="themeId-error">
-        <legend>{t('create.theme')}</legend>
+      <TextInput
+        label={t('create.title')}
+        description={t('create.remaining', { n: 60 - title.length })}
+        value={title}
+        onChange={(v) => onChange({ ...value, title: v.slice(0, 60) })}
+        isRequired
+        status={errorStatus(errors, 'title')}
+      />
+      <TextArea
+        label={t('create.description')}
+        description={t('create.remaining', { n: 300 - description.length })}
+        value={description}
+        // slice: Astryx fields take no native maxLength (TextArea's draws its own counter and does not cut).
+        onChange={(v) => onChange({ ...value, description: v.slice(0, 300) })}
+        status={errorStatus(errors, 'description')}
+      />
+      <RadioList
+        label={t('create.theme')}
+        value={themeId}
+        onChange={(id) => onChange({ ...value, themeId: id as ThemeId })}
+        status={errorStatus(errors, 'themeId')}
+      >
         {THEME_IDS.map((id) => (
-          <label key={id}>
-            <input type="radio" name="theme" value={id} checked={themeId === id} onChange={() => onChange({ ...value, themeId: id })} />
-            <img src={`/assets/previews/${id}.jpg`} alt="" width={160} height={90} />
-            {t(THEMES[id].nameKey)}
-          </label>
+          <RadioListItem
+            key={id}
+            value={id}
+            label={t(THEMES[id].nameKey)}
+            startContent={<img src={`/assets/previews/${id}.jpg`} alt="" width={160} height={90} />}
+          />
         ))}
-      </fieldset>
-      <FieldError errors={errors} field="themeId" />
+      </RadioList>
     </>
   );
 }
