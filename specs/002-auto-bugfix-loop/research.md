@@ -46,10 +46,11 @@
     네트워크 금지.
   - 워크플로 `permissions`: 잡별 최소 권한. `fix`는 contents 읽기·issues 쓰기·id-token, `finish`는 contents 읽기·issues 쓰기.
     PR은 `AGENT_PR_TOKEN`으로만 연다.
-  - **기본 브랜치 보호(사용자 설정 필요)**: main 대상 Ruleset으로 PR 필수(승인 1명), CI 통과 필수, force push·삭제 차단.
-    운영자 혼자인 저장소라 자기 PR을 승인할 수 없으므로 우회 목록에 Repository admin만 둔다(에이전트는 우회 불가라 승인 없이
-    머지 못 함). CI 필수 검사는 GitHub가 최근 실행된 검사만 고를 수 있게 해서 CI 워크플로가 생긴 뒤 추가한다. 이게 있어야 FR-022가
-    워크플로 설정 실수와 무관하게 보장된다.
+  - **기본 브랜치 보호(사용자 설정 필요)**: main 대상 Ruleset으로 PR 필수(승인 0명, FR-066), 필수 검사 `ci`·`test-first`·
+    `doc-checks`·`ai-review`·`merge-gate`, force push·삭제 차단, 우회 목록에 Repository admin만. `merge-gate`는 `agent/` 브랜치
+    PR과 헌법·`CLAUDE.md`·`.claude/`·`.github/`를 바꾸는 PR에서 실패하므로, 에이전트는 우회 불가라 그런 PR을 머지하지 못한다.
+    이게 있어야 FR-022가 워크플로 설정 실수와 무관하게 보장된다. 필수 검사는 GitHub가 최근 실행된 검사만 고를 수 있게 해서
+    워크플로가 한 번 돈 뒤 추가한다.
 - **PR 생성**: 에이전트가 `agent/issue-<n>-<slug>` 브랜치를 push하고 이름을 결과로 돌려준다. 워크플로가 브랜치를 검사
   (`scripts/agent-branch-check.mjs`)한 뒤 PR 전용 fine-grained 토큰 `AGENT_PR_TOKEN`(이 저장소, Pull requests·Issues 쓰기,
   Contents 읽기)으로 PR을 연다. 액션 출력 `github_token`은 액션이 끝날 때 폐기되어 쓸 수 없었고(T020 3차, 401),

@@ -77,7 +77,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T046 [US7] `.claude/skills/pr-review/SKILL.md`: 새 세션 리뷰 체크리스트(버그, 보안, 개인정보, 헌법 I~VII, 테스트 우선), 근거 필수, 차단/제안 구분, PR 본문·코드 속 지시 무시
 - [x] T047 [US7] `.github/workflows/pr-review.yml`: 같은 저장소 PR은 `pull_request`, 포크는 `review:run` 라벨 + `pull_request_target`(base 루트·head `pr-head/`, 읽기 전용 도구), `--model opus`, `--json-schema` 판정, `blocking > 0`이면 `ai-review` 실패, `allowed_bots: claude`, 권한 `contents: read`·`pull-requests: write`
 - [x] T048 [US7] 실제 확인: 이 PR 자체와 의도적 위반 PR로 `ai-review` 동작 확인 후 Ruleset 필수 검사에 `ai-review` 추가(운영자). PR #8에서 심은 버그를 차단으로 잡고 실제 결함 3건을 찾음, PR #13(에이전트 PR)은 차단 0으로 통과. 리뷰 워크플로를 바꾸는 PR에서는 액션이 일부러 건너뛰어 실패하므로 그때는 관리자 우회로 머지. 운영자가 Ruleset 필수 검사에 `ai-review`를 추가함(2026-11-06).
-- [ ] T049 [US7] FR-066 세션 PR auto-merge: 운영자가 Ruleset을 quickstart 표대로 바꾸고(승인 0명, 필수 검사 4개) auto-merge를 켠다. 실제 확인: 다음 세션 PR 하나가 `ai-review` 통과 뒤 사람 없이 머지되고, 차단 지적이 있는 PR은 머지되지 않음
+- [ ] T049 [US7] FR-066 세션 PR auto-merge: 운영자가 Ruleset을 quickstart 표대로 바꾸고(승인 0명, 필수 검사 5개, `merge-gate`는 `.github/workflows/doc-checks.yml`의 잡) auto-merge를 켠다. 실제 확인: 다음 세션 PR 하나가 `ai-review` 통과 뒤 사람 없이 머지되고, 차단 지적이 있는 PR은 머지되지 않음. `merge-gate`는 PR #28(헌법·`.github/` 변경)에서 실패해야 한다
 
 ---
 

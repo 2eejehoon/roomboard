@@ -10,7 +10,7 @@
 | [2026-11-06-report-dedupe-hash](2026-11-06-report-dedupe-hash.md) | 중복 신고는 기기 키 해시로 판별 | 유효 |
 | [2026-11-06-room-no-expiry](2026-11-06-room-no-expiry.md) | 방은 삭제 전까지 영구 | 유효 |
 | [2026-11-06-list-newest](2026-11-06-list-newest.md) | 목록은 최신순만 | 유효 |
-| [2026-11-06-constitution-v1-1](2026-11-06-constitution-v1-1.md) | 헌법 v1.1.0: 재발 방지, 자동화 경계, 판례 제도, 문서 구조 | 유효 |
+| [2026-11-06-constitution-v1-1](2026-11-06-constitution-v1-1.md) | 헌법 v1.1.0: 재발 방지, 자동화 경계, 판례 제도, 문서 구조 | 일부 대체됨(머지) |
 | [2026-11-06-agent-trigger-scope](2026-11-06-agent-trigger-scope.md) | 수정 에이전트는 서비스 봇 이슈에서만 자동 실행 | 유효 |
 | [2026-11-06-user-bug-report-review](2026-11-06-user-bug-report-review.md) | 사용자 버그 신고는 운영자 검토 후 이슈화 | 유효 |
 | [2026-11-06-recurrence-signal](2026-11-06-recurrence-signal.md) | 재발 판단은 버그 원인 분류 + PR 리뷰 지적 | 유효 |
@@ -22,7 +22,7 @@
 | [2026-11-06-issue-token-pat](2026-11-06-issue-token-pat.md) | 자동 이슈 생성은 fine-grained PAT | 유효 |
 | [2026-11-06-doc-checks-first](2026-11-06-doc-checks-first.md) | 002는 문서 검사(US5)부터 구현 | 유효 |
 | [2026-11-06-doc-structure-table-globs](2026-11-06-doc-structure-table-globs.md) | 문서 구조 표를 경로 패턴으로 다시 씀 (헌법 1.1.1) | 유효 |
-| [2026-11-06-independent-pr-review](2026-11-06-independent-pr-review.md) | 모든 PR에 독립 리뷰 에이전트, 모델은 운영자 설정대로 | 유효 |
+| [2026-11-06-independent-pr-review](2026-11-06-independent-pr-review.md) | 모든 PR에 독립 리뷰 에이전트, 모델은 운영자 설정대로 | 일부 대체됨(머지) |
 | [2026-11-06-agent-one-run-per-trigger](2026-11-06-agent-one-run-per-trigger.md) | 이슈 하나에 에이전트 실행 하나: opened 제외, 현재 라벨 기준 | 유효 |
 | [2026-11-06-agent-pushes-own-branch](2026-11-06-agent-pushes-own-branch.md) | 수정 에이전트가 브랜치를 직접 만들고 이름을 결과로 돌려준다 | 일부 대체됨(PR 토큰) |
 | [2026-11-06-agent-pr-token](2026-11-06-agent-pr-token.md) | 에이전트 PR은 PR 전용 토큰으로 연다 | 유효 |
