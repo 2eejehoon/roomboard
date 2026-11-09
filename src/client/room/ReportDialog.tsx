@@ -4,7 +4,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { CreateReportRequest } from '../../core/api-schemas.ts';
 import { deviceKey } from '../device.ts';
 import { t } from '../i18n/t.ts';
@@ -18,12 +18,16 @@ export function ReportDialog({ target, onClose }: { target: CreateReportRequest[
   const [reason, setReason] = useState<Reason | null>(null);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<Result>(null);
+  // A ref, not the state: two quick clicks on the retry come before a re-render, and a second POST would read as duplicate (PR #39 review).
+  const inFlight = useRef(false);
 
   const send = async () => {
-    if (!reason) return;
+    if (!reason || inFlight.current) return;
+    inFlight.current = true;
     setSending(true);
     const body: CreateReportRequest = { target, reason, deviceKey: deviceKey() };
     const res = await fetch('/api/reports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }).catch(() => null);
+    inFlight.current = false;
     setSending(false);
     if (res?.status === 201 || res?.status === 200) return setResult({ kind: res.status === 201 ? 'accepted' : 'duplicate' });
     const err = (await res?.json().catch(() => null)) as { fields?: { message?: string }; retryAfterMs?: number } | null;

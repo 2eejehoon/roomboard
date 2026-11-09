@@ -70,3 +70,26 @@ test('Q12, Q15, Q13: a message and a room are reported, once per device; the adm
   await b.goto(`/rooms/${id}`);
   await expect(b.getByText(ko['room.gone'])).toBeVisible();
 });
+
+test('a double click on the report retry sends one more report, not two (PR #39 review)', async ({ browser }) => {
+  const page = await withoutWebGL(await newPage(browser));
+  const posts: number[] = [];
+  await page.route('**/api/reports', async (route) => {
+    posts.push(Date.now());
+    if (posts.length === 1) return route.fulfill({ status: 500 });
+    await new Promise((r) => setTimeout(r, 300));
+    // A second POST for the same device and target would be the duplicate answer.
+    await route.fulfill({ status: posts.length === 2 ? 201 : 200, contentType: 'application/json', body: JSON.stringify({ duplicate: posts.length > 2 }) });
+  });
+  await enter(page);
+  await page.getByRole('button', { name: ko['report.room'] }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('radio', { name: ko['report.reason.spam'] }).check();
+  await dialog.getByRole('button', { name: ko['report.send'] }).click();
+  const retry = dialog.getByRole('button', { name: ko['common.retry'] });
+  await retry.dblclick();
+  await expect(dialog.getByRole('status').filter({ hasText: ko['report.accepted'] })).toBeVisible();
+  await page.waitForTimeout(500);
+  expect(posts).toHaveLength(2);
+  await expect(dialog.getByRole('status').filter({ hasText: ko['report.accepted'] })).toBeVisible();
+});
