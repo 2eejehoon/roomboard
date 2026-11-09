@@ -11,13 +11,17 @@ function store() {
   s.apply({ t: 'chat', messageId: 'm_1', peerId: 'a', nickname: '용감한 여우', text: '<b>안녕</b>', sentAt: 1, channel: 1, sig: 's' });
   return s;
 }
-const render = (s: RoomStore, view: '2d' | '3d') => renderToStaticMarkup(<ChatPanel state={s.getState()} send={() => {}} view={view} />);
+const render = (s: RoomStore, view: '2d' | '3d') => renderToStaticMarkup(<ChatPanel roomId="seedroom01" state={s.getState()} send={() => {}} view={view} />);
 
 describe('ChatPanel', () => {
   it('2D reads only the message list aloud and shows nickname and escaped text', () => {
     const html = render(store(), '2d');
-    expect(html).toMatch(/<ul aria-live="polite"><li><strong>용감한 여우<\/strong> &lt;b&gt;안녕&lt;\/b&gt;<\/li><\/ul>/);
+    expect(html).toMatch(/<ul aria-live="polite"><li><strong>용감한 여우<\/strong> &lt;b&gt;안녕&lt;\/b&gt; <button[^>]*>신고<\/button><\/li><\/ul>/);
     expect(html.match(/aria-live/g)).toHaveLength(1);
+  });
+
+  it('every message has its own report button, named after the sender (T091)', () => {
+    expect(render(store(), '2d')).toMatch(/<button type="button" aria-label="용감한 여우 님 메시지 신고">신고<\/button>/);
   });
 
   it('3D is a details panel without a live region', () => {

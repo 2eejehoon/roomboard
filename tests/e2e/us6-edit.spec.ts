@@ -1,22 +1,10 @@
 import { expect, type Page } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
-import { enter, newPage, state, test, withoutWebGL } from './helpers.ts';
+import { createRoom, enter, newPage, state, test, withoutWebGL } from './helpers.ts';
 
 // T081 / quickstart Q11, screens.md S3 (방이 삭제됨) and S4. A room of its own: the other specs share seedroom01.
 // Pages run without WebGL so no 3D scene holds the CPU (T038).
 const PASSWORD = 'owner-pass';
-
-// The create limit (3 per 60 s) is shared with us3 Q6 and the other project's run, so wait it out once if it bites.
-async function createRoom(page: Page, title: string): Promise<string> {
-  const body = { title, description: 'US6 E2E', themeId: 'cafe', password: PASSWORD, turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX' };
-  let res = await page.request.post('/api/rooms', { data: body });
-  if (res.status() === 429) {
-    await page.waitForTimeout(Number(res.headers()['retry-after'] ?? 60) * 1000);
-    res = await page.request.post('/api/rooms', { data: body });
-  }
-  expect(res.status()).toBe(201);
-  return ((await res.json()) as { id: string }).id;
-}
 
 const openEdit = async (page: Page, id: string) => {
   await page.goto(`/rooms/${id}`);
@@ -28,7 +16,7 @@ test('Q11: wrong password is refused; an edit reaches the board and the room; a 
   test.setTimeout(120_000);
   const suffix = Date.now().toString(36);
   const owner = await withoutWebGL(await newPage(browser));
-  const id = await createRoom(owner, `US6 방 ${suffix}`);
+  const id = await createRoom(owner, `US6 방 ${suffix}`, PASSWORD);
   const guest = await withoutWebGL(await newPage(browser));
   await enter(guest, `/rooms/${id}`);
 

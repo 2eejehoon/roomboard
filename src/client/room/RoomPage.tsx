@@ -16,6 +16,7 @@ import type { RoomInfo } from '../../core/room-session.ts';
 import { Loading, NetworkError } from '../Status.tsx';
 import { installTestHooks } from '../test-hooks.ts';
 import { ChatPanel } from './ChatPanel.tsx';
+import { ReportDialog } from './ReportDialog.tsx';
 import { Room2D } from './room2d/Room2D.tsx';
 import { hasWebGL, initialView } from './webgl.ts';
 
@@ -97,7 +98,7 @@ export function RoomPage({ id }: { id: string }) {
           <Room2D room={room} state={state} />
         </>
       )}
-      <ChatPanel state={state} send={chat} view={view} />
+      <ChatPanel roomId={id} state={state} send={chat} view={view} />
     </>
   );
 }
@@ -140,6 +141,7 @@ export function Notice({ text, reload = false }: { text: string; reload?: boolea
 
 // onSwitch is absent without WebGL: there is no 3D to switch to.
 export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
+  const [reporting, setReporting] = useState(false);
   return (
     <Stack as="header" gap={2} padding={4}>
       {state.connection === 'reconnecting' && (
@@ -158,8 +160,10 @@ export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; 
         )}
         {state.you && <Text as="p">{t('room.you', { nickname: state.you.nickname })}</Text>}
         {onSwitch && <Button label={t(view === '3d' ? 'room.view2d' : 'room.view3d')} variant="secondary" onClick={onSwitch} />}
+        {id && <Button label={t('report.room')} variant="secondary" onClick={() => setReporting(true)} />}
         {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}
       </Stack>
+      {id && reporting && <ReportDialog target={{ type: 'room', roomId: id }} onClose={() => setReporting(false)} />}
     </Stack>
   );
 }

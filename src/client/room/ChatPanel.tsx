@@ -1,20 +1,23 @@
-// T073: screens.md S3 채팅 패널, shared by 3D and 2D. Report buttons per message come with US7.
+// T073: screens.md S3 채팅 패널, shared by 3D and 2D, with a report button per message (T091).
 import { Heading } from '@astryxdesign/core/Heading';
 import { Stack } from '@astryxdesign/core/Stack';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { useEffect, useId, useRef, useState } from 'react';
 import { t } from '../i18n/t.ts';
 import type { RoomState } from '../state/room-store.ts';
+import { ReportDialog } from './ReportDialog.tsx';
 
 const MAX_CHAT = 200; // protocol.ts chat text
 
-type Props = { state: RoomState; send: (text: string) => void; view: '3d' | '2d' };
+type Chat = RoomState['chat'][number];
+type Props = { roomId: string; state: RoomState; send: (text: string) => void; view: '3d' | '2d' };
 
-export function ChatPanel({ state, send, view }: Props) {
+export function ChatPanel({ roomId, state, send, view }: Props) {
   const heading = useId();
   const input = useRef<HTMLInputElement>(null);
   const [text, setText] = useState('');
   const lastSent = useRef('');
+  const [reporting, setReporting] = useState<Chat | null>(null);
   // No maxLength: a paste would be cut silently. Over the limit it is not sent and the sender is told (spec.md Edge Cases).
   const tooLong = text.trim().length > MAX_CHAT;
 
@@ -46,7 +49,11 @@ export function ChatPanel({ state, send, view }: Props) {
         <ul aria-live={view === '2d' ? 'polite' : undefined}>
           {state.chat.map((c) => (
             <li key={c.messageId}>
-              <strong>{c.nickname}</strong> {c.text}
+              <strong>{c.nickname}</strong> {c.text}{' '}
+              {/* Native, like 보내기: an Astryx Button would put a live region in every message. */}
+              <button type="button" aria-label={t('report.messageLabel', { nickname: c.nickname })} onClick={() => setReporting(c)}>
+                {t('report.message')}
+              </button>
             </li>
           ))}
         </ul>
@@ -80,6 +87,13 @@ export function ChatPanel({ state, send, view }: Props) {
           </button>
         </Stack>
       </form>
+      {reporting && (
+        <ReportDialog
+          // The message as received, signature included: the Worker checks it and keeps the snapshot (research R14).
+          target={{ type: 'message', roomId, message: { messageId: reporting.messageId, nickname: reporting.nickname, text: reporting.text, sentAt: reporting.sentAt, channel: reporting.channel, sig: reporting.sig } }}
+          onClose={() => setReporting(null)}
+        />
+      )}
     </section>
   );
   if (view === '2d') return section;

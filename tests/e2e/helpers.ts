@@ -40,3 +40,15 @@ export async function enter(page: Page, path = '/rooms/seedroom01') {
     .toBe('open');
   return (await state(page)).you!;
 }
+
+// The create limit (3 per 60 s) is shared with us3 Q6, the other room specs and the other project's run, so wait it out once if it bites.
+export async function createRoom(page: Page, title: string, password = 'owner-pass'): Promise<string> {
+  const body = { title, description: 'E2E', themeId: 'cafe', password, turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX' };
+  let res = await page.request.post('/api/rooms', { data: body });
+  if (res.status() === 429) {
+    await page.waitForTimeout(Number(res.headers()['retry-after'] ?? 60) * 1000);
+    res = await page.request.post('/api/rooms', { data: body });
+  }
+  expect(res.status()).toBe(201);
+  return ((await res.json()) as { id: string }).id;
+}
