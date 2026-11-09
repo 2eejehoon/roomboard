@@ -93,3 +93,21 @@ test('a double click on the report retry sends one more report, not two (PR #39 
   expect(posts).toHaveLength(2);
   await expect(dialog.getByRole('status').filter({ hasText: ko['report.accepted'] })).toBeVisible();
 });
+
+// PR #39 review: the dialog's own branches for the server's expired key and for 429, against a mocked /api/reports.
+for (const [name, status, body, expected] of [
+  ['an expired message', 400, { code: 'validation', fields: { message: 'report.expired' } }, ko['report.expired']],
+  ['too many reports', 429, { code: 'rate_limited', retryAfterMs: 42_000 }, '42초'],
+] as const) {
+  test(`the report dialog says so for ${name}`, async ({ browser }) => {
+    const page = await withoutWebGL(await newPage(browser));
+    await page.route('**/api/reports', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
+    await enter(page);
+    await page.getByRole('button', { name: ko['report.room'] }).click();
+    const dialog = page.getByRole('dialog');
+    await dialog.getByRole('radio', { name: ko['report.reason.spam'] }).check();
+    await dialog.getByRole('button', { name: ko['report.send'] }).click();
+    await expect(dialog.getByText(expected)).toBeVisible();
+    await expect(dialog.getByText(ko['common.networkError'])).toHaveCount(0);
+  });
+}
