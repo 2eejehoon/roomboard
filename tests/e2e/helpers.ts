@@ -28,9 +28,10 @@ export async function withoutWebGL(page: Page) {
 
 export async function enter(page: Page, path = '/rooms/seedroom01') {
   await page.goto(path);
-  // Generous: another context's software-rendered 3D scene can hold the CPU while this one connects.
+  // Generous: a software-rendered 3D scene, this page's or another context's, can hold the CPU while it connects. 15 s ran
+  // out for a mobile 3D page in CI (runs 42539252136, 42541919523).
   await expect
-    .poll(async () => (await page.evaluate(() => '__roomboard' in window)) && (await state(page)).connection, { timeout: 15_000 })
+    .poll(async () => (await page.evaluate(() => '__roomboard' in window)) && (await state(page)).connection, { timeout: 30_000 })
     .toBe('open');
   return (await state(page)).you!;
 }
