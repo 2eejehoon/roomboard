@@ -13,5 +13,5 @@
   // research R9: room creation 3 per 60 s per client IP.
   "ratelimits": [{ "name": "RL_CREATE", "namespace_id": "1001", "simple": { "limit": 3, "period": 60 } }],
   // Declared so `wrangler types` knows them without a .dev.vars (CI); values come from .dev.vars locally, `wrangler secret` when deployed.
-  "secrets": { "required": ["TURNSTILE_SECRET"] }
+  "secrets": { "required": ["TURNSTILE_SECRET", "SERVER_SECRET"] }
 }
