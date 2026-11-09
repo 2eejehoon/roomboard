@@ -102,12 +102,15 @@ test('T046: a remote avatar moves through the poses in between', async ({ browse
     const [first, last] = [xs[0]!, xs.at(-1)!];
     expect(Math.abs(last - first), 'the avatar moved on screen').toBeGreaterThan(20);
     const between = (x: number) => Math.min(first, last) + 5 < x && x < Math.max(first, last) - 5;
-    // The glide starts between the last frame at the old position and the first one off it. A gap of 200 ms or more spans the
-    // whole glide, so no frame could show it: retry. A shorter gap that still lands on the end is a real jump.
+    // The glide starts somewhere between the last frame at the old position and the first one off it, and runs linearly for 200 ms.
+    // Only a gap short enough that the first moved frame must sit more than 5 px short of the end makes a jump certain; any other
+    // try may have glided unseen (CI's software WebGL stalls), so it is retried (PR #41 review).
     const start = seen.findIndex(([, x]) => x !== first);
     const gap = seen[start]![0] - seen[start - 1]![0];
-    expect(gap < 200, `frame stall of ${Math.round(gap)} ms over the glide, retrying: ${xs.join(',')}`).toBe(true);
-    if (!xs.some(between)) jumped = xs.join(',');
+    const certain = 200 * (1 - 5 / Math.abs(last - first));
+    if (xs.some(between)) return;
+    expect(gap < certain, `frame gap of ${Math.round(gap)} ms may have hidden the glide, retrying: ${xs.join(',')}`).toBe(true);
+    jumped = xs.join(',');
   }).toPass({ timeout: 40_000 });
   expect(jumped, 'positions in between (frames landed inside the glide, yet the label jumped)').toBeUndefined();
 });
