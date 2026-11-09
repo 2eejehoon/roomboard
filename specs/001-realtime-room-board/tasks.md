@@ -200,7 +200,7 @@ description: "Task list for 001-realtime-room-board"
 ### Implementation
 
 - [x] T077 [US5] `src/worker/room-do.ts`·`src/core/room-session.ts`: 채널별 브로드캐스트 확인·보완(T075 통과까지) — 완료. 고칠 것 없음(T075가 그대로 통과).
-- [x] T078 [US5] `src/client/room/RoomPage.tsx`·`room2d/Room2D.tsx`: 채널 번호·인원 표시(i18n 키) — 완료. 고칠 것 없음. `room.channel`·`room.people` 키로 이미 보인다(T076).
+- [x] T078 [US5] `src/client/room/RoomPage.tsx`·`room2d/Room2D.tsx`: 채널 번호·인원 표시(i18n 키) — 완료. 고칠 것 없음. `room.channel`·`room.people` 키로 이미 보인다(T076). 실행 확인: main CI run 42577361955 통과(#27 머지 뒤, 커밋 1cf779d).
 
 ---
 
