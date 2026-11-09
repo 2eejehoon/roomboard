@@ -131,7 +131,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: () 
         const next = (await res.json()) as { items: Report[]; nextCursor: string | null };
         setLoad((old) => ({
           kind: 'ok',
-          items: cursor && old?.kind === 'ok' ? [...old.items, ...next.items] : next.items,
+          // Two clicks on 더 보기 before the answer would append the same page twice; ids already shown are skipped.
+          items: cursor && old?.kind === 'ok' ? [...old.items, ...next.items.filter((n) => !old.items.some((o) => o.id === n.id))] : next.items,
           nextCursor: next.nextCursor,
         }));
       }),
