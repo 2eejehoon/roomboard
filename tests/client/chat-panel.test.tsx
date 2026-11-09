@@ -22,6 +22,17 @@ describe('ChatPanel', () => {
     expect(html).toMatch(/<ul><li><strong>용감한 여우<\/strong> &lt;b&gt;안녕&lt;\/b&gt; <button[^>]*>신고<\/button><\/li><\/ul>/);
   });
 
+  it('the hidden copy holds the newest 5 only, the visible list all of them', () => {
+    const s = store();
+    for (let i = 2; i <= 8; i++) s.apply({ t: 'chat', messageId: `m_${i}`, peerId: 'a', nickname: '용감한 여우', text: `말 ${i}`, sentAt: i, channel: 1, sig: 's' });
+    const html = render(s, '2d');
+    const live = /<ul aria-live="polite">(.*?)<\/ul>/.exec(html)![1]!;
+    expect(live.match(/<li>/g)).toHaveLength(5);
+    expect(live).toContain('말 8');
+    expect(live).not.toContain('말 3');
+    expect(html.match(/<button type="button"/g)).toHaveLength(8);
+  });
+
   it('every message has its own report button, named after the sender (T091)', () => {
     expect(render(store(), '2d')).toMatch(/<button type="button" aria-label="용감한 여우 님 메시지 신고">신고<\/button>/);
   });

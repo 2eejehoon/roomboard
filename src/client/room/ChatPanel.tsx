@@ -9,6 +9,7 @@ import type { RoomState } from '../state/room-store.ts';
 import { ReportDialog } from './ReportDialog.tsx';
 
 const MAX_CHAT = 200; // protocol.ts chat text
+const LIVE_COPIES = 5;
 
 type Chat = RoomState['chat'][number];
 type Props = { roomId: string; state: RoomState; send: (text: string) => void; view: '3d' | '2d' };
@@ -58,11 +59,12 @@ export function ChatPanel({ roomId, state, send, view }: Props) {
           ))}
         </ul>
       </div>
-      {/* 2D reads new messages from this hidden copy: nickname and text only, not the report buttons (precedent 2026-11-09-chat-live-text). */}
+      {/* 2D reads new messages from this hidden copy: nickname and text only, not the report buttons (precedent 2026-11-09-chat-live-text).
+          The newest few only, so browsing the chat does not meet every message twice; an added item is announced when it is added. */}
       {view === '2d' && (
         <VisuallyHidden as="div">
           <ul aria-live="polite">
-            {state.chat.map((c) => (
+            {state.chat.slice(-LIVE_COPIES).map((c) => (
               <li key={c.messageId}>{t('chat.spoken', { nickname: c.nickname, text: c.text })}</li>
             ))}
           </ul>
