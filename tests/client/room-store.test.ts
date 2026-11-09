@@ -135,3 +135,24 @@ describe('RoomStore', () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });
+
+// T085: the owner's edit (websocket.md room_updated).
+describe('RoomStore room_updated', () => {
+  it('replaces the room; poses stay without a theme change', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    s.moveSelf([1, 0, 2], 0.5, 'walk');
+    const edited = { ...room, title: '새 제목' };
+    s.apply({ t: 'room_updated', room: edited });
+    expect(s.getState()).toMatchObject({ room: edited, you: { p: [1, 0, 2] }, peers: [{ p: [0, 0, 4] }] });
+  });
+
+  it('a theme change puts me and the peers at the new spawn, as the server does', () => {
+    const s = new RoomStore();
+    s.apply(welcome);
+    s.moveSelf([1, 0, 2], 0.5, 'walk');
+    s.apply({ t: 'room_updated', room: { ...room, roomData: createRoomData('garden') } });
+    expect(s.getState().you).toMatchObject({ p: [0, 0, 8], r: 0, a: 'idle' });
+    expect(s.getState().peers).toEqual([expect.objectContaining({ peerId: 'a', p: [0, 0, 8], r: 0, a: 'idle' })]);
+  });
+});
