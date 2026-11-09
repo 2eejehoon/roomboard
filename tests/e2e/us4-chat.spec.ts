@@ -100,7 +100,7 @@ test('T074: while typing a chat, movement keys do not move my avatar', async ({ 
     // PR #26 review: the open panel must not cover the joystick or the jump button (constitution: touch input stays usable).
     const box = async (l: ReturnType<Page['locator']>) => (await l.boundingBox())!;
     const chat = await box(a.locator('details'));
-    for (const control of [a.getByRole('group', { name: ko['room3d.joystick'] }), a.getByRole('button', { name: ko['room3d.jump'] })]) {
+    for (const control of [a.getByRole('group', { name: ko['room3d.joystick'] }), a.getByText(ko['room3d.jump'], { exact: true })]) {
       const c = await box(control);
       expect(chat.y + chat.height <= c.y || c.y + c.height <= chat.y || chat.x + chat.width <= c.x || c.x + c.width <= chat.x, 'chat clear of the touch controls').toBe(true);
     }
