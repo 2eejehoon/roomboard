@@ -11,10 +11,11 @@ const MOVE_INTERVAL_MS = 200; // at most 5 a second
 const FINAL = new Set<number>([CLOSE.normal, CLOSE.binary, CLOSE.tooLarge, CLOSE.roomDeleted, CLOSE.unsupportedVersion, CLOSE.badMessages]);
 const round = (n: number) => Math.round(n * 100) / 100;
 
-type Options = { url: string; deviceKey: string; store: RoomStore; WS?: typeof WebSocket; random?: () => number };
+// roomGone: whether GET /api/rooms/:id now says 404 or 410 (websocket.md, after the close code table).
+type Options = { url: string; deviceKey: string; store: RoomStore; WS?: typeof WebSocket; random?: () => number; roomGone?: () => Promise<boolean> };
 export type RoomSocket = { move(p: Vec3, r: number, a: Pose['a']): void; chat(text: string): void; close(): void };
 
-export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random = Math.random }: Options): RoomSocket {
+export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random = Math.random, roomGone }: Options): RoomSocket {
   let ws: WebSocket;
   let attempt = 0;
   let stopped = false;
@@ -30,6 +31,7 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
   const poseKey = (p: Vec3, r: number, a: string) => JSON.stringify([p, r, a]);
 
   function connect() {
+    let welcomed = false;
     ws = new WS(url);
     ws.onopen = () => {
       ws.send(JSON.stringify({ t: 'join', v: PROTOCOL_VERSION, deviceKey }));
@@ -41,18 +43,23 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
       if (!parsed.success) return;
       if (parsed.data.t === 'welcome') {
         attempt = 0;
+        welcomed = true;
         sentKey = poseKey(parsed.data.spawn, 0, 'idle');
       }
       if (parsed.data.t === 'correction') sentKey = ''; // the server kept an older pose, so the rejected one is not a duplicate
       store.apply(parsed.data);
     };
-    ws.onclose = (e: CloseEvent) => {
+    ws.onclose = async (e: CloseEvent) => {
       clearInterval(ping);
       clearTimeout(flush);
       flush = undefined; // move() schedules only while this is unset
       pending = null;
       if (stopped || FINAL.has(e.code)) return store.setConnection('closed', stopped ? null : e.code);
       store.setConnection('reconnecting');
+      // A deleted room refuses the upgrade with 410, which reaches us only as 1006.
+      const gone = !welcomed && roomGone !== undefined && (await roomGone().catch(() => false));
+      if (stopped) return; // close() came during the check
+      if (gone) return store.setConnection('closed', CLOSE.roomDeleted);
       const base = BACKOFF_MS[Math.min(attempt++, BACKOFF_MS.length - 1)];
       retry = setTimeout(connect, base * (0.8 + random() * 0.4));
     };

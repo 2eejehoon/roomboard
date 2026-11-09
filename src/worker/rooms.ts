@@ -2,7 +2,7 @@
 import type { Context } from 'hono';
 import { HTTPException } from 'hono/http-exception';
 import type { z } from 'zod';
-import { createRoomRequest, fieldErrors, listRoomsQuery } from '../core/api-schemas.ts';
+import { createRoomRequest, deleteRoomRequest, fieldErrors, listRoomsQuery, updateRoomRequest } from '../core/api-schemas.ts';
 import { createChatFilter, parseWordList } from '../core/chat-filter.ts';
 import { roomIdSchema } from '../core/protocol.ts';
 import { createRoomData, type RoomData } from '../core/room-data.ts';
@@ -73,6 +73,50 @@ export async function createRoom(c: C): Promise<Response> {
   return c.json(room, 201);
 }
 const ID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
+
+// T082: PATCH and DELETE share this. The RL_PASSWORD limit runs before it (index.ts); the hash goes to the room's DO to compare,
+// like the create's hash (precedent 2026-11-06-password-hash-in-do), and nowhere else.
+async function owned<T extends { password: string }>(c: C, schema: z.ZodType<T>): Promise<{ room: Room; body: T } | Response> {
+  const json: unknown = await c.req.json().catch(() => undefined);
+  if (json === undefined) return validation(c);
+  const parsed = schema.safeParse(json);
+  if (!parsed.success) return validation(c, parsed.error);
+  const room = await requireRoom(c.env.DB, c.req.param('roomId')!);
+  const { hash } = (await c.env.DB.prepare('SELECT password_hash AS hash FROM rooms WHERE id = ?').bind(room.id).first<{ hash: string }>())!;
+  if (!(await c.env.ROOM.getByName(room.id).verifyPassword(parsed.data.password, hash))) return c.json({ code: 'wrong_password' }, 403);
+  return { room, body: parsed.data };
+}
+
+// A new theme brings its default objects (openapi PATCH); the same theme keeps the room's objects.
+export async function updateRoom(c: C): Promise<Response> {
+  const found = await owned(c, updateRoomRequest);
+  if (found instanceof Response) return found;
+  const { room: old, body } = found;
+  const respawn = body.themeId !== undefined && body.themeId !== old.themeId;
+  const themeId = body.themeId ?? old.themeId;
+  const room: Room = {
+    ...old,
+    title: body.title === undefined ? old.title : filter(body.title),
+    description: body.description === undefined ? old.description : filter(body.description),
+    themeId,
+    roomData: respawn ? createRoomData(themeId) : old.roomData,
+    updatedAt: Date.now(),
+  };
+  await c.env.DB.prepare('UPDATE rooms SET title = ?, description = ?, theme_id = ?, room_data = ?, updated_at = ? WHERE id = ?')
+    .bind(room.title, room.description, themeId, JSON.stringify(room.roomData), room.updatedAt, room.id)
+    .run();
+  const { id, title, description, roomData } = room;
+  await c.env.ROOM.getByName(id).roomUpdated({ id, title, description, roomData }, respawn);
+  return c.json(room);
+}
+
+export async function deleteRoom(c: C): Promise<Response> {
+  const found = await owned(c, deleteRoomRequest);
+  if (found instanceof Response) return found;
+  await c.env.DB.prepare("UPDATE rooms SET deleted_at = ?, deleted_by = 'owner' WHERE id = ?").bind(Date.now(), found.room.id).run();
+  await c.env.ROOM.getByName(found.room.id).roomDeleted('owner');
+  return c.body(null, 204);
+}
 
 // FR-001: newest first, keyset pages on (created_at, id) so equal timestamps neither repeat nor drop.
 export async function listRooms(c: C): Promise<Response> {

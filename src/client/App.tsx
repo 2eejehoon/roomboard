@@ -1,6 +1,7 @@
 import { useSyncExternalStore, type ComponentProps } from 'react';
 import { BoardPage } from './board/BoardPage.tsx';
 import { CreateRoomPage } from './board/CreateRoomPage.tsx';
+import { EditRoomPage } from './board/EditRoomPage.tsx';
 import { RoomPage } from './room/RoomPage.tsx';
 
 // Routes from contracts/screens.md. A dozen lines of history routing instead of a router dependency (not in research R1).
@@ -49,6 +50,7 @@ export function App() {
       {route.name === 'board' && <BoardPage />}
       {route.name === 'create' && <CreateRoomPage />}
       {route.name === 'room' && <RoomPage key={route.id} id={route.id} />}
+      {route.name === 'edit' && <EditRoomPage key={route.id} id={route.id} />}
     </main>
   );
 }

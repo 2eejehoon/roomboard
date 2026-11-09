@@ -1,7 +1,7 @@
 // What the 3D and 2D screens both read (plan.md). Server messages are applied here and nowhere else.
 import type { ServerMessage } from '../../core/protocol.ts';
 import type { Pose, RoomInfo } from '../../core/room-session.ts';
-import type { Vec3 } from '../../core/themes.ts';
+import { THEMES, type Vec3 } from '../../core/themes.ts';
 
 type Welcome = Extract<ServerMessage, { t: 'welcome' }>;
 export type Peer = Welcome['peers'][number];
@@ -59,7 +59,13 @@ export class RoomStore {
         clearTimeout(this.limitTimer);
         this.limitTimer = setTimeout(() => this.set({ chatLimited: null }), msg.retryAfterMs);
         return this.set({ chatLimited: msg.retryAfterMs });
-      // room_updated / room_deleted (US6) are applied by that story.
+      case 'room_updated': {
+        // A new theme: everyone starts again at its spawn, as the server just did (RoomSession.update).
+        if (msg.room.roomData.themeId === s.room?.roomData.themeId) return this.set({ room: msg.room });
+        const spawn = { p: THEMES[msg.room.roomData.themeId].spawn, r: 0, a: 'idle' } as const;
+        return this.set({ room: msg.room, you: s.you && { ...s.you, ...spawn }, peers: s.peers.map((p) => ({ ...p, ...spawn })) });
+      }
+      // room_deleted: the 4001 close that follows ends the connection (room-socket.ts).
     }
   }
 

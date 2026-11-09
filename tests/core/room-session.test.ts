@@ -219,3 +219,34 @@ describe('RoomSession chat', () => {
     expect(only(await s.receive('a', chat('x'.repeat(200)), 0), 'b', 'chat').text).toHaveLength(200);
   });
 });
+
+// T079 / T083: the owner's edit reaches every channel, and later joiners get the new room.
+describe('RoomSession update', () => {
+  const edited = { ...room, title: '새 제목', roomData: createRoomData('library') };
+
+  it('sends room_updated to everyone in every channel, and welcomes later joiners with the new room', async () => {
+    const ids = Array.from({ length: CHANNEL_CAPACITY + 1 }, (_, i) => `p${i}`);
+    const s = await joined(...ids);
+    expect(s.participant(ids.at(-1)!)?.channel).toBe(2);
+    const out = s.update(edited, true, 1000);
+    for (const id of ids) expect(to(out, id)).toEqual([{ t: 'room_updated', room: edited }]);
+    s.connect('late');
+    expect(only(await s.receive('late', join(99), 1000), 'late', 'welcome').room).toEqual(edited);
+  });
+
+  it('a theme change puts everyone at the new spawn, so a move from there is not corrected', async () => {
+    const s = await joined('a', 'b');
+    await s.receive('a', move([1, 0, 4]), 1000);
+    s.update(edited, true, 2000);
+    expect(s.participant('a')?.pose).toEqual({ p: THEMES.library.spawn, r: 0, a: 'idle' });
+    const out = await s.receive('a', move([0.5, 0, 6]), 2200);
+    expect(only(out, 'b', 'peer_moved')).toMatchObject({ p: [0.5, 0, 6] });
+  });
+
+  it('without a theme change poses stay', async () => {
+    const s = await joined('a');
+    await s.receive('a', move([1, 0, 4]), 1000);
+    s.update({ ...room, title: '새 제목' }, false, 2000);
+    expect(s.participant('a')?.pose.p).toEqual([1, 0, 4]);
+  });
+});

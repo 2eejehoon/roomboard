@@ -1,9 +1,9 @@
 // One DO per room (research R6): Hibernation WebSockets in, RoomSession decides, results out.
 import { DurableObject } from 'cloudflare:workers';
 import { CLOSE } from '../core/protocol.ts';
-import { RoomSession, type ChatFields, type Outbox, type Participant } from '../core/room-session.ts';
+import { RoomSession, type ChatFields, type Outbox, type Participant, type RoomInfo } from '../core/room-session.ts';
 import { signChat } from './chat-sign.ts';
-import { hashPassword } from './password.ts';
+import { hashPassword, verifyPassword } from './password.ts';
 import { filter, requireRoom } from './rooms.ts';
 
 // Socket attachment (data-model.md "Participant"), plus the connect time for the join deadline. No device key.
@@ -40,6 +40,30 @@ export class RoomDurableObject extends DurableObject<Env> {
   // RPC (research R5): PBKDF2 needs more CPU than a Worker request has. Called before the room's row exists, so no session().
   hashPassword(password: string): Promise<string> {
     return hashPassword(password);
+  }
+
+  verifyPassword(password: string, stored: string): Promise<boolean> {
+    return verifyPassword(password, stored);
+  }
+
+  // RPC after D1 has the edit (T083). The reset poses go into the attachments too, or a wake would bring the old ones back.
+  async roomUpdated(room: RoomInfo, respawn: boolean): Promise<void> {
+    const session = await this.session();
+    if (!session) return;
+    await this.deliver(session.update(room, respawn, Date.now()));
+    for (const ws of this.sockets.values()) {
+      const participant = session.participant(att(ws).peerId);
+      if (participant) ws.serializeAttachment({ ...att(ws), participant } satisfies Attachment);
+    }
+  }
+
+  // RPC after D1 marks the room deleted (T083). Straight to the sockets: after a wake session() would read the 410 and know
+  // nobody. Deletion is final, so this DO never builds a session again, and no peer_left goes out between the two.
+  async roomDeleted(by: 'owner' | 'admin'): Promise<void> {
+    this.loading = Promise.resolve(null);
+    const sockets = [...this.sockets.values()];
+    for (const ws of sockets) ws.send(JSON.stringify({ t: 'room_deleted', by }));
+    for (const ws of sockets) await this.drop(ws, CLOSE.roomDeleted);
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
