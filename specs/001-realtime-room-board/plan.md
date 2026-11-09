@@ -16,7 +16,7 @@
 **Language/Version**: TypeScript 6.0, Node 22 (빌드·테스트), 브라우저 ES2022, Cloudflare workerd
 
 **Primary Dependencies**: vite 8.3, @cloudflare/vite-plugin 1.67, wrangler 4.158, react 19.3, three 0.187, @react-three/fiber 9.8,
-@react-three/drei 10.7, @react-three/rapier 2.2, ecctrl 2.0 (`ecctrl/input` 조이스틱 포함), hono 4.13, zod 4.6 (research R1)
+@react-three/drei 10.7, @react-three/rapier 2.2, ecctrl 2.0 (`ecctrl/input` 조이스틱 포함), hono 4.13, zod 4.6, @astryxdesign/core 0.7 (화면 컴포넌트, research R16) (research R1)
 
 **Storage**: Cloudflare D1 (rooms, reports). 방 DO는 SQLite 백엔드 클래스로 선언하지만(무료 플랜 조건) v1에서는 DO 저장소에
 쓰지 않고 메모리·소켓 attachment만 쓴다. 기기 키는 localStorage.
