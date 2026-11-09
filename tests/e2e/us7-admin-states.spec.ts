@@ -109,3 +109,17 @@ test('a next page that fails after a tab switch does not show its error on the n
   await page.waitForTimeout(300);
   await expect(page.getByRole('alert').filter({ hasText: ko['common.networkError'] })).toHaveCount(0);
 });
+
+test('a failed action does not come back after leaving the tab and returning (PR #39 review)', async ({ browser }) => {
+  const page = await newPage(browser);
+  await page.route('**/api/admin/reports?*', (route) => json(route, { items: [row(5)], nextCursor: null }));
+  await page.route('**/api/admin/reports/*/resolve', (route) => route.fulfill({ status: 500 }));
+  await open(page);
+  await page.getByRole('button', { name: ko['admin.resolve'] }).click();
+  const failed = page.getByRole('alert').filter({ hasText: ko['common.networkError'] });
+  await expect(failed).toBeVisible();
+  await page.getByRole('tab', { name: ko['admin.resolved'] }).click();
+  await page.getByRole('tab', { name: ko['admin.open'] }).click();
+  await expect(rows(page)).toHaveCount(1);
+  await expect(failed).toHaveCount(0);
+});

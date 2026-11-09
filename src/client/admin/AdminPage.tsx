@@ -158,7 +158,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
   return (
     <Stack gap={4} padding={4}>
       <Heading level={1}>{t('admin.heading')}</Heading>
-      <TabList role="tablist" value={status} onChange={(v) => setStatus(v as Status)}>
+      {/* A new attempt per visit: coming back to a tab never shows an old visit's error or retry (PR #39 review). */}
+      <TabList role="tablist" value={status} onChange={(v) => (setStatus(v as Status), setAttempt((n) => n + 1))}>
         <Tab value="open" panelId={PANEL} label={t('admin.open')} />
         <Tab value="resolved" panelId={PANEL} label={t('admin.resolved')} />
       </TabList>
