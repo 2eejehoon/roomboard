@@ -1,8 +1,13 @@
 // screens.md S3 공통 영역 and S6, the 3D body (T045), the 2D body and the 3D↔2D switch (T054, T056), chat (T073).
+import { Banner } from '@astryxdesign/core/Banner';
+import { Button } from '@astryxdesign/core/Button';
+import { Link } from '@astryxdesign/core/Link';
+import { Stack } from '@astryxdesign/core/Stack';
+import { Text } from '@astryxdesign/core/Text';
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
 import { CLOSE } from '../../core/protocol.ts';
-import { Link, navigate } from '../App.tsx';
+import { navigate } from '../App.tsx';
 import { deviceKey, readView, saveView, type View } from '../device.ts';
 import { t } from '../i18n/t.ts';
 import { openRoomSocket, type RoomSocket } from '../net/room-socket.ts';
@@ -84,7 +89,11 @@ export function RoomPage({ id }: { id: string }) {
         </SceneBoundary>
       ) : (
         <>
-          {failed3d && <p role="status">{t('room2d.fallback')}</p>}
+          {failed3d && (
+            <div role="status">
+              <Banner status="info" title={t('room2d.fallback')} />
+            </div>
+          )}
           <Room2D room={room} state={state} />
         </>
       )}
@@ -106,12 +115,12 @@ export function ClosedNotice({ code }: { code: number }) {
   // screens.md S3 방이 삭제됨: the modal is the whole page, since nothing behind it is live any more.
   if (code === CLOSE.roomDeleted) {
     return (
-      <div role="alertdialog" aria-modal="true" aria-labelledby="room-deleted">
-        <p id="room-deleted">{t('room.deleted')}</p>
-        <button type="button" onClick={() => navigate('/')}>
-          {t('room.ok')}
-        </button>
-      </div>
+      <Stack role="alertdialog" aria-modal="true" aria-labelledby="room-deleted" gap={4} padding={4}>
+        <Text as="p" id="room-deleted">
+          {t('room.deleted')}
+        </Text>
+        <Button label={t('room.ok')} onClick={() => navigate('/')} />
+      </Stack>
     );
   }
   return <Notice text={t(code === CLOSE.unsupportedVersion ? 'room.outdated' : 'room.ended')} reload />;
@@ -120,10 +129,11 @@ export function ClosedNotice({ code }: { code: number }) {
 export function Notice({ text, reload = false }: { text: string; reload?: boolean }) {
   return (
     <div role="alert">
-      <p>{text}</p>
-      <button type="button" onClick={() => (reload ? location.reload() : navigate('/'))}>
-        {t(reload ? 'room.reload' : 'room.toBoard')}
-      </button>
+      <Banner
+        status="warning"
+        title={text}
+        endContent={<Button label={t(reload ? 'room.reload' : 'room.toBoard')} variant="secondary" onClick={() => (reload ? location.reload() : navigate('/'))} />}
+      />
     </div>
   );
 }
@@ -131,21 +141,25 @@ export function Notice({ text, reload = false }: { text: string; reload?: boolea
 // onSwitch is absent without WebGL: there is no 3D to switch to.
 export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
   return (
-    <header>
-      {state.connection === 'reconnecting' && <p role="status">{t('room.reconnecting')}</p>}
-      <p>{title}</p>
-      {state.channel !== null && (
-        <p>
-          {t('room.channel', { n: state.channel })} · {t('room.people', { n: state.peers.length + 1, max: CHANNEL_CAPACITY })}
-        </p>
+    <Stack as="header" gap={2} padding={4}>
+      {state.connection === 'reconnecting' && (
+        <div role="status">
+          <Banner status="warning" title={t('room.reconnecting')} />
+        </div>
       )}
-      {state.you && <p>{t('room.you', { nickname: state.you.nickname })}</p>}
-      {onSwitch && (
-        <button type="button" onClick={onSwitch}>
-          {t(view === '3d' ? 'room.view2d' : 'room.view3d')}
-        </button>
-      )}
-      {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}
-    </header>
+      <Stack direction="horizontal" gap={3} vAlign="center" wrap="wrap">
+        <Text as="p" weight="bold">
+          {title}
+        </Text>
+        {state.channel !== null && (
+          <Text as="p">
+            {t('room.channel', { n: state.channel })} · {t('room.people', { n: state.peers.length + 1, max: CHANNEL_CAPACITY })}
+          </Text>
+        )}
+        {state.you && <Text as="p">{t('room.you', { nickname: state.you.nickname })}</Text>}
+        {onSwitch && <Button label={t(view === '3d' ? 'room.view2d' : 'room.view3d')} variant="secondary" onClick={onSwitch} />}
+        {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}
+      </Stack>
+    </Stack>
   );
 }

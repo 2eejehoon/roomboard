@@ -5,7 +5,9 @@ import { Room2D } from '../../src/client/room/room2d/Room2D.tsx';
 import { RoomStore } from '../../src/client/state/room-store.ts';
 import { createRoomData } from '../../src/core/room-data.ts';
 
-// T054: screens.md S3 2D.
+// T054: screens.md S3 2D. Roles and wording, not exact markup, so Astryx's wrappers can change (T106).
+const text = (html: string) => html.replace(/<[^>]+>/g, '');
+const within = (tag: string, words: string) => new RegExp(`<${tag}\\b[^>]*>(?:(?!</${tag}>).)*${words}`, 's');
 const room = { id: 'seedroom01', title: '시드 방', description: '개발·E2E용 방', roomData: createRoomData('cafe') };
 
 function store() {
@@ -25,15 +27,15 @@ function store() {
 describe('Room2D (screens.md S3 2D)', () => {
   it('shows the title as h1, the description, theme and channel', () => {
     const html = renderToStaticMarkup(<Room2D room={room} state={store().getState()} />);
-    expect(html).toContain('<h1>시드 방</h1>');
-    expect(html).toContain('개발·E2E용 방');
-    expect(html).toContain('카페');
-    expect(html).toContain('채널 2');
+    expect(html).toMatch(within('h1', '시드 방'));
+    expect(text(html)).toContain('개발·E2E용 방');
+    expect(text(html)).toContain('카페');
+    expect(text(html)).toContain('채널 2');
   });
 
   it('lists me and every peer with status and zone', () => {
     const html = renderToStaticMarkup(<Room2D room={room} state={store().getState()} />);
-    const items = [...html.matchAll(/<li[^>]*>(.*?)<\/li>/g)].map((m) => m[1]);
+    const items = [...html.matchAll(/<li\b[^>]*>(.*?)<\/li>/gs)].map((m) => text(m[1]!));
     expect(items).toHaveLength(2);
     expect(items[0]).toMatch(/느긋한 수달.*\(나\).*가만히.*입구 근처/);
     expect(items[1]).toMatch(/용감한 여우.*걷는 중.*카운터 앞/);
@@ -50,8 +52,8 @@ describe('Room2D (screens.md S3 2D)', () => {
 describe('RoomHeader view switch (T056)', () => {
   it('offers the other view when the switch is given, and nothing without WebGL', () => {
     const state = store().getState();
-    expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="3d" onSwitch={() => {}} />)).toMatch(/<button[^>]*>2D로 보기<\/button>/);
-    expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="2d" onSwitch={() => {}} />)).toMatch(/<button[^>]*>3D로 보기<\/button>/);
+    expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="3d" onSwitch={() => {}} />)).toMatch(within('button', '2D로 보기'));
+    expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="2d" onSwitch={() => {}} />)).toMatch(within('button', '3D로 보기'));
     expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="2d" />)).not.toContain('<button');
   });
 });
