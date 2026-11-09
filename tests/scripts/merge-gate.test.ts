@@ -31,7 +31,8 @@ describe('scripts/merge-gate.mjs (FR-066)', () => {
   it('passes a session PR that touches only ordinary files', () => {
     const base = commit();
     write('src/client/a.ts', 'y\n');
-    write('scripts/seed-sql.ts');
+    write('tests/core/x.test.ts');
+    write('docs/precedents/x.md');
     commit();
     expect(run(base).status).toBe(0);
   });
@@ -57,6 +58,10 @@ describe('scripts/merge-gate.mjs (FR-066)', () => {
     'vitest.config.ts',
     'eslint.config.js',
     'tsconfig.app.json',
+    '.npmrc',
+    'wrangler.jsonc',
+    'scripts/seed-dev.ts',
+    'new-root-file.mjs',
   ])('fails when %s changes', (path) => {
     const base = commit();
     write(path, 'changed\n');

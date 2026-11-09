@@ -3,7 +3,7 @@ name: merge-gate
 # default branch, so a PR cannot weaken its own gate. The PR head is fetched only to list changed paths, never run.
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened]
+    types: [opened, synchronize, reopened, edited] # edited: a base change must re-run the gate
 permissions:
   contents: read
 jobs:
