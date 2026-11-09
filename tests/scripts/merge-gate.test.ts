@@ -53,6 +53,7 @@ describe('scripts/merge-gate.mjs (FR-066)', () => {
     'scripts/merge-gate.mjs',
     'scripts/check-bundle.mjs',
     'src/core/doc-rules.ts',
+    'src/core/agent-gate.ts',
     'package.json',
     'package-lock.json',
     'vitest.config.ts',
