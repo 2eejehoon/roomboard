@@ -4,20 +4,37 @@ import { ChatPanel } from '../../src/client/room/ChatPanel.tsx';
 import { RoomStore } from '../../src/client/state/room-store.ts';
 import { createRoomData } from '../../src/core/room-data.ts';
 
-// T073: screens.md S3 채팅 패널 (판례 2026-11-09-chat-panel).
+// T073: screens.md S3 채팅 패널 (판례 2026-11-09-chat-panel, 2026-11-09-chat-live-text).
 function store() {
   const s = new RoomStore();
   s.apply({ t: 'welcome', v: 1, you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' }, channel: 1, room: { id: 'seedroom01', title: '시드 방', description: '', roomData: createRoomData('cafe') }, peers: [], spawn: [0, 0, 4] });
   s.apply({ t: 'chat', messageId: 'm_1', peerId: 'a', nickname: '용감한 여우', text: '<b>안녕</b>', sentAt: 1, channel: 1, sig: 's' });
   return s;
 }
-const render = (s: RoomStore, view: '2d' | '3d') => renderToStaticMarkup(<ChatPanel state={s.getState()} send={() => {}} view={view} />);
+const render = (s: RoomStore, view: '2d' | '3d') => renderToStaticMarkup(<ChatPanel roomId="seedroom01" state={s.getState()} send={() => {}} view={view} />);
 
 describe('ChatPanel', () => {
-  it('2D reads only the message list aloud and shows nickname and escaped text', () => {
+  it('2D reads aloud only nickname and text, in a hidden list; the visible list carries the report buttons (판례 2026-11-09-chat-live-text)', () => {
     const html = render(store(), '2d');
-    expect(html).toMatch(/<ul aria-live="polite"><li><strong>용감한 여우<\/strong> &lt;b&gt;안녕&lt;\/b&gt;<\/li><\/ul>/);
     expect(html.match(/aria-live/g)).toHaveLength(1);
+    const live = /<ul aria-live="polite">(.*?)<\/ul>/.exec(html)![1]!;
+    expect(live).toBe('<li>용감한 여우: &lt;b&gt;안녕&lt;/b&gt;</li>');
+    expect(html).toMatch(/<ul><li><strong>용감한 여우<\/strong> &lt;b&gt;안녕&lt;\/b&gt; <button[^>]*>신고<\/button><\/li><\/ul>/);
+  });
+
+  it('the hidden copy holds the newest 5 only, the visible list all of them', () => {
+    const s = store();
+    for (let i = 2; i <= 8; i++) s.apply({ t: 'chat', messageId: `m_${i}`, peerId: 'a', nickname: '용감한 여우', text: `말 ${i}`, sentAt: i, channel: 1, sig: 's' });
+    const html = render(s, '2d');
+    const live = /<ul aria-live="polite">(.*?)<\/ul>/.exec(html)![1]!;
+    expect(live.match(/<li>/g)).toHaveLength(5);
+    expect(live).toContain('말 8');
+    expect(live).not.toContain('말 3');
+    expect(html.match(/<button type="button"/g)).toHaveLength(8);
+  });
+
+  it('every message has its own report button, named after the sender (T091)', () => {
+    expect(render(store(), '2d')).toMatch(/<button type="button" aria-label="용감한 여우 님 메시지 신고">신고<\/button>/);
   });
 
   it('3D is a details panel without a live region', () => {

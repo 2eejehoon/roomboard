@@ -4,7 +4,8 @@ import { enter, newPage, state, test, withoutWebGL } from './helpers.ts';
 
 // quickstart Q8, Q9 (US4) and T074. Timed parts run without WebGL, like Q1 (T038): software WebGL starves the local Worker.
 const panel = (page: Page) => page.getByRole('region', { name: ko['chat.heading'] });
-const messages = (page: Page) => panel(page).getByRole('listitem');
+// The visible list (first); the hidden copy that 2D reads aloud is checked through aria-live (precedent 2026-11-09-chat-live-text).
+const messages = (page: Page) => panel(page).getByRole('list').first().getByRole('listitem');
 const limited = /잠시 후 다시 시도해 주세요/;
 
 // In 3D the panel is a <details>, folded on touch devices (screens.md S3 모바일); a tap on its summary opens it.
