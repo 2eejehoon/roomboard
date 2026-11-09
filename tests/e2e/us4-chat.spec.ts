@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
-import { enter, newPage, state, withoutWebGL } from './helpers.ts';
+import { enter, newPage, state, test, withoutWebGL } from './helpers.ts';
 
 // quickstart Q8, Q9 (US4) and T074. Timed parts run without WebGL, like Q1 (T038): software WebGL starves the local Worker.
 const panel = (page: Page) => page.getByRole('region', { name: ko['chat.heading'] });

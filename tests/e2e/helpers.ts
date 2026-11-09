@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from '@playwright/test';
+import { expect, test as base, type Browser, type BrowserContext, type BrowserContextOptions, type Page } from '@playwright/test';
 
 // Shared by the room specs. seedroom01 comes from npm run seed:dev.
 export type HookState = { you: { peerId: string; nickname: string; p: number[]; a: string } | null; peers: { peerId: string; p: number[]; a: string }[]; connection: string };
@@ -7,8 +7,13 @@ export const state = (page: Page) => page.evaluate(() => (window as unknown as H
 export const move = (page: Page, p: number[], r = 0) => page.evaluate(([p, r]) => (window as unknown as Hooks).__roomboard.move(p as number[], r as number), [p, r]);
 
 // Contexts from browser.newContext() outlive the test; an earlier test's 3D pages would keep rendering and starve the next one.
+// An auto fixture, not a top-level test.afterEach: this module is evaluated once per worker, so such a hook registered only in
+// the first spec that imported it, and every later spec left its pages open (13 extra peers by T074, T070).
 const contexts: BrowserContext[] = [];
-test.afterEach(() => Promise.all(contexts.splice(0).map((c) => c.close())));
+export const test = base.extend<{ closeContexts: void }>({
+  // eslint-disable-next-line no-empty-pattern -- Playwright reads the fixture's dependencies from this destructuring
+  closeContexts: [async ({}, use) => { await use(); await Promise.all(contexts.splice(0).map((c) => c.close())); }, { auto: true }],
+});
 export async function newPage(browser: Browser, options?: BrowserContextOptions) {
   const context = await browser.newContext(options);
   contexts.push(context);
