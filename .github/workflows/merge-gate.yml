@@ -1,0 +1,29 @@
+name: merge-gate
+# FR-066: fails on PRs a human must merge. pull_request_target runs this file and scripts/merge-gate.mjs from the
+# default branch, so a PR cannot weaken its own gate. The PR head is fetched only to list changed paths, never run.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  merge-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Human-merge PRs (scripts/merge-gate.mjs)
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch --no-tags origin "refs/pull/$PR/head"
+          node scripts/merge-gate.mjs --base "origin/$BASE_REF" --head "$HEAD_SHA" --head-ref "$HEAD_REF"

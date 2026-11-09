@@ -20,19 +20,3 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
           LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
         run: node scripts/check-docs.mjs --base "origin/$BASE_REF" --head HEAD --labels "$LABELS"
-  # FR-066: fails on PRs a human must merge, so only the operator's admin bypass can merge them.
-  merge-gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Human-merge PRs (scripts/merge-gate.mjs)
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_REF: ${{ github.head_ref }}
-        run: node scripts/merge-gate.mjs --base "origin/$BASE_REF" --head-ref "$HEAD_REF"

@@ -50,7 +50,13 @@ describe('scripts/merge-gate.mjs (FR-066)', () => {
     '.github/workflows/ci.yml',
     'scripts/test-first-check.mjs',
     'scripts/merge-gate.mjs',
+    'scripts/check-bundle.mjs',
     'src/core/doc-rules.ts',
+    'package.json',
+    'package-lock.json',
+    'vitest.config.ts',
+    'eslint.config.js',
+    'tsconfig.app.json',
   ])('fails when %s changes', (path) => {
     const base = commit();
     write(path, 'changed\n');
@@ -58,6 +64,14 @@ describe('scripts/merge-gate.mjs (FR-066)', () => {
     const r = run(base);
     expect(r.status).toBe(1);
     expect(r.stdout).toContain(path);
+  });
+
+  it('reads the given --head, not the checkout (pull_request_target runs on the base)', () => {
+    const base = commit();
+    write('CLAUDE.md', 'changed\n');
+    const head = commit();
+    git('checkout', '-q', base);
+    expect(spawnSync('node', [SCRIPT, '--base', base, '--head', head, '--head-ref', 'claude/x'], { cwd: repo, encoding: 'utf8' }).status).toBe(1);
   });
 
   it('fails when a protected file is renamed away', () => {
