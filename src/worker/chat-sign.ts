@@ -12,8 +12,10 @@ export async function signChat(secret: string, roomId: string, c: ChatFields): P
 }
 
 export async function verifyChat(secret: string, roomId: string, c: ChatFields, sig: string): Promise<boolean> {
-  // Fields are joined with "|": one in a field before the text would let a reporter shift text into it under the same signature.
-  if ([roomId, c.messageId, c.nickname].some((f) => f.includes('|')) || !/^[A-Za-z0-9_-]{43}$/.test(sig)) return false;
+  // Fields are joined with "|": one in a field around the text would let a reporter shift text into it under the same
+  // signature. A report comes as JSON, so sentAt and channel must be checked as numbers here too.
+  if ([roomId, c.messageId, c.nickname].some((f) => f.includes('|')) || !Number.isInteger(c.sentAt) || !Number.isInteger(c.channel)) return false;
+  if (!/^[A-Za-z0-9_-]{43}$/.test(sig)) return false;
   const mac = Uint8Array.from(atob(sig.replaceAll('-', '+').replaceAll('_', '/')), (ch) => ch.charCodeAt(0));
   return crypto.subtle.verify('HMAC', await key(secret), mac, payload(roomId, c));
 }

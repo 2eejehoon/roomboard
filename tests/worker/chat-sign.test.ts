@@ -48,4 +48,13 @@ describe('chat signature (research R14)', () => {
     expect(await expectedSig(roomId, shifted)).toBe(msg.sig);
     expect(await verifyChat(env.SERVER_SECRET, roomId, shifted, msg.sig)).toBe(false);
   });
+
+  // PR #26 review: a report arrives as JSON, where sentAt and channel can be strings that hold a "|".
+  it('fails when the end of the text is shifted into a string sentAt, although the signed string is the same', async () => {
+    const { roomId, msg } = await receivedChat('앞|1');
+    const shifted = { ...msg, text: '앞', sentAt: `1|${msg.sentAt}` as unknown as number };
+    expect(await expectedSig(roomId, shifted)).toBe(msg.sig);
+    expect(await verifyChat(env.SERVER_SECRET, roomId, shifted, msg.sig)).toBe(false);
+    expect(await verifyChat(env.SERVER_SECRET, roomId, { ...msg, channel: String(msg.channel) as unknown as number }, msg.sig)).toBe(false);
+  });
 });

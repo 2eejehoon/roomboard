@@ -23,6 +23,13 @@ jobs:
       - run: npm run check:bundle
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --trace off
+      # Each failure's error-context.md holds the page snapshot; the log alone cannot tell slow from stuck (T070).
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: test-results/
+          retention-days: 7
   test-first:
     # FR-021: on fix-agent PRs the first commit must add a test that fails there and passes at head.
     if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'agent/')

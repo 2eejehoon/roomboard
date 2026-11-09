@@ -9,12 +9,13 @@
 
 - 서명 문자열은 websocket.md 그대로 `"chat|" + roomId|messageId|nickname|text|sentAt|channel`이다. 패딩 없는 base64url(43자).
 - 검증(`verifyChat`)은 `roomId`·`messageId`·`nickname`에 `|`가 있으면 서명을 보지 않고 거부한다. `text`에는 `|`가 있어도 된다.
+- 뒤의 `sentAt`·`channel`이 정수가 아니어도 거부한다. 신고는 JSON으로 오므로 문자열 `"1|…"`이 들어올 수 있다(PR #26 리뷰).
 - 비교는 `crypto.subtle.verify`로 한다(상수 시간).
 
 ## 이유
 
 필드를 `|`로 이어 붙이기 때문에, 신고자가 본문 앞부분을 닉네임 뒤로 옮겨도(`닉|앞` + `뒤`) 서명 문자열이 같아진다.
-본문 앞 필드는 서버가 만든 값이라 `|`가 들어갈 일이 없다. 그러면 본문 위치가 하나로 정해진다(뒤의 `sentAt`·`channel`은 정수).
+본문 앞 필드는 서버가 만든 값이라 `|`가 들어갈 일이 없다. 뒤의 `sentAt`·`channel`도 정수인지 검증에서 확인하면, 본문 위치가 하나로 정해진다.
 
 ## 검토한 대안
 
