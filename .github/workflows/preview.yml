@@ -48,6 +48,7 @@ jobs:
             npx wrangler d1 create "$NAME" >/dev/null
             id=$(npx wrangler d1 list --json | jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid')
           fi
+          [ -n "$id" ] || { echo "::error::D1 $NAME의 id를 찾지 못했습니다."; exit 1; }
           # This checkout only: the Worker and D1 names of this PR (the Vite plugin builds its deploy config from this file).
           node -e '
             const fs = require("node:fs");
@@ -63,7 +64,9 @@ jobs:
       - if: steps.gate.outputs.run
         env:
           VITE_TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY }}
-        run: npm run build
+        run: |
+          [ -n "$VITE_TURNSTILE_SITEKEY" ] || { echo "::error::Environment preview에 TURNSTILE_SITEKEY가 없습니다."; exit 1; }
+          npm run build
       - if: steps.gate.outputs.run
         id: deploy
         env:
@@ -74,6 +77,9 @@ jobs:
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
         run: |
           set -o pipefail # the default bash -e takes tee's exit code, so a failed deploy would pass (PR #43 review)
+          for k in ADMIN_TOKEN SERVER_SECRET TURNSTILE_SECRET; do
+            [ -n "${!k}" ] || { echo "::error::Environment preview에 $k가 없습니다."; exit 1; }
+          done
           trap 'rm -f "$RUNNER_TEMP/secrets.json"' EXIT
           jq -n '{ADMIN_TOKEN: env.ADMIN_TOKEN, SERVER_SECRET: env.SERVER_SECRET, TURNSTILE_SECRET: env.TURNSTILE_SECRET}' > "$RUNNER_TEMP/secrets.json"
           npx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json" | tee deploy.log
