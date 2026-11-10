@@ -35,3 +35,13 @@ it('a failed deploy fails the job: pipefail before the tee, and no URL is an err
   expect(deploy).toMatch(/set -o pipefail[\s\S]*wrangler deploy/);
   expect(deploy).toMatch(/\[ -n "\$url" \] \|\| \{ echo "::error::/);
 });
+
+it.each(['preview.yml', 'preview-cleanup.yml'])('%s reads its secrets from the preview environment (PR #43 review)', (name) => {
+  // The workflow file comes from the PR, so only GitHub's environment branch rule (claude/*, set in Settings) keeps the
+  // secrets from PR code: an agent PR that edits this file still cannot reach them.
+  expect(read(name)).toMatch(/^ {4}environment: preview$/m);
+});
+
+it('previews count their own rate limits, not production\'s (PR #43 review)', () => {
+  expect(read('preview.yml')).toContain('for (const r of c.ratelimits) r.namespace_id = String(Number(r.namespace_id) + 1000);');
+});
