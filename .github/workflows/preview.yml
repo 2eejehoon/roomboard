@@ -1,8 +1,8 @@
 name: preview
 # research R3 (T097): every PR gets its own Worker and D1, roomboard-pr-<number>; the URL goes on the PR.
-# pull_request, never its _target variant (that would run PR code with secrets): fork PRs get no secrets and skip. Fix-agent
-# branches (agent/*) skip too: their code comes from an issue (constitution VII). The `if` below is PR code and can be edited
-# away, so the real guard is the preview environment's claude/* branch rule (Settings → Environments).
+# pull_request, never its _target variant (that would run PR code with secrets). Only session branches (claude/*) of this repo
+# deploy; the `if` below only skips the rest cleanly. It is PR code and can be edited away, so the guard is the preview
+# environment's claude/* branch rule (Settings → Environments, precedent 2026-11-10-preview-environment).
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   deploy:
-    if: ${{ !startsWith(github.head_ref, 'agent/') }}
+    if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     # Secrets live in the preview environment, whose deployment branch rule (claude/*) GitHub enforces outside PR code.
     environment: preview
@@ -36,7 +36,6 @@ jobs:
           cache: npm
       - if: steps.gate.outputs.run
         run: npm ci
-      # The token is only in the wrangler steps, not in npm ci or the build.
       - if: steps.gate.outputs.run
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}

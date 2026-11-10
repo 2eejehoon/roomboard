@@ -1,5 +1,5 @@
 name: preview-cleanup
-# research R3 (T097): a closed PR's Worker and D1 go away. Same token gate as preview.yml.
+# research R3 (T097): a closed PR's Worker and D1 go away. Same branch and token gates as preview.yml.
 on:
   pull_request:
     types: [closed]
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   cleanup:
-    if: ${{ !startsWith(github.head_ref, 'agent/') }}
+    if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
     # Secrets live in the preview environment, whose deployment branch rule (claude/*) GitHub enforces outside PR code.
     environment: preview
