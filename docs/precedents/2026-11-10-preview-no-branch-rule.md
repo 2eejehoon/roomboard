@@ -1,6 +1,6 @@
 # 미리보기 Environment는 배포 브랜치 제한 없이, 승인만으로
 
-- 날짜: 2026-11-11
+- 날짜: 2026-11-10
 - 대상: specs/001-realtime-room-board/research.md R3, tasks.md T097
 - 출처: PR #45(미리보기 첫 실행)
 - 대체한 판례: 2026-11-10-preview-environment(배포 브랜치 `claude/*` 부분만)
