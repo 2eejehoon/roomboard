@@ -84,6 +84,20 @@ describe('room WebSocket', () => {
     await expect.poll(() => runInDurableObject(stub, (_o, state) => state.storage.getAlarm())).not.toBeNull();
   });
 
+  it('a socket the server closed does not come back as a participant when the DO hibernates before the close completes', async () => {
+    const roomId = await insertRoom();
+    const a = await joinRoom(roomId, 1);
+    const b = await joinRoom(roomId, 2);
+    await a.next(); // peer_joined
+    b.send({ t: 'chat', text: 'x'.repeat(2100) });
+    expect(await a.next()).toEqual({ t: 'peer_left', peerId: b.welcome.you.peerId });
+    // workerd drops a server-closed socket from getWebSockets() at close(), so a wake cannot restore it from its attachment.
+    expect(await runInDurableObject(env.ROOM.getByName(roomId), (_o, state) => state.getWebSockets().length)).toBe(1);
+    await evictDurableObject(env.ROOM.getByName(roomId));
+    const c = await joinRoom(roomId, 3);
+    expect(c.welcome.peers.map((p) => p.peerId)).toEqual([a.welcome.you.peerId]);
+  });
+
   it('rejects a missing room with 404, a deleted one with 410 and a plain GET with 426', async () => {
     expect((await ws('nosuchroom')).status).toBe(404);
     expect((await ws('bad id!')).status).toBe(404);
