@@ -24,6 +24,8 @@ npm run check:docs
 
 ## GitHub Secrets
 
+미리보기용 여섯 개는 저장소 Secrets가 아니라 Environment `preview`(배포마다 운영자 승인, 배포 브랜치 `claude/*`)의 Secrets에 둔다.
+
 | 이름 | 쓰는 곳 |
 |---|---|
 | `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | PR 미리보기 배포·정리(`preview.yml`, `preview-cleanup.yml`). 없으면 배포를 건너뛴다 |

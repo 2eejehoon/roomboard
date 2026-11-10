@@ -1,0 +1,27 @@
+name: preview-cleanup
+# research R3 (T097): a closed PR's Worker and D1 go away. Same branch and token gates as preview.yml.
+on:
+  pull_request:
+    types: [closed]
+permissions:
+  contents: read
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  cleanup:
+    if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    # Secrets live in the preview environment: each run waits for the operator's approval, which PR code cannot give.
+    environment: preview
+    timeout-minutes: 10
+    env:
+      NAME: roomboard-pr-${{ github.event.pull_request.number }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "::notice::CLOUDFLARE_API_TOKEN 없음: 정리를 건너뜁니다."; exit 0; fi
+          # Either may not exist (the PR never deployed); the other still goes.
+          npx --yes wrangler@4.158.0 delete "$NAME" || echo "::warning::Worker $NAME를 지우지 못했습니다."
+          npx --yes wrangler@4.158.0 d1 delete "$NAME" -y || echo "::warning::D1 $NAME를 지우지 못했습니다."

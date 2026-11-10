@@ -1,0 +1,95 @@
+name: preview
+# research R3 (T097): every PR gets its own Worker and D1, roomboard-pr-<number>; the URL goes on the PR.
+# pull_request, never its _target variant (that would run PR code with secrets). Only session branches (claude/*) of this repo
+# deploy; the `if` below only skips the rest cleanly. It is PR code and can be edited away, so the guard is the preview
+# environment's required reviewer (Settings → Environments, precedent 2026-11-10-preview-environment).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+  pull-requests: write
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  deploy:
+    if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    # Secrets live in the preview environment: each run waits for the operator's approval, which PR code cannot give.
+    environment: preview
+    timeout-minutes: 15
+    env:
+      NAME: roomboard-pr-${{ github.event.pull_request.number }}
+    steps:
+      - id: gate
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        run: |
+          if [ "$HAS_TOKEN" = true ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "::notice::CLOUDFLARE_API_TOKEN 없음: 미리보기 배포를 건너뜁니다(README Secrets)."; fi
+      - if: steps.gate.outputs.run
+        uses: actions/checkout@v4
+      - if: steps.gate.outputs.run
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.gate.outputs.run
+        run: npm ci
+      - if: steps.gate.outputs.run
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler d1 list --json > d1.json
+          id=$(jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid' d1.json)
+          if [ -z "$id" ]; then
+            npx wrangler d1 create "$NAME" >/dev/null
+            id=$(npx wrangler d1 list --json | jq -r --arg n "$NAME" '.[] | select(.name == $n) | .uuid')
+          fi
+          [ -n "$id" ] || { echo "::error::D1 $NAME의 id를 찾지 못했습니다."; exit 1; }
+          # This checkout only: the Worker and D1 names of this PR (the Vite plugin builds its deploy config from this file).
+          node -e '
+            const fs = require("node:fs");
+            const c = JSON.parse(fs.readFileSync("wrangler.jsonc", "utf8").replace(/^\s*\/\/.*$/gm, ""));
+            c.name = process.env.NAME;
+            c.d1_databases[0].database_name = process.env.NAME;
+            c.d1_databases[0].database_id = process.argv[1];
+            // Own rate-limit counters: the same namespace_id in one account shares them with production (PR #43 review).
+            for (const r of c.ratelimits) r.namespace_id = String(Number(r.namespace_id) + 1000);
+            fs.writeFileSync("wrangler.jsonc", JSON.stringify(c, null, 2));
+          ' "$id"
+          npx wrangler d1 migrations apply "$NAME" --remote
+      - if: steps.gate.outputs.run
+        env:
+          VITE_TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY }}
+        run: |
+          [ -n "$VITE_TURNSTILE_SITEKEY" ] || { echo "::error::Environment preview에 TURNSTILE_SITEKEY가 없습니다."; exit 1; }
+          npm run build
+      - if: steps.gate.outputs.run
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          SERVER_SECRET: ${{ secrets.SERVER_SECRET }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+        run: |
+          set -o pipefail # the default bash -e takes tee's exit code, so a failed deploy would pass (PR #43 review)
+          for k in ADMIN_TOKEN SERVER_SECRET TURNSTILE_SECRET; do
+            [ -n "${!k}" ] || { echo "::error::Environment preview에 $k가 없습니다."; exit 1; }
+          done
+          trap 'rm -f "$RUNNER_TEMP/secrets.json"' EXIT
+          jq -n '{ADMIN_TOKEN: env.ADMIN_TOKEN, SERVER_SECRET: env.SERVER_SECRET, TURNSTILE_SECRET: env.TURNSTILE_SECRET}' > "$RUNNER_TEMP/secrets.json"
+          npx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json" | tee deploy.log
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)
+          [ -n "$url" ] || { echo "::error::배포 출력에서 workers.dev URL을 찾지 못했습니다."; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - if: steps.deploy.outputs.url
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.deploy.outputs.url }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none --body "미리보기: $URL (커밋 ${SHA:0:7}). 휴대폰으로 quickstart Q1·Q3·Q8을 확인하세요."

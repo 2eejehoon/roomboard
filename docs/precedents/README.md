@@ -42,6 +42,7 @@
 | [2026-11-09-report-list-per-target](2026-11-09-report-list-per-target.md) | 관리자 신고 목록은 대상마다 한 줄, 처리 완료는 대상 단위 | 유효 |
 | [2026-11-09-chat-live-text](2026-11-09-chat-live-text.md) | 2D 채팅은 숨긴 목록이 닉네임·내용만 읽어 준다 | 유효 |
 | [2026-11-09-perf-4g](2026-11-09-perf-4g.md) | SC-001의 "일반 4G"는 Chrome Fast 4G 프리셋, 측정은 압축한 프로덕션 빌드로 | 유효 |
+| [2026-11-10-preview-environment](2026-11-10-preview-environment.md) | 미리보기 비밀값은 Environment `preview`, 배포마다 운영자 승인 | 유효 |
 
 ## 판례 쓰는 법
 

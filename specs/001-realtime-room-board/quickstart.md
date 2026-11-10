@@ -56,8 +56,8 @@ npm run build && npm run check:bundle   # 프로덕션 번들에 테스트 훅(_
 - PR을 열면 Actions가 `roomboard-pr-<번호>` Worker를 배포하고 URL을 PR 댓글로 남긴다(research R3).
 - 실제 휴대폰으로 그 URL을 열어 Q1, Q3, Q8을 사람이 확인한다.
 - PR을 닫으면 그 Worker는 지워진다.
-- 필요한 저장소 Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Worker 비밀값(`ADMIN_TOKEN`, `SERVER_SECRET`,
-  `TURNSTILE_SECRET`)은 배포 워크플로가 저장소 Secrets에서 넣는다.
+- 필요한 Secrets(Environment `preview`, 판례 2026-11-10-preview-environment): `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`. Worker 비밀값(`ADMIN_TOKEN`, `SERVER_SECRET`,
+  `TURNSTILE_SECRET`)과 `TURNSTILE_SITEKEY`는 배포 워크플로가 같은 Environment에서 넣는다.
 
 ## 참고
 
