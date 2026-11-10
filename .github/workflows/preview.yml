@@ -68,10 +68,13 @@ jobs:
           SERVER_SECRET: ${{ secrets.SERVER_SECRET }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
         run: |
+          set -o pipefail # the default bash -e takes tee's exit code, so a failed deploy would pass (PR #43 review)
+          trap 'rm -f "$RUNNER_TEMP/secrets.json"' EXIT
           jq -n '{ADMIN_TOKEN: env.ADMIN_TOKEN, SERVER_SECRET: env.SERVER_SECRET, TURNSTILE_SECRET: env.TURNSTILE_SECRET}' > "$RUNNER_TEMP/secrets.json"
           npx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json" | tee deploy.log
-          rm "$RUNNER_TEMP/secrets.json"
-          echo "url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)" >> "$GITHUB_OUTPUT"
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)
+          [ -n "$url" ] || { echo "::error::배포 출력에서 workers.dev URL을 찾지 못했습니다."; exit 1; }
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       - if: steps.deploy.outputs.url
         env:
           GH_TOKEN: ${{ github.token }}
