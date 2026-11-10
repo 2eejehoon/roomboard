@@ -41,6 +41,7 @@
 | [2026-11-09-astryx-prebuilt](2026-11-09-astryx-prebuilt.md) | 화면 컴포넌트는 Astryx, 미리 빌드된 CSS로 | 유효 |
 | [2026-11-09-report-list-per-target](2026-11-09-report-list-per-target.md) | 관리자 신고 목록은 대상마다 한 줄, 처리 완료는 대상 단위 | 유효 |
 | [2026-11-09-chat-live-text](2026-11-09-chat-live-text.md) | 2D 채팅은 숨긴 목록이 닉네임·내용만 읽어 준다 | 유효 |
+| [2026-11-09-perf-4g](2026-11-09-perf-4g.md) | SC-001의 "일반 4G"는 Chrome Fast 4G 프리셋, 측정은 압축한 프로덕션 빌드로 | 유효 |
 
 ## 판례 쓰는 법
 
