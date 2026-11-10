@@ -2,7 +2,7 @@ name: preview
 # research R3 (T097): every PR gets its own Worker and D1, roomboard-pr-<number>; the URL goes on the PR.
 # pull_request, never its _target variant (that would run PR code with secrets). Only session branches (claude/*) of this repo
 # deploy; the `if` below only skips the rest cleanly. It is PR code and can be edited away, so the guard is the preview
-# environment's claude/* branch rule (Settings → Environments, precedent 2026-11-10-preview-environment).
+# environment's required reviewer (Settings → Environments, precedent 2026-11-10-preview-environment).
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -16,7 +16,7 @@ jobs:
   deploy:
     if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
-    # Secrets live in the preview environment, whose deployment branch rule (claude/*) GitHub enforces outside PR code.
+    # Secrets live in the preview environment: each run waits for the operator's approval, which PR code cannot give.
     environment: preview
     timeout-minutes: 15
     env:

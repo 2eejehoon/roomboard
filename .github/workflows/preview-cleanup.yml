@@ -12,7 +12,7 @@ jobs:
   cleanup:
     if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ubuntu-latest
-    # Secrets live in the preview environment, whose deployment branch rule (claude/*) GitHub enforces outside PR code.
+    # Secrets live in the preview environment: each run waits for the operator's approval, which PR code cannot give.
     environment: preview
     timeout-minutes: 10
     env:

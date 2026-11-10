@@ -24,7 +24,7 @@ npm run check:docs
 
 ## GitHub Secrets
 
-미리보기용 여섯 개는 저장소 Secrets가 아니라 Environment `preview`(배포 브랜치 `claude/*`만 허용)의 Secrets에 둔다.
+미리보기용 여섯 개는 저장소 Secrets가 아니라 Environment `preview`(배포마다 운영자 승인, 배포 브랜치 `claude/*`)의 Secrets에 둔다.
 
 | 이름 | 쓰는 곳 |
 |---|---|
