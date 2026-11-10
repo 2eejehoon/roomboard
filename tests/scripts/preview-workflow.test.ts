@@ -29,3 +29,9 @@ it('without the token both workflows skip instead of failing', () => {
   expect(read('preview.yml')).toContain('HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != \'\' }}');
   expect(read('preview-cleanup.yml')).toContain('if [ -z "$CLOUDFLARE_API_TOKEN" ]; then');
 });
+
+it('a failed deploy fails the job: pipefail before the tee, and no URL is an error (PR #43 review)', () => {
+  const deploy = read('preview.yml').split(/\n {6}- /).find((s) => s.includes('wrangler deploy'))!;
+  expect(deploy).toMatch(/set -o pipefail[\s\S]*wrangler deploy/);
+  expect(deploy).toMatch(/\[ -n "\$url" \] \|\| \{ echo "::error::/);
+});
