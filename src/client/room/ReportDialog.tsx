@@ -4,7 +4,7 @@ import { Dialog, DialogHeader } from '@astryxdesign/core/Dialog';
 import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CreateReportRequest } from '../../core/api-schemas.ts';
 import { deviceKey } from '../device.ts';
 import { t } from '../i18n/t.ts';
@@ -20,6 +20,13 @@ export function ReportDialog({ target, onClose }: { target: CreateReportRequest[
   const [result, setResult] = useState<Result>(null);
   // A ref, not the state: two quick clicks on the retry come before a re-render, and a second POST would read as duplicate (PR #39 review).
   const inFlight = useRef(false);
+  // The focused send button goes away with the form; keep focus in the dialog so Escape and Tab still work (T095). Once per
+  // result: the room re-renders this dialog on every move and chat, and focus must stay where the user takes it (PR #42 review).
+  const statusRef = useRef<HTMLDivElement>(null);
+  const done = result?.kind === 'accepted' || result?.kind === 'duplicate' || result?.kind === 'expired' ? result.kind : null;
+  useEffect(() => {
+    if (done) statusRef.current?.focus();
+  }, [done]);
 
   const send = async () => {
     if (!reason || inFlight.current) return;
@@ -39,10 +46,9 @@ export function ReportDialog({ target, onClose }: { target: CreateReportRequest[
   return (
     <Dialog isOpen onOpenChange={(open) => !open && onClose()} purpose="form">
       <DialogHeader title={t(target.type === 'room' ? 'report.room' : 'report.messageTitle')} onOpenChange={(open) => !open && onClose()} />
-      {result?.kind === 'accepted' || result?.kind === 'duplicate' || result?.kind === 'expired' ? (
-        // The focused send button goes away with the form; keep focus in the dialog so Escape and Tab still work (T095).
-        <div role="status" tabIndex={-1} ref={(el) => el?.focus()}>
-          <Text as="p">{t(`report.${result.kind}`)}</Text>
+      {done ? (
+        <div role="status" tabIndex={-1} ref={statusRef}>
+          <Text as="p">{t(`report.${done}`)}</Text>
         </div>
       ) : (
         <Stack gap={4}>
