@@ -114,3 +114,49 @@ test('T046: a remote avatar moves through the poses in between', async ({ browse
   }).toPass({ timeout: 40_000 });
   expect(jumped, 'positions in between (frames landed inside the glide, yet the label jumped)').toBeUndefined();
 });
+
+// The label is placed from the avatar's world matrix inside its own frame callback. If that callback runs before the one that
+// moves the avatar, the label shows last frame's position, and after one long frame it jumps although the glide works (CI).
+test('T046: right after a long frame the label is already where the avatar is', async ({ browser }) => {
+  test.setTimeout(90_000);
+  const a = await newPage(browser, { viewport: { width: 400, height: 300 }, deviceScaleFactor: 1 });
+  const b = await withoutWebGL(await newPage(browser));
+  await enter(a);
+  const peer = await enter(b);
+  const label = a.getByText(peer.nickname, { exact: true });
+  await expect(label).toBeVisible({ timeout: 30_000 });
+  const moveB = (p: number[]) => b.evaluate((p) => (window as unknown as { __roomboard: { move(p: number[], r: number): void } }).__roomboard.move(p, 0), p);
+  await b.waitForTimeout(500);
+  await moveB([1, 0, 4]);
+  await expect.poll(async () => (await state(a)).peers.find((p) => p.peerId === peer.peerId)?.p).toEqual([1, 0, 4]);
+  await a.waitForTimeout(1000);
+  const startX = await label.evaluate((el) => Math.round(el.getBoundingClientRect().x));
+
+  // As soon as the store has the new pose, hold the main thread for 300 ms (longer than the 200 ms glide), then read the label on
+  // the next frame. The avatar is at the end by then, so the label must be too.
+  const done = a.evaluate(
+    ({ name, peerId }) =>
+      new Promise<number>((resolve) => {
+        const el = [...document.querySelectorAll('span')].find((s) => s.textContent === name)!;
+        const hooks = (window as unknown as { __roomboard: { state(): { peers: { peerId: string; p: number[] }[] } } }).__roomboard;
+        const watch = () => {
+          if (hooks.state().peers.find((p) => p.peerId === peerId)?.p[0] !== 3) return requestAnimationFrame(watch);
+          // One frame for React to commit the pose and start the glide, then the long frame.
+          requestAnimationFrame(() => {
+            const t = performance.now();
+            while (performance.now() - t < 300);
+            requestAnimationFrame(() => resolve(Math.round(el.getBoundingClientRect().x)));
+          });
+        };
+        watch();
+      }),
+    { name: peer.nickname, peerId: peer.peerId },
+  );
+  await b.waitForTimeout(1000);
+  await moveB([3, 0, 4]);
+  const afterStall = await done;
+  await a.waitForTimeout(1000);
+  const endX = await label.evaluate((el) => Math.round(el.getBoundingClientRect().x));
+  expect(Math.abs(endX - startX), 'the avatar moved on screen').toBeGreaterThan(20);
+  expect(Math.abs(afterStall - endX), `label after the long frame at ${afterStall}, start ${startX}, end ${endX}`).toBeLessThanOrEqual(5);
+});
