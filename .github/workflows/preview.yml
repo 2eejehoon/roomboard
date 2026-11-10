@@ -1,7 +1,8 @@
 name: preview
 # research R3 (T097): every PR gets its own Worker and D1, roomboard-pr-<number>; the URL goes on the PR.
-# pull_request, never its _target variant (that would run PR code with secrets): fork PRs get no secrets and skip. Fix-agent branches (agent/*) skip too: their code
-# comes from an issue (constitution VII) and must not run next to the Cloudflare token.
+# pull_request, never its _target variant (that would run PR code with secrets): fork PRs get no secrets and skip. Fix-agent
+# branches (agent/*) skip too: their code comes from an issue (constitution VII). The `if` below is PR code and can be edited
+# away, so the real guard is the preview environment's claude/* branch rule (Settings → Environments).
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -15,6 +16,8 @@ jobs:
   deploy:
     if: ${{ !startsWith(github.head_ref, 'agent/') }}
     runs-on: ubuntu-latest
+    # Secrets live in the preview environment, whose deployment branch rule (claude/*) GitHub enforces outside PR code.
+    environment: preview
     timeout-minutes: 15
     env:
       NAME: roomboard-pr-${{ github.event.pull_request.number }}
@@ -52,6 +55,8 @@ jobs:
             c.name = process.env.NAME;
             c.d1_databases[0].database_name = process.env.NAME;
             c.d1_databases[0].database_id = process.argv[1];
+            // Own rate-limit counters: the same namespace_id in one account shares them with production (PR #43 review).
+            for (const r of c.ratelimits) r.namespace_id = String(Number(r.namespace_id) + 1000);
             fs.writeFileSync("wrangler.jsonc", JSON.stringify(c, null, 2));
           ' "$id"
           npx wrangler d1 migrations apply "$NAME" --remote

@@ -12,6 +12,8 @@ jobs:
   cleanup:
     if: ${{ !startsWith(github.head_ref, 'agent/') }}
     runs-on: ubuntu-latest
+    # Secrets live in the preview environment, whose deployment branch rule (claude/*) GitHub enforces outside PR code.
+    environment: preview
     timeout-minutes: 10
     env:
       NAME: roomboard-pr-${{ github.event.pull_request.number }}

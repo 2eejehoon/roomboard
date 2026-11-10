@@ -73,7 +73,7 @@
 - **Alternatives**: 앞단 Worker + DO 전용 Worker 분리(앞단만 미리보기 URL) — 미리보기가 운영 DO를
   같이 써서 데이터가 섞이므로 기각.
 - **사용자 작업 필요**: 저장소 Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ADMIN_TOKEN`, `SERVER_SECRET`,
-  `TURNSTILE_SECRET`, `TURNSTILE_SITEKEY` 등록. 등록 전까지 미리보기 배포 워크플로는 건너뛴다(헌법의 미리보기 MUST는 이 의존성이
+  `TURNSTILE_SECRET`, `TURNSTILE_SITEKEY`를 Environment `preview`(배포 브랜치 `claude/*`, 판례 2026-11-10-preview-environment)에 등록. 등록 전까지 미리보기 배포 워크플로는 건너뛴다(헌법의 미리보기 MUST는 이 의존성이
   풀릴 때까지 미충족 상태로 추적).
 
 ## R4. 이동 동기화 방식
