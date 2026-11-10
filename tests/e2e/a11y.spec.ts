@@ -46,6 +46,14 @@ test('2D: enter from the list, see the other participant, chat and report with t
   await page.keyboard.press('Enter');
   // The send button goes away with the form; focus must stay in the dialog or Escape and Tab land on the page.
   await expect(dialog.getByRole('status').filter({ hasText: ko['report.accepted'] })).toBeFocused();
+  // Where the user moves focus next stays put while the room keeps re-rendering the page (PR #42 review).
+  const close = dialog.getByRole('button', { name: '닫기' }); // Astryx's own ko-KR catalog names the header's close button
+  await tabTo(page, close);
+  const theirInput = other.getByRole('textbox', { name: ko['chat.input'] });
+  await theirInput.fill('다시 그리기');
+  await theirInput.press('Enter');
+  await expect(page.getByText('다시 그리기').first()).toBeAttached();
+  await expect(close).toBeFocused();
   // On touch devices the Astryx tooltip of the dialog's close button, passed on the way with Tab, can stay open; Escape
   // closes the top layer first (WCAG 1.4.13), so one press for the tooltip if it is there, one for the dialog.
   if (await page.getByRole('tooltip').isVisible()) await page.keyboard.press('Escape');
