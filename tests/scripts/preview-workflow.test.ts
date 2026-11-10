@@ -27,8 +27,8 @@ it('a failed deploy fails the job: pipefail before the tee, and no URL is an err
 });
 
 it.each(['preview.yml', 'preview-cleanup.yml'])('%s reads its secrets from the preview environment (PR #43 review)', (name) => {
-  // The workflow file comes from the PR, so only GitHub's environment branch rule (claude/*, set in Settings) keeps the
-  // secrets from PR code: an agent PR that edits this file still cannot reach them.
+  // The workflow file comes from the PR, so only the preview environment's required reviewer (Settings) keeps the secrets
+  // from PR code; the claude/* branch rule and the job `if` only skip other branches (precedent 2026-11-10-preview-environment).
   expect(read(name)).toMatch(/^ {4}environment: preview$/m);
 });
 
