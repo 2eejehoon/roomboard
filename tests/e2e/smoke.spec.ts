@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { ko } from '../../src/client/i18n/ko.ts';
 
 test('the app shell loads and the Worker answers', async ({ page, request }) => {
   await page.goto('/');
@@ -14,4 +15,13 @@ test('client routes render their screen', async ({ page }) => {
     await page.goto(path);
     await expect(page.locator(`main[data-route="${name}"]`)).toBeAttached();
   }
+});
+
+// T094, screens.md S6: a room id nobody made shows "없는 방" and the way back (410 is in us7-report).
+test('a missing room shows the S6 notice and goes back to the list', async ({ page }) => {
+  await page.goto('/rooms/zzzzzzzzzz');
+  await expect(page.getByRole('alert').getByText(ko['room.notFound'])).toBeVisible();
+  await page.getByRole('button', { name: ko['room.toBoard'] }).click();
+  await expect(page).toHaveURL('/');
+  await expect(page.locator('main[data-route="board"]')).toBeAttached();
 });
