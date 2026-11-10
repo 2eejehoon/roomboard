@@ -45,3 +45,8 @@ it.each(['preview.yml', 'preview-cleanup.yml'])('%s reads its secrets from the p
 it('previews count their own rate limits, not production\'s (PR #43 review)', () => {
   expect(read('preview.yml')).toContain('for (const r of c.ratelimits) r.namespace_id = String(Number(r.namespace_id) + 1000);');
 });
+
+it('a missing preview secret or D1 id stops with an error that names it (PR #43 review)', () => {
+  const wf = read('preview.yml');
+  for (const k of ['TURNSTILE_SITEKEY가 없습니다', '$k가 없습니다', 'D1 $NAME의 id를 찾지 못했습니다']) expect(wf).toContain(k);
+});
