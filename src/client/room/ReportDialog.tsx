@@ -40,7 +40,8 @@ export function ReportDialog({ target, onClose }: { target: CreateReportRequest[
     <Dialog isOpen onOpenChange={(open) => !open && onClose()} purpose="form">
       <DialogHeader title={t(target.type === 'room' ? 'report.room' : 'report.messageTitle')} onOpenChange={(open) => !open && onClose()} />
       {result?.kind === 'accepted' || result?.kind === 'duplicate' || result?.kind === 'expired' ? (
-        <div role="status">
+        // The focused send button goes away with the form; keep focus in the dialog so Escape and Tab still work (T095).
+        <div role="status" tabIndex={-1} ref={(el) => el?.focus()}>
           <Text as="p">{t(`report.${result.kind}`)}</Text>
         </div>
       ) : (
