@@ -39,6 +39,8 @@ export function RemoteAvatar({ peer }: { peer: Peer }) {
     to.current = { p: new Vector3(x, y, z), r: peer.r };
   }, [x, y, z, peer.r]);
 
+  // Priority -1: before the child Html's frame callback, which places the label from this group's matrix. At 0 the child (subscribed
+  // first) runs first and the label trails a frame behind, so after one long frame it jumps although the avatar glided (T046, CI).
   useFrame(() => {
     const g = group.current;
     if (!g) return;
@@ -46,7 +48,7 @@ export function RemoteAvatar({ peer }: { peer: Peer }) {
     g.position.lerpVectors(from.current.p, to.current.p, k);
     const turn = MathUtils.euclideanModulo(to.current.r - from.current.r + Math.PI, Math.PI * 2) - Math.PI; // shortest way round
     g.rotation.y = from.current.r + turn * k;
-  });
+  }, -1);
 
   return (
     <group ref={group} position={start.p} rotation-y={start.r}>
