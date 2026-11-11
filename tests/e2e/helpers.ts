@@ -88,8 +88,7 @@ export async function createRoom(page: Page, title: string, password = 'owner-pa
 export const shot = (page: Page, name: string, isMobile: boolean) =>
   page.screenshot({ path: `test-results/visual/${name}-${isMobile ? 'phone' : 'desktop'}.png` });
 
-// Mean luminance (0~255) of a viewport box, the share of near-black pixels in it (luminance < 40) and the share within 6 of
-// `rgb`, measured on a screenshot decoded by the browser itself. Boxes are fractions of the viewport: [x, y, width, height].
+// Mean luminance (0~255) of a viewport box and the share of its pixels within 6 of `rgb`, measured on a screenshot decoded by the browser itself. Boxes are fractions of the viewport: [x, y, width, height].
 export async function brightness(page: Page, box: [number, number, number, number], rgb = [0, 0, 0]) {
   const png = (await page.screenshot()).toString('base64');
   return page.evaluate(
@@ -102,16 +101,13 @@ export async function brightness(page: Page, box: [number, number, number, numbe
       ctx.drawImage(img, 0, 0);
       const d = ctx.getImageData(x, y, w, h).data;
       let sum = 0;
-      let dark = 0;
       let same = 0;
       for (let i = 0; i < d.length; i += 4) {
         if (Math.abs(d[i]! - rgb[0]!) <= 6 && Math.abs(d[i + 1]! - rgb[1]!) <= 6 && Math.abs(d[i + 2]! - rgb[2]!) <= 6) same++;
-        const l = 0.2126 * d[i]! + 0.7152 * d[i + 1]! + 0.0722 * d[i + 2]!;
-        sum += l;
-        if (l < 40) dark++;
+        sum += 0.2126 * d[i]! + 0.7152 * d[i + 1]! + 0.0722 * d[i + 2]!;
       }
       const n = d.length / 4;
-      return { mean: sum / n, dark: dark / n, same: same / n };
+      return { mean: sum / n, same: same / n };
     },
     { png, box, rgb },
   );

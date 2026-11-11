@@ -17,7 +17,7 @@ test('brightness() reads what is on screen', async ({ browser }) => {
   await page.setContent('<body style="margin:0"><div style="height:50vh;background:#000"></div><div style="height:50vh;background:#fff"></div></body>');
   const black = await brightness(page, [0, 0.1, 1, 0.3]);
   const white = await brightness(page, [0, 0.6, 1, 0.3], [255, 255, 255]);
-  expect([black.mean, black.dark, black.same, white.mean, white.dark, white.same].map(Math.round)).toEqual([0, 1, 1, 255, 0, 1]);
+  expect([black.mean, black.same, white.mean, white.same].map(Math.round)).toEqual([0, 1, 255, 1]);
 });
 
 // US1: the seed room is the first theme; the others are created (the create limit allows 3 a minute, shared with other specs).

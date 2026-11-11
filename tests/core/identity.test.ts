@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createChatFilter, parseWordList } from '../../src/core/chat-filter.ts';
-import { ADJECTIVES, ANIMALS, AVATAR_IDS, avatarFor, nicknameFor } from '../../src/core/identity.ts';
+import { ADJECTIVES, ANIMALS, AVATAR_IDS, AVATAR_SKINS, avatarFor, nicknameFor } from '../../src/core/identity.ts';
 
 // Deterministic v4-shaped keys so the spread check never flakes.
 const keys = Array.from({ length: 1000 }, (_, i) => {
@@ -36,4 +36,10 @@ describe('identity', () => {
     const bad = ADJECTIVES.flatMap((a) => ANIMALS.map((b) => `${a} ${b}`)).filter((n) => filter(n) !== n);
     expect(bad).toEqual([]);
   });
+});
+
+// 003 research R4: the characters' own skin is near black, so an avatar without an entry here would be black again.
+it('every avatar has a skin colour', () => {
+  expect(Object.keys(AVATAR_SKINS).sort()).toEqual([...AVATAR_IDS].sort());
+  for (const c of Object.values(AVATAR_SKINS)) expect(c).toMatch(/^#[0-9a-f]{6}$/);
 });
