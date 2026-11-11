@@ -72,14 +72,14 @@
 
 **Independent Test**: `npx playwright test visual -g "loading|empty|gone"`.
 
-- [ ] T020 [P] [US3] `tests/e2e/visual.spec.ts`(먼저): `room3d-loading`(3D 에셋 응답을 `page.route`로 잡아 둠 → 진행률 보임), `list-empty`(`/api/rooms` 응답을 빈 목록으로 → 방 만들기 링크 보임), `gone`(삭제된 방 → 목록 링크). 실패 확인.
-- [ ] T021 [US3] `src/client/room/room3d/Scene.tsx` `Progress`, `src/client/Status.tsx` `Loading`·`NetworkError`, `src/client/board/BoardPage.tsx` 빈 상태: Astryx 컴포넌트로, 새 문구는 `src/client/i18n/ko.ts` 키(FR-009, FR-011). T020 통과.
+- [x] T020 [P] [US3] `tests/e2e/visual.spec.ts`(먼저): `room3d-loading`(3D 에셋 응답을 `page.route`로 잡아 둠 → 진행률 보임), `list-empty`(`/api/rooms` 응답을 빈 목록으로 → 방 만들기 링크 보임), `gone`(삭제된 방 → 목록 링크). 실패 확인. — 완료: 고치기 전 `room3d-loading`만 실패(진행률 배경 불투명도 0). `list-empty`(Astryx EmptyState + 첫 방 만들기 링크)와 `gone`(Banner + 목록으로)은 001에서 이미 통과했다. `gone`은 `/api/rooms/:id` 응답을 410으로 바꿔 만든다.
+- [x] T021 [US3] `src/client/room/room3d/Scene.tsx` `Progress`, `src/client/Status.tsx` `Loading`·`NetworkError`, `src/client/board/BoardPage.tsx` 빈 상태: Astryx 컴포넌트로, 새 문구는 `src/client/i18n/ko.ts` 키(FR-009, FR-011). T020 통과. — 완료: 3D 진행률(`Scene.tsx` `Progress`)만 머리글과 같은 반투명 흰 면. `Status.tsx`·빈 목록은 이미 Astryx 컴포넌트라 변경 없음, 새 문구 없음.
 
 ---
 
 ## Phase 6: Polish
 
-- [ ] T022 quickstart V1~V3 실행, 결과(SC-001 시간, 3D 에셋 바이트, 실패했다 고친 검사)를 이 파일과 PR에 기록. README의 에셋 용량 문장 갱신.
+- [x] T022 quickstart V1~V3 실행, 결과(SC-001 시간, 3D 에셋 바이트, 실패했다 고친 검사)를 이 파일과 PR에 기록. README의 에셋 용량 문장 갱신. — 완료: quickstart V1(visual 전체 통과), V2(로컬 SC-001 4.6초, 첫 3D 에셋 약 210KB, check:bundle 통과), V3(a11y·us2-fallback 통과). 로컬 E2E 전체 93개 통과(6.2분), 단위 420. README에는 에셋 용량 문장이 없어 고칠 것이 없었다(용량은 public/assets/CREDITS.md에 있음, #49에서 갱신).
 - [ ] T023 운영자 판정(SC-001, quickstart V4): 미리보기 배포를 휴대폰으로 확인. "아쉽다"면 무엇이 아쉬운지 받아 스펙부터 고친다.
 
 ---

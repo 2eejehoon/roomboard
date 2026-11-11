@@ -156,3 +156,35 @@ test('room3d overlays: readable over the scene, at most half of a phone screen',
   }
   expect((await audit(page, isMobile)).filter((f) => f.startsWith('contrast'))).toEqual([]);
 });
+
+// US3 (FR-009): the states have designed screens. The 3D progress sits on its own surface like the header (the scene behind it
+// can be any colour); an empty board points to creating a room; a deleted room points back to the board.
+test('room3d-loading: progress on its own surface while the models load', async ({ browser, isMobile }) => {
+  const page = await newPage(browser);
+  await page.route(/\/assets\/(models|characters)\//, () => {}); // held: the scene never finishes loading
+  await page.goto('/rooms/seedroom01');
+  const progress = page.getByRole('status').filter({ hasText: '%' });
+  await expect(progress).toBeVisible({ timeout: 30_000 });
+  await shot(page, 'room3d-loading', isMobile);
+  expect(await progress.evaluate((e) => Number(getComputedStyle(e).backgroundColor.match(/[\d.]+/g)?.[3] ?? 1)), 'progress background opacity').toBeGreaterThanOrEqual(0.8);
+  expect((await audit(page, isMobile)).filter((f) => f.startsWith('contrast'))).toEqual([]);
+});
+
+test('list-empty: an empty board points to creating a room', async ({ browser, isMobile }) => {
+  const page = await newPage(browser);
+  await page.route('**/api/rooms', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ items: [], nextCursor: null }) }));
+  await page.goto('/');
+  await expect(page.getByRole('link', { name: ko['board.createFirst'] })).toBeVisible();
+  await shot(page, 'list-empty', isMobile);
+  expect(await audit(page, isMobile)).toEqual([]);
+});
+
+test('gone: a deleted room points back to the board', async ({ browser, isMobile }) => {
+  const page = await newPage(browser);
+  await page.route('**/api/rooms/gonegone01', (r) => r.fulfill({ status: 410, contentType: 'application/json', body: JSON.stringify({ code: 'gone' }) }));
+  await page.goto('/rooms/gonegone01');
+  await expect(page.getByText(ko['room.gone'])).toBeVisible();
+  await expect(page.getByRole('button', { name: ko['room.toBoard'] })).toBeVisible();
+  await shot(page, 'gone', isMobile);
+  expect(await audit(page, isMobile)).toEqual([]);
+});

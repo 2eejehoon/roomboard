@@ -73,7 +73,13 @@ export default memo(function Scene({ store, move }: { store: RoomStore; move: Mo
 
 function Progress() {
   const { active, progress } = useProgress();
-  return active ? <p role="status">{t('room3d.loading', { n: Math.round(progress) })}</p> : null;
+  // 003 FR-009: on the header's light surface, since the scene behind it can be any colour.
+  const surface = { background: 'rgb(255 255 255 / 0.85)', width: 'fit-content', margin: '0 auto', padding: '8px 16px', borderRadius: 8 };
+  return active ? (
+    <p role="status" style={surface}>
+      {t('room3d.loading', { n: Math.round(progress) })}
+    </p>
+  ) : null;
 }
 
 // 003 research R1·R2: the theme's sun (the only shadow caster, its shadow camera fitted to the bounds) and sky/ground light. No
