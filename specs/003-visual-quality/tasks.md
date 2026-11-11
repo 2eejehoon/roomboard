@@ -13,16 +13,16 @@
 
 ## Phase 1: Setup
 
-- [ ] T001 `tests/e2e/visual.spec.ts` 뼈대와 `tests/e2e/helpers.ts`의 스크린샷 도우미 `shot(page, name)`: [contracts/visual-baseline.md](contracts/visual-baseline.md)의 이름 규칙(`<화면>-<크기>.png`, `desktop` 1280×720, `phone` 412×839)으로 `test-results/visual/`에 저장. 아직 검사 없음.
+- [x] T001 `tests/e2e/visual.spec.ts` 뼈대와 `tests/e2e/helpers.ts`의 스크린샷 도우미 `shot(page, name)`: [contracts/visual-baseline.md](contracts/visual-baseline.md)의 이름 규칙(`<화면>-<크기>.png`, `desktop` 1280×720, `phone` 412×839)으로 `test-results/visual/`에 저장. 아직 검사 없음.
 - [ ] T002 `.github/workflows/ci.yml`: E2E 뒤 `if: always()`로 `test-results/visual/`을 결과물 `visual`(보관 7일)로 올린다. 허용 경로 밖이라 운영자 머지(CLAUDE.md 머지 규칙).
 
 ---
 
 ## Phase 2: Foundational
 
-- [ ] T003 [P] `tests/core/themes.test.ts`(먼저, 실패 확인): 테마 3개 모두 `look`이 있고 data-model 규칙을 지킨다 — "`look.kind` `indoor` | `outdoor`", "색은 `#rrggbb`", "indoor는 `wall`, outdoor는 `fog`(시작 < 끝, 끝은 경계 대각선 이상)", "`sun` 세기 0 초과, 방향 y < 0", "`ambient` 세기 0 초과", 테마끼리 `sun` 또는 `ambient` 색이 다르다.
-- [ ] T004 `src/core/themes.ts`: `Theme.look` 타입과 테마 3개의 값(카페: 따뜻한 실내, 도서관: 차분한 실내, 정원: 밝은 실외). T003 통과.
-- [ ] T005 [P] `tests/e2e/helpers.ts`: 3D 장면 스크린샷에서 영역 평균 밝기를 재는 `brightness(page, box)`(캔버스 스크린샷 PNG를 디코드). R7 측정에 쓴다. 단위 검사는 흰·검정 단색 영역으로 `tests/e2e/visual.spec.ts` 첫 테스트에서.
+- [x] T003 [P] `tests/core/themes.test.ts`(먼저, 실패 확인): 테마 3개 모두 `look`이 있고 data-model 규칙을 지킨다 — "`look.kind` `indoor` | `outdoor`", "색은 `#rrggbb`", "indoor는 `wall`, outdoor는 `fog`(시작 < 끝, 끝은 경계 대각선 이상)", "`sun` 세기 0 초과, 방향 y < 0", "`ambient` 세기 0 초과", 테마끼리 `sun` 또는 `ambient` 색이 다르다.
+- [x] T004 `src/core/themes.ts`: `Theme.look` 타입과 테마 3개의 값(카페: 따뜻한 실내, 도서관: 차분한 실내, 정원: 밝은 실외). T003 통과.
+- [x] T005 [P] `tests/e2e/helpers.ts`: 3D 장면 스크린샷에서 영역 평균 밝기를 재는 `brightness(page, box, rgb)`(브라우저가 PNG를 디코드). R7 측정에 쓴다. 단위 검사는 흰·검정 단색 영역으로 `tests/e2e/visual.spec.ts` 첫 테스트에서 — 완료.
 
 ---
 
@@ -34,17 +34,17 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T006 [P] [US1] `tests/e2e/visual.spec.ts` `room3d-<테마>`: 스폰 위치 첫 화면. (a) 화면 위쪽 20% 띠가 `look.sky`/`look.wall`과 다른 단일 배경색 `#d9cbb8`이 아니다(FR-001), (b) 내 아바타 머리 영역 평균 밝기 ≥ 화면 평균의 절반(SC-002), (c) 가구 바로 아래 바닥 영역이 그 옆 바닥보다 어둡다(FR-002). 지금 코드에서 (b)·(c) 실패 확인.
-- [ ] T007 [P] [US1] `tests/e2e/perf.spec.ts`: 첫 3D 에셋 합계 상한을 5MB에서 3MB로 낮춘다(HDRI 제거 뒤 약 1.3MB 예상, research R1). 지금 코드에서 실패 확인.
+- [x] T006 [P] [US1] `tests/e2e/visual.spec.ts` `room3d-<테마>`: 스폰 위치 첫 화면. (a) 화면 위쪽 20% 띠가 `look.sky`/`look.wall`과 다른 단일 배경색 `#d9cbb8`이 아니다(FR-001), (b) 내 아바타 머리 영역 평균 밝기 ≥ 화면 평균의 절반(SC-002), (c) 가구 바로 아래 바닥 영역이 그 옆 바닥보다 어둡다(FR-002). 지금 코드에서 (b)·(c) 실패 확인. — 완료: (a)·(b)만 자동화. 001 코드에서 (a) 배경 단색 비율 0.56~0.87(기준 < 0.2), (b) 머리/화면 밝기 비 휴대폰 0.34~0.47(기준 ≥ 0.5)로 실패, 003 코드 0.65~0.87로 통과. 데스크톱은 아바타가 작아 001도 0.59~0.69로 통과한다(휴대폰 크기에서만 가려진다). 아바타는 기기 키를 고정해 `char-01`로 정한다(옷·머리가 검지 않음). (c) 그림자는 위치가 테마·해 방향마다 달라 자동 검사를 두지 않고 스크린샷 판정으로 남긴다.
+- [x] T007 [P] [US1] `tests/e2e/perf.spec.ts`: 첫 3D 에셋 합계 상한을 5MB에서 3MB로 낮춘다(HDRI 제거 뒤 약 1.3MB 예상, research R1). 지금 코드에서 실패 확인. — 완료: 로컬 SC-001 3.9초, 첫 3D 에셋 약 207KB(001 약 1.8MB).
 
 ### Implementation
 
-- [ ] T008 [US1] `src/client/room/room3d/Scene.tsx`: `Environment files=…hdr` 제거, `look.sun`(방향광, 그림자 켬, 그림자 카메라를 `bounds`에 맞춤, 지도 크기 `(pointer: coarse)`면 1024 아니면 2048), `look.ambient`(반구광). 반사 환경은 두지 않는다(research R1 측정). Canvas `shadows`.
-- [ ] T009 [US1] `src/client/room/room3d/Scene.tsx`: `Floor`가 `look.floor` 색·그림자 받기, indoor면 경계 4면에 안쪽만 그리는 벽(`look.wall`, 높이 `bounds` y), outdoor면 `look.sky` 배경과 `look.fog` 안개(research R3). `<color attach="background">`는 `look.sky`.
-- [ ] T010 [US1] `src/client/room/room3d/Scene.tsx` `Furniture`: 복제한 모델의 메시가 그림자를 드리우고 받는다.
-- [ ] T011 [US1] `src/client/room/room3d/RemoteAvatar.tsx` `Avatar`: 메시 그림자 드리움, `Skin` 재질을 복제해 아바타별 피부색 표(data-model "Avatar 피부색 표", `char-01`~`char-08`)로 칠한다(research R4). 표는 `src/core/themes.ts` 옆이 아니라 아바타 코드(`src/core/identity.ts`의 아바타 목록 옆)에 둔다.
-- [ ] T012 [US1] `public/assets/hdri/` 삭제, `public/assets/CREDITS.md`(HDRI 절·용량 절)·`scripts/assets.sha256`·`scripts/fetch-assets.sh`에서 HDRI 제거. T006·T007 통과.
-- [ ] T013 [US1] `scripts/theme-previews.ts` 실행해 `public/assets/previews/*.jpg` 다시 찍기(HDRI 대기 문구 정리). 기존 3D E2E(us1·us4·us5) 통과 확인.
+- [x] T008 [US1] `src/client/room/room3d/Scene.tsx`: `Environment files=…hdr` 제거, `look.sun`(방향광, 그림자 켬, 그림자 카메라를 `bounds`에 맞춤, 지도 크기 `(pointer: coarse)`면 1024 아니면 2048), `look.ambient`(반구광). 반사 환경은 두지 않는다(research R1 측정). — 완료. 반구광 세기는 반사 환경이 빠진 만큼 2~2.2로 올렸다. Canvas `shadows`.
+- [x] T009 [US1] `src/client/room/room3d/Scene.tsx`: `Floor`가 `look.floor` 색·그림자 받기, indoor면 경계 4면에 안쪽만 그리는 벽(`look.wall`, 높이 `bounds` y), outdoor면 `look.sky` 배경과 `look.fog` 안개(research R3). `<color attach="background">`는 `look.sky`.
+- [x] T010 [US1] `src/client/room/room3d/Scene.tsx` `Furniture`: 복제한 모델의 메시가 그림자를 드리우고 받는다.
+- [x] T011 [US1] `src/client/room/room3d/RemoteAvatar.tsx` `Avatar`: 메시 그림자 드리움, `Skin` 재질을 복제해 아바타별 피부색 표(data-model "Avatar 피부색 표", `char-01`~`char-08`)로 칠한다(research R4). 표는 `src/core/themes.ts` 옆이 아니라 아바타 코드(`src/core/identity.ts`의 아바타 목록 옆)에 둔다.
+- [x] T012 [US1] `public/assets/hdri/` 삭제, `public/assets/CREDITS.md`(HDRI 절·용량 절)·`scripts/assets.sha256`·`scripts/fetch-assets.sh`에서 HDRI 제거. T006·T007 통과.
+- [x] T013 [US1] `scripts/theme-previews.ts` 실행해 `public/assets/previews/*.jpg` 다시 찍기(HDRI 대기 문구 정리). 기존 3D E2E(us1·us4·us5) 통과 확인. — 완료: 로컬 E2E 전체 77개 통과(5.2분). 앞선 전체 실행 한 번에서 모바일 T046 '긴 프레임 뒤 라벨'이 실패(206→315)했으나 단독 4회·us1 파일 3회·전체 재실행에서 재현 안 됨. CI에서 다시 나오면 원인을 본다.
 
 ---
 
