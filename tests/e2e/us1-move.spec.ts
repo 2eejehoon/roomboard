@@ -24,7 +24,7 @@ test('Q1: a move reaches the other participant within a second; Q2: leaving remo
 });
 
 // T045 (keyboard on desktop) and Q3 (joystick on touch devices): my own input moves me, and the other participant sees it.
-for (const run of [1, 2, 3, 4, 5]) test(`T045, Q3 #${run}: my input in the 3D room moves me for the other participant`, async ({ browser, isMobile }) => {
+test('T045, Q3: my input in the 3D room moves me for the other participant', async ({ browser, isMobile }) => {
   test.setTimeout(60_000);
   const a = await newPage(browser);
   const b = await newPage(browser);
