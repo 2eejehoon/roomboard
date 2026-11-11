@@ -69,7 +69,7 @@
   배포한다(DO 포함, 데이터 격리). D1도 PR마다 `roomboard-pr-<번호>` DB를 만들어 그 PR의
   마이그레이션을 적용한다(PR끼리 스키마가 달라도 충돌 없음, 무료 DB 10개 한도 안에서 열린 PR 8개까지).
   PR이 닫히면 `wrangler delete --name roomboard-pr-<번호>`와 `wrangler d1 delete`로 정리한다. DO 클래스를 가진
-  Worker가 `wrangler delete`로 지워지는지는 첫 미리보기 배포 때 확인한다(미확인). 배포 URL은 PR 댓글로 남긴다.
+  Worker도 `wrangler delete`로 지워진다(#45 정리 run 42925740045에서 Worker·D1 `roomboard-pr-45` 삭제 성공. Container 확인 권한 경고가 나오지만 삭제에는 영향 없음). 배포 URL은 PR 댓글로 남긴다.
 - **Alternatives**: 앞단 Worker + DO 전용 Worker 분리(앞단만 미리보기 URL) — 미리보기가 운영 DO를
   같이 써서 데이터가 섞이므로 기각.
 - **사용자 작업 필요**: 저장소 Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ADMIN_TOKEN`, `SERVER_SECRET`,

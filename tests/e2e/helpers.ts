@@ -17,8 +17,36 @@ export const test = base.extend<{ closeContexts: void }>({
 export async function newPage(browser: Browser, options?: BrowserContextOptions) {
   const context = await browser.newContext(options);
   contexts.push(context);
+  await context.addInitScript(recordSockets);
   return context.newPage();
 }
+
+// CI's failure artifacts cannot be read from a cloud session, so a stuck connection explains itself in the log (T100, us1 T045):
+// the room socket's open/welcome/close (with code), moves sent, and main-thread stalls over a second, in ms since page start.
+function recordSockets() {
+  const log: string[] = ((window as unknown as { __sockets: string[] }).__sockets = []);
+  const at = () => Math.round(performance.now());
+  new PerformanceObserver((l) => {
+    for (const e of l.getEntries()) if (e.duration > 1000) log.push(`${Math.round(e.startTime)} stall ${Math.round(e.duration)}`);
+  }).observe({ type: 'longtask' });
+  const WS = window.WebSocket;
+  window.WebSocket = class extends WS {
+    moves = 0;
+    constructor(url: string | URL, protocols?: string | string[]) {
+      super(url, protocols);
+      if (!String(url).includes('/ws')) return; // Vite's HMR socket
+      log.push(`${at()} new`);
+      this.addEventListener('open', () => log.push(`${at()} open`));
+      this.addEventListener('message', (e) => String(e.data).includes('"t":"welcome"') && log.push(`${at()} welcome`));
+      this.addEventListener('close', (e) => log.push(`${at()} close ${e.code} after ${this.moves} moves`));
+    }
+    send(data: Parameters<WebSocket['send']>[0]) {
+      if (typeof data === 'string' && data.startsWith('{"t":"move"')) this.moves++;
+      super.send(data);
+    }
+  };
+}
+export const socketLog = (page: Page) => page.evaluate(() => (window as unknown as { __sockets: string[] }).__sockets.join(', ')).catch((e: Error) => e.message);
 
 // A browser without WebGL (quickstart Q4).
 export async function withoutWebGL(page: Page) {
@@ -37,7 +65,10 @@ export async function enter(page: Page, path = '/rooms/seedroom01') {
   // out for a mobile 3D page in CI (runs 42539252136, 42541919523).
   await expect
     .poll(async () => (await page.evaluate(() => '__roomboard' in window)) && (await state(page)).connection, { timeout: 30_000 })
-    .toBe('open');
+    .toBe('open')
+    .catch(async (e: Error) => {
+      throw new Error(`${e.message}\nroom socket: ${await socketLog(page)}`);
+    });
   return (await state(page)).you!;
 }
 
