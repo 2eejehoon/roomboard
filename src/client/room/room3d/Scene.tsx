@@ -6,7 +6,7 @@ import { CuboidCollider, Physics, RigidBody } from '@react-three/rapier';
 import { Ecctrl, type EcctrlHandle } from 'ecctrl';
 import { useButtonStore, useJoystickStore } from 'ecctrl/input';
 import { TimeControl } from 'ecctrl/time';
-import { memo, Suspense, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { memo, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { Euler, Vector3 } from 'three';
 import type { Pose } from '../../../core/room-session.ts';
 import { THEMES, type Bounds, type Look, type RoomObject, type Vec3 } from '../../../core/themes.ts';
@@ -33,6 +33,23 @@ const FEET = 0.8;
 const euler = new Euler(0, 0, 0, 'YXZ');
 const STILL: Record<Control, boolean> = { forward: false, backward: false, leftward: false, rightward: false, jump: false, run: false };
 
+// T107: the Claude app's in-app browser dragged the page under the joystick and flashed white. The joystick takes touches as
+// pointer events, which cannot cancel a drag, so touchmove on the 3D controls is cancelled here; the page behind is the sky.
+function HoldPage({ sky }: { sky: string }) {
+  useEffect(() => {
+    const hold = (e: TouchEvent) => {
+      if (e.target instanceof Element && e.target.closest('canvas, #ecctrl-joystick, #ecctrl-virtual-button')) e.preventDefault();
+    };
+    document.addEventListener('touchmove', hold, { passive: false });
+    document.documentElement.style.backgroundColor = sky;
+    return () => {
+      document.removeEventListener('touchmove', hold);
+      document.documentElement.style.backgroundColor = '';
+    };
+  }, [sky]);
+  return null;
+}
+
 // memo: RoomPage re-renders on every store change, including my own pose each frame; store and move never change.
 export default memo(function Scene({ store, move }: { store: RoomStore; move: Move }) {
   const room = useSyncExternalStore(store.subscribe, () => store.getState().room);
@@ -43,7 +60,8 @@ export default memo(function Scene({ store, move }: { store: RoomStore; move: Mo
   const { look, bounds } = THEMES[themeId];
   return (
     <>
-      <Canvas style={{ position: 'fixed', inset: 0, zIndex: -1 }} camera={{ fov: 60 }} dpr={[1, 1.5]} shadows>
+      <HoldPage sky={look.sky} />
+      <Canvas style={{ position: 'fixed', inset: 0, zIndex: -1, touchAction: 'none' }} camera={{ fov: 60 }} dpr={[1, 1.5]} shadows>
         <Suspense fallback={null}>
           <Lights look={look} bounds={bounds} />
           <color attach="background" args={[look.sky]} />
