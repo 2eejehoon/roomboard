@@ -21,6 +21,13 @@ test('brightness() reads what is on screen', async ({ browser }) => {
   expect([black.mean, black.same, white.mean, white.same].map(Math.round)).toEqual([0, 1, 255, 1]);
 });
 
+// One room per theme for the whole run: the second project finds the first one's, so the shared create limit is spent once.
+async function themeRoom(page: Page, themeId: string): Promise<string> {
+  const title = `시각 ${themeId}`;
+  const { items } = (await (await page.request.get('/api/rooms')).json()) as { items: { id: string; title: string }[] };
+  return items.find((r) => r.title === title)?.id ?? createRoom(page, title, 'owner-pass', themeId);
+}
+
 // US1: the seed room is the first theme; the others are created (the create limit allows 3 a minute, shared with other specs).
 for (const themeId of THEME_IDS) {
   test(`room3d-${themeId}: a finished place, not a dark avatar on a plain board`, async ({ browser, isMobile }) => {
@@ -28,7 +35,7 @@ for (const themeId of THEME_IDS) {
     const page = await newPage(browser);
     // This device key gets char-01 (src/core/identity.ts avatarFor): skin, a blue shirt, brown hair and trousers, nothing near black.
     await page.addInitScript(() => localStorage.setItem('rb.deviceKey', '00000000-0000-4000-8000-000000000013'));
-    const path = themeId === THEME_IDS[0] ? '/rooms/seedroom01' : `/rooms/${await createRoom(page, `시각 ${themeId}`, 'owner-pass', themeId)}`;
+    const path = themeId === THEME_IDS[0] ? '/rooms/seedroom01' : `/rooms/${await themeRoom(page, themeId)}`;
     await enter(page, path);
     await scene3d(page);
     await shot(page, `room3d-${themeId}`, isMobile);

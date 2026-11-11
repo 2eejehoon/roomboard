@@ -2,7 +2,7 @@
    components' own height, so no specificity fight with their classes. */
 @media (pointer: coarse) {
   button,
-  input:not([type='radio'], [type='checkbox']),
+  input:not([type='radio'], [type='checkbox'], [type='hidden']),
   select,
   textarea,
   [role='tab'] {
@@ -10,7 +10,7 @@
     min-width: 44px;
   }
   /* The box around a text field is what takes the tap. */
-  :has(> input:not([type='radio'], [type='checkbox'])) {
+  :has(> input:not([type='radio'], [type='checkbox'], [type='hidden'])) {
     min-height: 44px;
   }
   a[href]:not(p a, li > a) {
