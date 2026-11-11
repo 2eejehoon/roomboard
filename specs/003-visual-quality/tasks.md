@@ -80,7 +80,7 @@
 ## Phase 6: Polish
 
 - [x] T022 quickstart V1~V3 실행, 결과(SC-001 시간, 3D 에셋 바이트, 실패했다 고친 검사)를 이 파일과 PR에 기록. README의 에셋 용량 문장 갱신. — 완료: quickstart V1(visual 전체 통과), V2(로컬 SC-001 4.6초, 첫 3D 에셋 약 210KB, check:bundle 통과), V3(a11y·us2-fallback 통과). 로컬 E2E 전체 93개 통과(6.2분), 단위 420. README에는 에셋 용량 문장이 없어 고칠 것이 없었다(용량은 public/assets/CREDITS.md에 있음, #49에서 갱신).
-- [ ] T023 운영자 판정(SC-001, quickstart V4): 미리보기 배포를 휴대폰으로 확인. "아쉽다"면 무엇이 아쉬운지 받아 스펙부터 고친다.
+- [x] T023 운영자 판정(SC-001, quickstart V4): 미리보기 배포를 휴대폰으로 확인. "아쉽다"면 무엇이 아쉬운지 받아 스펙부터 고친다. 확인용 미리보기는 이 기록을 남긴 PR(claude/003-t023-preview)에서 띄운다. 판정이 끝날 때까지 이 PR은 머지하지 않는다(닫히면 미리보기가 지워진다). 2026-11-11 운영자 판정: 미리보기 https://roomboard-pr-52.2eejehoon.workers.dev (PR #52)에서 휴대폰으로 확인, "괜찮다".
 
 ---
 
