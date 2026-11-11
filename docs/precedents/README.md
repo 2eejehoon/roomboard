@@ -44,6 +44,7 @@
 | [2026-11-09-perf-4g](2026-11-09-perf-4g.md) | SC-001의 "일반 4G"는 Chrome Fast 4G 프리셋, 측정은 압축한 프로덕션 빌드로 | 유효 |
 | [2026-11-10-preview-environment](2026-11-10-preview-environment.md) | 미리보기 비밀값은 Environment `preview`, 배포마다 운영자 승인 | 일부 대체됨(배포 브랜치) |
 | [2026-11-10-preview-no-branch-rule](2026-11-10-preview-no-branch-rule.md) | 미리보기 Environment는 배포 브랜치 제한 없이, 승인만으로 | 유효 |
+| [2026-11-11-visual-direction](2026-11-11-visual-direction.md) | 003 시각 품질: 3D는 아늑한 로우폴리, 화면은 전체를 고르게 | 유효 |
 
 ## 판례 쓰는 법
 
