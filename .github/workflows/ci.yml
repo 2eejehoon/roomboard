@@ -23,6 +23,14 @@ jobs:
       - run: npm run check:bundle
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e -- --trace off
+      # 003 FR-013: baseline screens for the operator, on success too (specs/003-visual-quality/contracts/visual-baseline.md).
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual
+          path: test-results/visual/
+          retention-days: 7
+          if-no-files-found: ignore
       # Each failure's error-context.md holds the page snapshot; the log alone cannot tell slow from stuck (T070).
       - if: failure()
         uses: actions/upload-artifact@v4
