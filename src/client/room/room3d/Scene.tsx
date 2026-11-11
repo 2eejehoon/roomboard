@@ -1,19 +1,19 @@
 // T045: the 3D room (screens.md S3 3D 화면). RoomPage loads this only through React.lazy, so three, R3F and Rapier stay out
 // of the entry chunk. The scene reads the store and sends my pose; the server and the store own every room rule.
-import { CameraControls, Environment, KeyboardControls, useGLTF, useKeyboardControls, useProgress } from '@react-three/drei';
+import { CameraControls, KeyboardControls, useGLTF, useKeyboardControls, useProgress } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { CuboidCollider, Physics, RigidBody } from '@react-three/rapier';
 import { Ecctrl, type EcctrlHandle } from 'ecctrl';
 import { useButtonStore, useJoystickStore } from 'ecctrl/input';
 import { TimeControl } from 'ecctrl/time';
 import { memo, Suspense, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { Euler } from 'three';
+import { Euler, Vector3 } from 'three';
 import type { Pose } from '../../../core/room-session.ts';
-import { THEMES, type Bounds, type RoomObject, type Vec3 } from '../../../core/themes.ts';
+import { THEMES, type Bounds, type Look, type RoomObject, type Vec3 } from '../../../core/themes.ts';
 import { t } from '../../i18n/t.ts';
 import type { RoomStore } from '../../state/room-store.ts';
 import { nextSend, onStorePose } from '../send-rule.ts';
-import { Avatar, RemoteAvatar } from './RemoteAvatar.tsx';
+import { Avatar, RemoteAvatar, shadowed } from './RemoteAvatar.tsx';
 import { TouchControls } from './TouchControls.tsx';
 
 type Move = (p: Vec3, r: number, a: Pose['a']) => void;
@@ -40,17 +40,19 @@ export default memo(function Scene({ store, move }: { store: RoomStore; move: Mo
   const avatarId = useSyncExternalStore(store.subscribe, () => store.getState().you?.avatarId);
   if (!room || !avatarId) return null;
   const { themeId, objects } = room.roomData;
+  const { look, bounds } = THEMES[themeId];
   return (
     <>
-      <Canvas style={{ position: 'fixed', inset: 0, zIndex: -1 }} camera={{ fov: 60 }} dpr={[1, 1.5]}>
+      <Canvas style={{ position: 'fixed', inset: 0, zIndex: -1 }} camera={{ fov: 60 }} dpr={[1, 1.5]} shadows>
         <Suspense fallback={null}>
-          <Environment files={`/assets/hdri/${themeId}.hdr`} />
-          <color attach="background" args={['#d9cbb8']} />
+          <Lights look={look} bounds={bounds} />
+          <color attach="background" args={[look.sky]} />
+          {look.kind === 'outdoor' && <fog attach="fog" args={[look.sky, look.fog.near, look.fog.far]} />}
           {/* Ecctrl pushes its float spring once per rendered frame, so physics steps once per frame too, at most 1/30 s:
               several fixed steps per frame bounce, and one long step blows the spring up. A slow device runs in slow motion. */}
           <Physics paused>
             <TimeControl maxDelta={1 / 30} />
-            <Floor bounds={THEMES[themeId].bounds} />
+            <Floor bounds={bounds} look={look} />
             {objects.map((o) => (
               <Furniture key={o.id} object={o} />
             ))}
@@ -74,16 +76,59 @@ function Progress() {
   return active ? <p role="status">{t('room3d.loading', { n: Math.round(progress) })}</p> : null;
 }
 
-// Floor plus walls on the theme bounds, so physics keeps me inside the area the server accepts.
-function Floor({ bounds: { min, max } }: { bounds: Bounds }) {
+// 003 research R1·R2: the theme's sun (the only shadow caster, its shadow camera fitted to the bounds) and sky/ground light. No
+// reflection environment: the matte low-poly models barely show one, and drei's light-panel Environment cost mobile T045 its idle.
+function Lights({ look, bounds: { min, max } }: { look: Look; bounds: Bounds }) {
+  const centre = new Vector3((min[0] + max[0]) / 2, 0, (min[2] + max[2]) / 2);
+  const reach = Math.hypot(max[0] - min[0], max[2] - min[2]) / 2 + 2;
+  const sun = centre.clone().addScaledVector(new Vector3(...look.sun.direction).normalize(), -reach * 2);
+  const mapSize = matchMedia('(pointer: coarse)').matches ? 1024 : 2048;
+  return (
+    <>
+      <hemisphereLight args={[look.ambient.sky, look.ambient.ground, look.ambient.intensity]} />
+      <directionalLight
+        position={sun}
+        color={look.sun.color}
+        intensity={look.sun.intensity}
+        castShadow
+        shadow-mapSize={[mapSize, mapSize]}
+        shadow-bias={-0.0005}
+        shadow-normalBias={0.03}
+        shadow-camera-left={-reach}
+        shadow-camera-right={reach}
+        shadow-camera-top={reach}
+        shadow-camera-bottom={-reach}
+        shadow-camera-far={reach * 5}
+        target-position={centre}
+      />
+    </>
+  );
+}
+
+// Floor plus walls on the theme bounds, so physics keeps me inside the area the server accepts. Indoor themes show those walls;
+// each is drawn from the inside only, so a camera that swings out past one still sees the room through it (research R3).
+function Floor({ bounds: { min, max }, look }: { bounds: Bounds; look: Look }) {
   const [w, h, d] = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
   const [cx, cz] = [(min[0] + max[0]) / 2, (min[2] + max[2]) / 2];
+  const walls: [Vec3, number, number][] = [
+    [[cx, h / 2, min[2]], 0, w],
+    [[cx, h / 2, max[2]], Math.PI, w],
+    [[min[0], h / 2, cz], Math.PI / 2, d],
+    [[max[0], h / 2, cz], -Math.PI / 2, d],
+  ];
   return (
     <RigidBody type="fixed" colliders={false}>
-      <mesh rotation-x={-Math.PI / 2} position={[cx, 0, cz]}>
-        <planeGeometry args={[w, d]} />
-        <meshStandardMaterial color="#b9a07e" />
+      <mesh rotation-x={-Math.PI / 2} position={[cx, 0, cz]} receiveShadow>
+        <planeGeometry args={look.kind === 'outdoor' ? [w * 4, d * 4] : [w, d]} />
+        <meshStandardMaterial color={look.floor} />
       </mesh>
+      {look.kind === 'indoor' &&
+        walls.map(([position, rotationY, width]) => (
+          <mesh key={rotationY} position={position} rotation-y={rotationY} receiveShadow>
+            <planeGeometry args={[width, h]} />
+            <meshStandardMaterial color={look.wall} />
+          </mesh>
+        ))}
       <CuboidCollider args={[w / 2, 0.5, d / 2]} position={[cx, -0.5, cz]} />
       <CuboidCollider args={[0.5, h / 2, d / 2]} position={[min[0] - 0.5, h / 2, cz]} />
       <CuboidCollider args={[0.5, h / 2, d / 2]} position={[max[0] + 0.5, h / 2, cz]} />
@@ -96,7 +141,7 @@ function Floor({ bounds: { min, max } }: { bounds: Bounds }) {
 // roomData.objects: assetId names the GLB, collider "box" becomes a fixed box collider around the model.
 function Furniture({ object: o }: { object: RoomObject }) {
   const { scene } = useGLTF(`/assets/models/${o.assetId}.glb`);
-  const model = useMemo(() => scene.clone(), [scene]); // Scene re-renders on every peer move
+  const model = useMemo(() => shadowed(scene.clone()), [scene]); // Scene re-renders on every peer move
   return (
     <RigidBody type="fixed" colliders={o.collider === 'box' ? 'cuboid' : false} position={o.position} rotation={[0, o.rotationY, 0]} scale={o.scale ?? 1}>
       <primitive object={model} />

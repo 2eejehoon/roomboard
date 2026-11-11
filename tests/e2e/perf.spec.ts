@@ -8,13 +8,13 @@ import { ko } from '../../src/client/i18n/ko.ts';
 import { newPage, test } from './helpers.ts';
 
 // T096, SC-001: a phone on ordinary 4G (Chrome DevTools' Fast 4G preset, precedent 2026-11-09-perf-4g) gets from the list
-// into a room and moves within 10 s, and the room's first 3D assets (models, HDRI, character) stay at or under 5 MB.
+// into a room and moves within 10 s, and the room's first 3D assets (models, characters) stay at or under 5 MB (3 MB since 003 dropped the HDRI).
 // The dev server sends about 39 MB of unbundled modules, so this runs against the production build (`npm run build`, as CI
 // does before E2E) under `vite preview`. Preview does not compress, so a small proxy gzips text responses as Cloudflare does
 // (uncompressed, the JS alone is about 3x larger and the run took 8~9 s).
 const FAST_4G = { offline: false, downloadThroughput: (9_000_000 / 8) * 0.9, uploadThroughput: (1_500_000 / 8) * 0.9, latency: 60 * 2.75 };
 const PREVIEW = 'http://localhost:4174';
-const ASSETS_3D = /^\/assets\/(models|hdri|characters)\//;
+const ASSETS_3D = /^\/assets\/(models|characters)\//;
 
 // localhost:4174 → vite preview on 4173: text bodies gzipped, WebSocket upgrades piped through untouched.
 function gzipProxy(): Server {
@@ -103,5 +103,6 @@ test('SC-001: list → room → first move within 10 s on 4G; the first 3D asset
   console.log(`SC-001: first move after ${elapsed} ms; first 3D assets ${assetBytes} bytes`);
   expect(elapsed).toBeLessThanOrEqual(10_000);
   expect(assetBytes).toBeGreaterThan(0);
-  expect(assetBytes).toBeLessThanOrEqual(5 * 1024 * 1024);
+  // 003 research R1: without the HDRI (1.6~1.8 MB a theme) the first 3D assets fit well under 3 MB; the plan limit stays 5 MB.
+  expect(assetBytes).toBeLessThanOrEqual(3 * 1024 * 1024);
 });

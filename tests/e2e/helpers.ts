@@ -73,8 +73,8 @@ export async function enter(page: Page, path = '/rooms/seedroom01') {
 }
 
 // The create limit (3 per 60 s) is shared with us3 Q6, the other room specs and the other project's run, so wait it out once if it bites.
-export async function createRoom(page: Page, title: string, password = 'owner-pass'): Promise<string> {
-  const body = { title, description: 'E2E', themeId: 'cafe', password, turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX' };
+export async function createRoom(page: Page, title: string, password = 'owner-pass', themeId = 'cafe'): Promise<string> {
+  const body = { title, description: 'E2E', themeId, password, turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX' };
   let res = await page.request.post('/api/rooms', { data: body });
   if (res.status() === 429) {
     await page.waitForTimeout(Number(res.headers()['retry-after'] ?? 60) * 1000);
@@ -82,4 +82,33 @@ export async function createRoom(page: Page, title: string, password = 'owner-pa
   }
   expect(res.status()).toBe(201);
   return ((await res.json()) as { id: string }).id;
+}
+
+// 003 contracts/visual-baseline.md: test-results/visual/<screen>-<size>.png, size from the project (phone or desktop).
+export const shot = (page: Page, name: string, isMobile: boolean) =>
+  page.screenshot({ path: `test-results/visual/${name}-${isMobile ? 'phone' : 'desktop'}.png` });
+
+// Mean luminance (0~255) of a viewport box and the share of its pixels within 6 of `rgb`, measured on a screenshot decoded by the browser itself. Boxes are fractions of the viewport: [x, y, width, height].
+export async function brightness(page: Page, box: [number, number, number, number], rgb = [0, 0, 0]) {
+  const png = (await page.screenshot()).toString('base64');
+  return page.evaluate(
+    async ({ png, box, rgb }) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${png}`;
+      await img.decode();
+      const [x, y, w, h] = [box[0] * img.width, box[1] * img.height, box[2] * img.width, box[3] * img.height].map(Math.round);
+      const ctx = new OffscreenCanvas(img.width, img.height).getContext('2d')!;
+      ctx.drawImage(img, 0, 0);
+      const d = ctx.getImageData(x, y, w, h).data;
+      let sum = 0;
+      let same = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        if (Math.abs(d[i]! - rgb[0]!) <= 6 && Math.abs(d[i + 1]! - rgb[1]!) <= 6 && Math.abs(d[i + 2]! - rgb[2]!) <= 6) same++;
+        sum += 0.2126 * d[i]! + 0.7152 * d[i + 1]! + 0.0722 * d[i + 2]!;
+      }
+      const n = d.length / 4;
+      return { mean: sum / n, same: same / n };
+    },
+    { png, box, rgb },
+  );
 }

@@ -2,8 +2,9 @@
 import { Html, useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MathUtils, Vector3, type Group } from 'three';
+import { MathUtils, Mesh, Vector3, type Group, type Material, type MeshStandardMaterial, type Object3D } from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { AVATAR_SKINS } from '../../../core/identity.ts';
 import type { Pose } from '../../../core/room-session.ts';
 import type { Peer } from '../../state/room-store.ts';
 
@@ -11,10 +12,31 @@ const CLIPS: Record<Pose['a'], string> = { idle: 'Idle', walk: 'Walk', run: 'Run
 const AVATAR_SCALE = 0.5; // the Quaternius characters are 3.3 units tall; this makes them about 1.65 m
 const MOVE_INTERVAL_MS = 200; // the sender's throttle (room-socket.ts), so one pose blends into the next just as it arrives
 
+// Every mesh of a model casts a shadow and takes them (003 FR-002).
+export function shadowed<T extends Object3D>(model: T): T {
+  model.traverse((o) => {
+    o.castShadow = o.receiveShadow = true;
+  });
+  return model;
+}
+
+// The skin material, painted with the avatar's skin colour (AVATAR_SKINS). Shared by every instance of the avatar, all the same colour.
+function paintSkin(model: Object3D, color: string) {
+  model.traverse((o) => {
+    if (!(o instanceof Mesh)) return;
+    for (const m of [o.material as Material | Material[]].flat()) if (m.name === 'Skin') (m as MeshStandardMaterial).color.set(color);
+  });
+}
+
 export function Avatar({ avatarId, a }: { avatarId: string; a: Pose['a'] }) {
   const gltf = useGLTF(`/assets/characters/${avatarId}.glb`);
   // Skinned meshes need their own skeleton per instance; two peers can share an avatarId.
-  const scene = useMemo(() => clone(gltf.scene), [gltf.scene]);
+  const scene = useMemo(() => {
+    const model = shadowed(clone(gltf.scene));
+    const skin = AVATAR_SKINS[avatarId];
+    if (skin) paintSkin(model, skin);
+    return model;
+  }, [gltf.scene, avatarId]);
   const { actions } = useAnimations(gltf.animations, scene);
   useEffect(() => {
     const action = actions[CLIPS[a]];

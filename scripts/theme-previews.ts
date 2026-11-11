@@ -21,7 +21,7 @@ for (const themeId of THEME_IDS) {
   page.on('response', (r) => r.status() >= 400 && failed.push(`${r.status()} ${r.url()}`));
   await page.goto(`http://localhost:5173/rooms/${id(themeId)}`);
   await page.locator('canvas').waitFor({ timeout: 60_000 });
-  await page.waitForTimeout(8000); // HDRI and models settle; there is no "scene ready" signal
+  await page.waitForTimeout(8000); // models and shadows settle; there is no "scene ready" signal
   if (failed.length || (await page.getByRole('alert').count())) throw new Error(`${themeId}: 3D did not load cleanly\n${failed.join('\n')}`);
   await page.addStyleTag({ content: 'body *:not(canvas):not(:has(canvas)) { visibility: hidden !important; }' }); // the room only
   await page.screenshot({ path: `public/assets/previews/${themeId}.jpg`, type: 'jpeg', quality: 70 });

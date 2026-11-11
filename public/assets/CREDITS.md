@@ -50,14 +50,6 @@
 | `models/tree.glb` | Ultimate Nature (https://quaternius.com/packs/ultimatenature.html, Drive `1-Kl0L_Jg8awbh0S5T-z3zxh4mVlnxTpa`) | `OBJ/CommonTree_1.obj` |
 | `models/flowers.glb` | Ultimate Nature | `OBJ/Flowers.obj` |
 
-## Poly Haven — HDRI
-
-| 파일 | 원본 |
-|---|---|
-| `hdri/cafe.hdr` | "Comfy Café" (Sergej Majboroda), https://polyhaven.com/a/comfy_cafe, 1k HDR. 라이선스: CC0 (https://polyhaven.com/license) |
-| `hdri/library.hdr` | "Reading Room" (Greg Zaal), https://polyhaven.com/a/reading_room, 1k HDR. 라이선스: CC0 |
-| `hdri/garden.hdr` | "Garden Nook" (Dimitrios Savva, Jarod Guest), https://polyhaven.com/a/garden_nook, 1k HDR. 라이선스: CC0 |
-
 ## 테마 미리보기
 
 `previews/<테마>.jpg`는 위 에셋으로 그린 우리 3D 방을 `scripts/theme-previews.ts`로 찍은 것이다(새 출처 없음).
@@ -65,6 +57,6 @@
 
 ## 용량 (테마별 첫 로딩)
 
-캐릭터 8개 1.3MB(방에 있는 아바타만 받는다), 가구 43KB, HDRI 1.6MB — 합계 약 2.9MB로 목표 5MB 이하.
-도서관: 가구 0.17MB, HDRI 1.6MB, 캐릭터 포함 약 3.1MB. 정원: 가구 0.08MB, HDRI 1.8MB, 캐릭터 포함 약 3.2MB.
+캐릭터는 방에 있는 아바타만 받는다(하나 약 0.13~0.2MB, 8개 1.3MB). 가구는 카페 43KB, 도서관 0.17MB, 정원 0.08MB.
+조명 환경은 파일을 받지 않는다(003 research R1, 2026-11-11에 Poly Haven HDRI 테마당 1.6~1.8MB를 뺐다).
 3D 코드 청크(three, R3F, Rapier WASM)는 별도로 gzip 약 1.2MB다.
