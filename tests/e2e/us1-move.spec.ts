@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
-import { enter, newPage, state, test, withoutWebGL } from './helpers.ts';
+import { enter, newPage, socketLog, state, test, withoutWebGL } from './helpers.ts';
 
 // quickstart Q1~Q3 (US1).
 // Q1/Q2 time the sync path, so they run without the 3D scene: software WebGL on the CI machine starves the local Worker
@@ -54,7 +54,11 @@ test('T045, Q3: my input in the 3D room moves me for the other participant', asy
       await a.keyboard.up('KeyW');
     }
     await expect.poll(async () => (await seen())?.p, { timeout: 2000 }).not.toEqual([0, 0, 4]);
-  }).toPass({ timeout: 30_000 });
+  })
+    .toPass({ timeout: 30_000 })
+    .catch(async (e: Error) => {
+      throw new Error(`${e.message}\nA: ${await socketLog(a)}\nB: ${await socketLog(b)}`);
+    });
   // ecctrl slows down over about a second, longer in software rendering's slow motion.
   await expect.poll(async () => (await seen())?.a, { message: 'stopping sends one idle', timeout: 15_000 }).toBe('idle');
 });
