@@ -28,10 +28,11 @@
 
 - 사실: `public/assets/characters/char-0*.glb` 8개 모두 `Skin` 재질 기본색이 0.013(선형, sRGB 약 #1F1F1F)이다. 눈(`Face`)만 흰색이다.
   조명을 바꿔도 피부는 검게 남는다.
-- **Decision**: 첫 작업으로 Quaternius 원본(`Casual_Male.gltf` 등, CREDITS.md)의 `Skin` 색과 비교한다.
-  원본이 밝으면 변환 과정의 버그로 보고 변환을 고쳐 다시 만든다. 원본이 어두우면 불러올 때 `Skin` 색을 아바타별
-  피부색 표(8개)로 바꾼다(CC0라 수정 가능, 출처 기록 유지).
-- **미확인**: 원본 색. tasks의 첫 작업에서 확인해 이 항목을 고친다.
+- 가공(`scripts/fetch-assets.sh`: 애니메이션 거르기, glTF-Transform `prune`·`resample`·`meshopt`)은 재질 색을 바꾸지 않는다.
+  따라서 원본도 같은 색이다(2026-11-11 원본을 다시 받으려 했으나 Google Drive 할당량 초과로 직접 비교는 못 함).
+- **Decision**: 불러올 때 `Skin` 재질 색을 아바타별 피부색 표(8개, data-model)로 바꾼다. 에셋 파일은 그대로 둔다
+  (CC0라 수정 가능하고, 다시 받을 때 가공을 바꿀 필요가 없다).
+- **Alternatives**: 에셋 파일 색을 바꿔 다시 만들기 — `assets.sha256`과 가공 스크립트를 함께 바꿔야 해서 더 크다.
 
 ## R5. 화면 디자인 기준
 

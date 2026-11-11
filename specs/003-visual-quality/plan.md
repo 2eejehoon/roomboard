@@ -9,7 +9,7 @@
 001의 화면과 3D 장면을 기능 변경 없이 다듬는다. 3D는 아늑한 로우폴리 방향(Clarifications)으로, 테마마다 정한
 "보이는 모습"(벽·하늘·바닥 색, 해·주변광, 안개)을 코드 데이터로 두고 직접 조명과 그림자를 넣는다. 지금 조명을
 맡는 HDRI(테마당 1.6~1.8MB, 첫 로딩 에셋의 절반 이상)는 받지 않는 조명 환경으로 바꿔 SC-001 여유를 늘린다.
-아바타 얼굴이 검게 보이는 것은 조명보다 에셋(캐릭터 8개 모두 피부색 0.013)이 원인이라 원본과 비교해 고친다.
+아바타 얼굴이 검게 보이는 것은 조명보다 에셋(캐릭터 8개 모두 피부색 0.013, 원본 그대로)이 원인이라 불러올 때 피부색을 바꾼다.
 화면은 이미 쓰는 Astryx 토큰·컴포넌트로 기준을 맞추고, 기준 화면 스크린샷을 E2E로 만들어 CI 결과물로 남긴다.
 
 ## Technical Context
@@ -66,7 +66,7 @@ specs/003-visual-quality/
 ```text
 src/core/themes.ts                 # Theme에 look(보이는 모습) 추가
 src/client/room/room3d/Scene.tsx   # 조명·그림자·벽·하늘·안개, HDRI 제거
-src/client/room/room3d/RemoteAvatar.tsx  # Avatar 그림자, 피부 재질 보정(R4 결과에 따라)
+src/client/room/room3d/RemoteAvatar.tsx  # Avatar 그림자, 피부 재질 색(R4)
 src/client/board/*, room/*, admin/*      # Astryx 기준 정리
 public/assets/hdri/                # 삭제(R1), CREDITS.md·assets.sha256 갱신
 scripts/theme-previews.ts          # 새 모습으로 미리보기 다시 찍기
