@@ -39,7 +39,7 @@
 
 ### Implementation
 
-- [ ] T008 [US1] `src/client/room/room3d/Scene.tsx`: `Environment files=…hdr` 제거, `look.sun`(방향광, 그림자 켬, 그림자 카메라를 `bounds`에 맞춤, 지도 크기 `(pointer: coarse)`면 1024 아니면 2048), `look.ambient`(반구광), drei `Environment` 자식 `Lightformer` 몇 개로 반사 환경(research R1·R2). Canvas `shadows`.
+- [ ] T008 [US1] `src/client/room/room3d/Scene.tsx`: `Environment files=…hdr` 제거, `look.sun`(방향광, 그림자 켬, 그림자 카메라를 `bounds`에 맞춤, 지도 크기 `(pointer: coarse)`면 1024 아니면 2048), `look.ambient`(반구광). 반사 환경은 두지 않는다(research R1 측정). Canvas `shadows`.
 - [ ] T009 [US1] `src/client/room/room3d/Scene.tsx`: `Floor`가 `look.floor` 색·그림자 받기, indoor면 경계 4면에 안쪽만 그리는 벽(`look.wall`, 높이 `bounds` y), outdoor면 `look.sky` 배경과 `look.fog` 안개(research R3). `<color attach="background">`는 `look.sky`.
 - [ ] T010 [US1] `src/client/room/room3d/Scene.tsx` `Furniture`: 복제한 모델의 메시가 그림자를 드리우고 받는다.
 - [ ] T011 [US1] `src/client/room/room3d/RemoteAvatar.tsx` `Avatar`: 메시 그림자 드리움, `Skin` 재질을 복제해 아바타별 피부색 표(data-model "Avatar 피부색 표", `char-01`~`char-08`)로 칠한다(research R4). 표는 `src/core/themes.ts` 옆이 아니라 아바타 코드(`src/core/identity.ts`의 아바타 목록 옆)에 둔다.

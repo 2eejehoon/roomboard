@@ -9,7 +9,13 @@ export type ThemeId = (typeof THEME_IDS)[number];
 // Rough position for the 2D list (data-model.md Zone): area is [minX, minZ, maxX, maxZ]; the last zone has none and covers the rest.
 export type ZoneKey = 'zone.entrance' | 'zone.counter' | 'zone.tables' | 'zone.shelves' | 'zone.desk' | 'zone.well' | 'zone.trees';
 export type Zone = { nameKey: ZoneKey; area?: [number, number, number, number] };
-export type Theme = { id: ThemeId; nameKey: `theme.${ThemeId}`; bounds: Bounds; spawn: Vec3; defaultObjects: RoomObject[]; zones: Zone[] };
+// 003 data-model "Theme" look: indoor themes get walls on the bounds, outdoor ones a sky and fog. Colours are #rrggbb.
+type Light = { color: string; intensity: number };
+export type Look = { floor: string; sky: string; sun: Light & { direction: Vec3 }; ambient: { sky: string; ground: string; intensity: number } } & (
+  | { kind: 'indoor'; wall: string }
+  | { kind: 'outdoor'; fog: { near: number; far: number } }
+);
+export type Theme = { id: ThemeId; nameKey: `theme.${ThemeId}`; bounds: Bounds; spawn: Vec3; defaultObjects: RoomObject[]; zones: Zone[]; look: Look };
 
 // scale brings each model to room size (public/assets/CREDITS.md lists the sources).
 const box = (id: string, assetId: string, position: Vec3, rotationY = 0, scale?: number): RoomObject => ({ id, assetId, position, rotationY, collider: 'box', ...(scale && { scale }) });
@@ -29,6 +35,14 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
       { id: 'plant', assetId: 'plant', position: [5, 0, 5], rotationY: 0, collider: 'none' },
     ],
     zones: [{ nameKey: 'zone.entrance', area: [-6, 2, 6, 6] }, { nameKey: 'zone.counter', area: [-6, -6, 6, -3] }, { nameKey: 'zone.tables' }],
+    look: {
+      kind: 'indoor',
+      floor: '#a7825e',
+      wall: '#efe0c8',
+      sky: '#3b2f28',
+      sun: { color: '#ffd9a8', intensity: 2.2, direction: [-0.5, -1, -0.4] },
+      ambient: { sky: '#fff1dc', ground: '#6b4a32', intensity: 2.2 },
+    },
   },
   library: {
     id: 'library',
@@ -49,6 +63,14 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
       { nameKey: 'zone.shelves', area: [5, -8, 8, 4] },
       { nameKey: 'zone.desk' },
     ],
+    look: {
+      kind: 'indoor',
+      floor: '#6e5a48',
+      wall: '#d8d2c2',
+      sky: '#24262b',
+      sun: { color: '#fff3dd', intensity: 1.8, direction: [0.4, -1, -0.3] },
+      ambient: { sky: '#e6ecf5', ground: '#4a3d33', intensity: 2 },
+    },
   },
   garden: {
     id: 'garden',
@@ -64,6 +86,14 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
       { id: 'flowers', assetId: 'flowers', position: [0, 0, -8], rotationY: 0, scale: 1.5, collider: 'none' },
     ],
     zones: [{ nameKey: 'zone.entrance', area: [-10, 6, 10, 10] }, { nameKey: 'zone.well', area: [-3, -3, 3, 3] }, { nameKey: 'zone.trees' }],
+    look: {
+      kind: 'outdoor',
+      floor: '#7fae5a',
+      sky: '#bfe3f5',
+      sun: { color: '#fffaf0', intensity: 2.6, direction: [-0.6, -1, -0.5] },
+      ambient: { sky: '#cfeaff', ground: '#5c7a3a', intensity: 2.2 },
+      fog: { near: 18, far: 45 },
+    },
   },
 };
 

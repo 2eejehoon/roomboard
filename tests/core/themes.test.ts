@@ -50,11 +50,34 @@ describe('zoneAt', () => {
   });
 });
 
-// T067: the 3D room loads every object's GLB and the theme's HDRI from public/assets; a missing file fails the whole scene.
+// T067: the 3D room loads every object's GLB from public/assets; a missing file fails the whole scene. (No HDRI since 003 research R1.)
 describe('theme assets', () => {
-  it.each(THEME_IDS)('%s has its HDRI and a GLB for every object', (id) => {
+  it.each(THEME_IDS)('%s has a GLB for every object', (id) => {
     const assets = new URL('../../public/assets/', import.meta.url);
-    const files = [`hdri/${id}.hdr`, ...THEMES[id].defaultObjects.map((o) => `models/${o.assetId}.glb`)];
+    const files = [...THEMES[id].defaultObjects.map((o) => `models/${o.assetId}.glb`)];
     expect(files.filter((f) => !existsSync(new URL(f, assets)))).toEqual([]);
+  });
+});
+
+// 003 data-model "Theme" look: what a theme looks like in 3D (walls or sky, sun, ambient light, fog).
+describe('look', () => {
+  const hex = /^#[0-9a-f]{6}$/;
+  it.each(THEME_IDS)('%s: follows the data-model rules', (id) => {
+    const { look, bounds } = THEMES[id];
+    for (const c of [look.floor, look.sky, look.sun.color, look.ambient.sky, look.ambient.ground]) expect(c).toMatch(hex);
+    expect(look.sun.intensity).toBeGreaterThan(0);
+    expect(look.sun.direction[1]).toBeLessThan(0);
+    expect(look.ambient.intensity).toBeGreaterThan(0);
+    if (look.kind === 'indoor') expect(look.wall).toMatch(hex);
+    else {
+      const diagonal = Math.hypot(bounds.max[0] - bounds.min[0], bounds.max[2] - bounds.min[2]);
+      expect(look.fog.near).toBeLessThan(look.fog.far);
+      expect(look.fog.far).toBeGreaterThanOrEqual(diagonal);
+    }
+  });
+
+  it('themes differ in sun or ambient colour', () => {
+    const keys = THEME_IDS.map((id) => `${THEMES[id].look.sun.color}|${THEMES[id].look.ambient.sky}`);
+    expect(new Set(keys).size).toBe(THEME_IDS.length);
   });
 });

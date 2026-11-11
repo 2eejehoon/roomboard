@@ -4,13 +4,13 @@
 # Usage: bash scripts/fetch-assets.sh
 # Builds into a temp folder, checks it against scripts/assets.sha256, and only then copies into public/assets/,
 # so a changed or broken download cannot slip in silently.
-# After an intended asset change, regenerate it: (cd public/assets && sha256sum characters/* models/* hdri/*) > scripts/assets.sha256
+# After an intended asset change, regenerate it: (cd public/assets && sha256sum characters/* models/*) > scripts/assets.sha256
 set -euo pipefail
 cd "$(dirname "$0")/.."
 src=$(mktemp -d)
 trap 'rm -rf "$src"' EXIT
 out="$src/out" # built and checked here; public/assets/ changes only if every file matches
-mkdir -p "$out/characters" "$out/models" "$out/hdri"
+mkdir -p "$out/characters" "$out/models"
 gt() { npx -y @gltf-transform/cli@4.5.1 "$@" >/dev/null; }
 drive() { curl -fsSL -o "$2" "https://drive.usercontent.google.com/download?id=$1&export=download&confirm=t"; }
 
@@ -46,9 +46,6 @@ chair 1ajoiCzO9RNifVwT_gHJSwCdgOxiOnXVV
 plant 1h3pLNvN9CuOjWTPNbPThoMLOv0phZHhv
 EOF
 
-# Poly Haven "Comfy Café" HDRI, 1k.
-curl -fsSL -o "$out/hdri/cafe.hdr" https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/comfy_cafe_1k.hdr
-
 # Library and garden: Quaternius packs that ship only OBJ + MTL (flat colors). scripts/obj-to-glb.ts converts, then weld + meshopt.
 # Columns: assetId (src/core/themes.ts), OBJ file ID, MTL file ID.
 while read -r name obj mtl; do
@@ -67,10 +64,6 @@ bench 1L50vmvVhtQEMlqu2e95h1ZjjGUsj2zjo 1agcaElbWrwjtDfdU09Mqe1iIGwSobu_-
 tree 1mZ9G3T_F76NU2ug3CmsMv-hLoomVrD6K 1duQHNFJxdzuLfpjYTR0-b3wFNiq4SOAu
 flowers 1oOzfuZTnGm9sygsquH1jvCm1wMyny5Ux 1t0d4ukZJhA3InosrBnOOHUQSPM8MPP-T
 EOF
-
-# Poly Haven "Reading Room" and "Garden Nook" HDRIs, 1k.
-curl -fsSL -o "$out/hdri/library.hdr" https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/reading_room_1k.hdr
-curl -fsSL -o "$out/hdri/garden.hdr" https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/garden_nook_1k.hdr
 
 (cd "$out" && sha256sum --check --quiet "$OLDPWD/scripts/assets.sha256")
 cp -R "$out/." public/assets/

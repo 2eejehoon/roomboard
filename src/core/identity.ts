@@ -24,6 +24,17 @@ export const ANIMALS = [
 ];
 
 export const AVATAR_IDS = ['char-01', 'char-02', 'char-03', 'char-04', 'char-05', 'char-06', 'char-07', 'char-08'];
+// 003 research R4: the characters' own skin is near black (0.013 in every file, as the source has it); the 3D room paints these instead.
+export const AVATAR_SKINS: Readonly<Record<string, string>> = {
+  'char-01': '#f1c7a5',
+  'char-02': '#e0ac85',
+  'char-03': '#c68863',
+  'char-04': '#8d5a3b',
+  'char-05': '#f5d0b5',
+  'char-06': '#d9a07a',
+  'char-07': '#a86f4c',
+  'char-08': '#efc09a',
+};
 
 // FNV-1a with a murmur3 finalizer: synchronous, dependency-free and well spread for UUID input.
 function hash(s: string): number {
