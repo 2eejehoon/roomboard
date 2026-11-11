@@ -1,0 +1,104 @@
+# Tasks: 시각 품질 개선 (3D 그래픽·화면 디자인)
+
+**Input**: `specs/003-visual-quality/` (plan.md, spec.md, research.md, data-model.md, contracts/visual-baseline.md, quickstart.md)
+
+**Tests**: 헌법 III(테스트 우선)에 따라 각 이야기의 테스트를 먼저 쓰고 실패를 확인한 뒤 구현한다.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: 다른 파일, 끝나지 않은 작업에 기대지 않음 → 병렬 가능
+- **[Story]**: US1(3D 공간), US2(화면 디자인), US3(로딩·빈 상태)
+
+---
+
+## Phase 1: Setup
+
+- [ ] T001 `tests/e2e/visual.spec.ts` 뼈대와 `tests/e2e/helpers.ts`의 스크린샷 도우미 `shot(page, name)`: [contracts/visual-baseline.md](contracts/visual-baseline.md)의 이름 규칙(`<화면>-<크기>.png`, `desktop` 1280×720, `phone` 412×839)으로 `test-results/visual/`에 저장. 아직 검사 없음.
+- [ ] T002 `.github/workflows/ci.yml`: E2E 뒤 `if: always()`로 `test-results/visual/`을 결과물 `visual`(보관 7일)로 올린다. 허용 경로 밖이라 운영자 머지(CLAUDE.md 머지 규칙).
+
+---
+
+## Phase 2: Foundational
+
+- [ ] T003 [P] `tests/core/themes.test.ts`(먼저, 실패 확인): 테마 3개 모두 `look`이 있고 data-model 규칙을 지킨다 — "`look.kind` `indoor` | `outdoor`", "색은 `#rrggbb`", "indoor는 `wall`, outdoor는 `fog`(시작 < 끝, 끝은 경계 대각선 이상)", "`sun` 세기 0 초과, 방향 y < 0", "`ambient` 세기 0 초과", 테마끼리 `sun` 또는 `ambient` 색이 다르다.
+- [ ] T004 `src/core/themes.ts`: `Theme.look` 타입과 테마 3개의 값(카페: 따뜻한 실내, 도서관: 차분한 실내, 정원: 밝은 실외). T003 통과.
+- [ ] T005 [P] `tests/e2e/helpers.ts`: 3D 장면 스크린샷에서 영역 평균 밝기를 재는 `brightness(page, box)`(캔버스 스크린샷 PNG를 디코드). R7 측정에 쓴다. 단위 검사는 흰·검정 단색 영역으로 `tests/e2e/visual.spec.ts` 첫 테스트에서.
+
+---
+
+## Phase 3: User Story 1 — 방에 들어가면 공간이 완성된 장소로 보인다 (P1) 🎯 MVP
+
+**Goal**: 테마별 벽·하늘, 직접 조명과 그림자, 피부색이 보이는 아바타. HDRI 제거.
+
+**Independent Test**: `npx playwright test visual -g room3d` — 테마별 3D 첫 화면 자동 검사 통과, 운영자가 `room3d-<테마>-phone.png`와 미리보기 배포로 판정.
+
+### Tests (먼저 작성, 실패 확인)
+
+- [ ] T006 [P] [US1] `tests/e2e/visual.spec.ts` `room3d-<테마>`: 스폰 위치 첫 화면. (a) 화면 위쪽 20% 띠가 `look.sky`/`look.wall`과 다른 단일 배경색 `#d9cbb8`이 아니다(FR-001), (b) 내 아바타 머리 영역 평균 밝기 ≥ 화면 평균의 절반(SC-002), (c) 가구 바로 아래 바닥 영역이 그 옆 바닥보다 어둡다(FR-002). 지금 코드에서 (b)·(c) 실패 확인.
+- [ ] T007 [P] [US1] `tests/e2e/perf.spec.ts`: 첫 3D 에셋 합계 상한을 5MB에서 3MB로 낮춘다(HDRI 제거 뒤 약 1.3MB 예상, research R1). 지금 코드에서 실패 확인.
+
+### Implementation
+
+- [ ] T008 [US1] `src/client/room/room3d/Scene.tsx`: `Environment files=…hdr` 제거, `look.sun`(방향광, 그림자 켬, 그림자 카메라를 `bounds`에 맞춤, 지도 크기 `(pointer: coarse)`면 1024 아니면 2048), `look.ambient`(반구광), drei `Environment` 자식 `Lightformer` 몇 개로 반사 환경(research R1·R2). Canvas `shadows`.
+- [ ] T009 [US1] `src/client/room/room3d/Scene.tsx`: `Floor`가 `look.floor` 색·그림자 받기, indoor면 경계 4면에 안쪽만 그리는 벽(`look.wall`, 높이 `bounds` y), outdoor면 `look.sky` 배경과 `look.fog` 안개(research R3). `<color attach="background">`는 `look.sky`.
+- [ ] T010 [US1] `src/client/room/room3d/Scene.tsx` `Furniture`: 복제한 모델의 메시가 그림자를 드리우고 받는다.
+- [ ] T011 [US1] `src/client/room/room3d/RemoteAvatar.tsx` `Avatar`: 메시 그림자 드리움, `Skin` 재질을 복제해 아바타별 피부색 표(data-model "Avatar 피부색 표", `char-01`~`char-08`)로 칠한다(research R4). 표는 `src/core/themes.ts` 옆이 아니라 아바타 코드(`src/core/identity.ts`의 아바타 목록 옆)에 둔다.
+- [ ] T012 [US1] `public/assets/hdri/` 삭제, `public/assets/CREDITS.md`(HDRI 절·용량 절)·`scripts/assets.sha256`·`scripts/fetch-assets.sh`에서 HDRI 제거. T006·T007 통과.
+- [ ] T013 [US1] `scripts/theme-previews.ts` 실행해 `public/assets/previews/*.jpg` 다시 찍기(HDRI 대기 문구 정리). 기존 3D E2E(us1·us4·us5) 통과 확인.
+
+---
+
+## Phase 4: User Story 2 — 화면들이 한 디자인으로 정돈돼 보인다 (P2)
+
+**Goal**: Astryx 토큰·컴포넌트 기준으로 모든 화면 정리(research R5).
+
+**Independent Test**: `npx playwright test visual -g "list|create|room2d|admin"` — 대비·터치 크기·가로 스크롤 검사 통과, 운영자가 스크린샷 판정.
+
+### Tests (먼저 작성, 실패 확인)
+
+- [ ] T014 [P] [US2] `tests/e2e/visual.spec.ts` `list`·`create`·`room2d`·`admin`(데스크톱·휴대폰): 본문 글자 대비 ≥ 4.5:1(SC-003, 계산된 글자색·배경색으로 WCAG 상대 휘도), 휴대폰에서 버튼·입력칸·링크 ≥ 44×44px(SC-003), `scrollWidth <= clientWidth`(SC-005). 지금 코드에서 실패 항목을 기록한다.
+- [ ] T015 [P] [US2] `tests/e2e/visual.spec.ts` `room3d-cafe`(휴대폰): 머리글·채팅이 가리는 높이 합이 화면 높이의 절반 이하(FR-006), 머리글 글자 대비 ≥ 4.5:1(반투명 면 위).
+
+### Implementation
+
+- [ ] T016 [US2] `src/client/board/BoardPage.tsx`: 방 항목을 Astryx Card로(테마 그림 `/assets/previews/<테마>.jpg` + 제목 + 테마 이름 + 인원), 휴대폰 한 줄 한 장(FR-007). `contracts/screens.md`(001) S1 갱신.
+- [ ] T017 [P] [US2] `src/client/board/CreateRoomPage.tsx`·`EditRoomPage.tsx`·`Fields.tsx`: 인라인 크기·간격을 토큰으로, 테마 선택 그림 유지(FR-008), 터치 크기.
+- [ ] T018 [P] [US2] `src/client/room/RoomPage.tsx`·`ChatPanel.tsx`: 3D 위 머리글·채팅을 반투명 면(토큰 색) 위에, 휴대폰 높이 절반 이하(FR-006). `RemoteAvatar.tsx` 이름표 인라인 스타일을 토큰 값으로.
+- [ ] T019 [P] [US2] `src/client/room/room2d/Room2D.tsx`·`src/client/admin/AdminPage.tsx`: 같은 기준(FR-005, FR-012). T014·T015 통과, a11y.spec 통과.
+
+---
+
+## Phase 5: User Story 3 — 로딩과 빈 상태도 디자인돼 있다 (P3)
+
+**Independent Test**: `npx playwright test visual -g "loading|empty|gone"`.
+
+- [ ] T020 [P] [US3] `tests/e2e/visual.spec.ts`(먼저): `room3d-loading`(3D 에셋 응답을 `page.route`로 잡아 둠 → 진행률 보임), `list-empty`(`/api/rooms` 응답을 빈 목록으로 → 방 만들기 링크 보임), `gone`(삭제된 방 → 목록 링크). 실패 확인.
+- [ ] T021 [US3] `src/client/room/room3d/Scene.tsx` `Progress`, `src/client/Status.tsx` `Loading`·`NetworkError`, `src/client/board/BoardPage.tsx` 빈 상태: Astryx 컴포넌트로, 새 문구는 `src/client/i18n/ko.ts` 키(FR-009, FR-011). T020 통과.
+
+---
+
+## Phase 6: Polish
+
+- [ ] T022 quickstart V1~V3 실행, 결과(SC-001 시간, 3D 에셋 바이트, 실패했다 고친 검사)를 이 파일과 PR에 기록. README의 에셋 용량 문장 갱신.
+- [ ] T023 운영자 판정(SC-001, quickstart V4): 미리보기 배포를 휴대폰으로 확인. "아쉽다"면 무엇이 아쉬운지 받아 스펙부터 고친다.
+
+---
+
+## Dependencies & Execution Order
+
+- Setup(T001~T002) → Foundational(T003~T005) → US1 → US2 → US3 → Polish. T002는 운영자 머지라 따로 PR로 먼저 낸다.
+- US2·US3은 US1과 파일이 거의 겹치지 않아 Foundational 뒤 병렬 가능(겹치는 곳: `RemoteAvatar.tsx` T011·T018, `Scene.tsx` T008~T010·T021 — 순서대로).
+- 각 이야기 안에서는 테스트 → 구현.
+
+## Parallel Example: User Story 1
+
+```text
+T006 visual.spec room3d 검사  ∥  T007 perf.spec 상한
+→ T008 → T009 → T010 (Scene.tsx, 순서대로)  ∥  T011 RemoteAvatar.tsx
+→ T012 → T013
+```
+
+## Implementation Strategy
+
+- MVP는 US1(3D). 운영자가 가장 먼저 꼽았고, HDRI 제거로 첫 로딩도 가벼워진다. US1만 머지해 미리보기로 판정을 받은 뒤 US2·US3으로 간다.
+- PR 단위: (1) T002(운영자 머지), (2) T001·T003~T013, (3) T014~T019, (4) T020~T023.
