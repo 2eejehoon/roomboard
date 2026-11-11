@@ -14,7 +14,7 @@
 ## Phase 1: Setup
 
 - [x] T001 `tests/e2e/visual.spec.ts` 뼈대와 `tests/e2e/helpers.ts`의 스크린샷 도우미 `shot(page, name)`: [contracts/visual-baseline.md](contracts/visual-baseline.md)의 이름 규칙(`<화면>-<크기>.png`, `desktop` 1280×720, `phone` 412×839)으로 `test-results/visual/`에 저장. 아직 검사 없음.
-- [x] T002 `.github/workflows/ci.yml`: E2E 뒤 `if: always()`로 `test-results/visual/`을 결과물 `visual`(보관 7일)로 올린다. 허용 경로 밖이라 운영자 머지(CLAUDE.md 머지 규칙). — 머지됨(#48, 운영자 머지). 첫 실행 확인은 #49 CI(visual.spec가 처음 들어간 실행)에서.
+- [x] T002 `.github/workflows/ci.yml`: E2E 뒤 `if: always()`로 `test-results/visual/`을 결과물 `visual`(보관 7일)로 올린다. 허용 경로 밖이라 운영자 머지(CLAUDE.md 머지 규칙). — 머지됨(#48, 운영자 머지). 첫 실행 확인: #49 머지 뒤 main run 42971842641 성공, 결과물 `visual` 842KB 올라옴(2026-11-11).
 
 ---
 
