@@ -62,7 +62,7 @@
 ### Implementation
 
 - [ ] T016 [US2] `src/client/board/BoardPage.tsx`: 방 항목을 Astryx Card로(테마 그림 `/assets/previews/<테마>.jpg` + 제목 + 테마 이름 + 인원), 휴대폰 한 줄 한 장(FR-007). `contracts/screens.md`(001) S1 갱신.
-- [ ] T017 [P] [US2] `src/client/board/CreateRoomPage.tsx`·`EditRoomPage.tsx`·`Fields.tsx`: 인라인 크기·간격을 토큰으로, 테마 선택 그림 유지(FR-008), 터치 크기.
+- [ ] T017 [P] [US2] `src/client/board/CreateRoomPage.tsx`·`EditRoomPage.tsx`(`RoomFields`는 `CreateRoomPage.tsx`에 있음): 인라인 크기·간격을 토큰으로, 테마 선택 그림 유지(FR-008), 터치 크기.
 - [ ] T018 [P] [US2] `src/client/room/RoomPage.tsx`·`ChatPanel.tsx`: 3D 위 머리글·채팅을 반투명 면(토큰 색) 위에, 휴대폰 높이 절반 이하(FR-006). `RemoteAvatar.tsx` 이름표 인라인 스타일을 토큰 값으로.
 - [ ] T019 [P] [US2] `src/client/room/room2d/Room2D.tsx`·`src/client/admin/AdminPage.tsx`: 같은 기준(FR-005, FR-012). T014·T015 통과, a11y.spec 통과.
 
