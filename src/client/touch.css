@@ -1,0 +1,21 @@
+/* 003 SC-003: on touch screens every control is at least 44×44 px; Astryx's largest control is 36 px. min-height wins over the
+   components' own height, so no specificity fight with their classes. */
+@media (pointer: coarse) {
+  button,
+  input:not([type='radio'], [type='checkbox'], [type='hidden']),
+  select,
+  textarea,
+  [role='tab'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* The box around a text field is what takes the tap. */
+  :has(> input:not([type='radio'], [type='checkbox'], [type='hidden'])) {
+    min-height: 44px;
+  }
+  a[href]:not(p a, li > a) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
