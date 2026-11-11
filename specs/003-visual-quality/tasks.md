@@ -56,15 +56,15 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T014 [P] [US2] `tests/e2e/visual.spec.ts` `list`·`create`·`room2d`·`admin`(데스크톱·휴대폰): 본문 글자 대비 ≥ 4.5:1(SC-003, 계산된 글자색·배경색으로 WCAG 상대 휘도), 휴대폰에서 버튼·입력칸·링크 ≥ 44×44px(SC-003), `scrollWidth <= clientWidth`(SC-005). 지금 코드에서 실패 항목을 기록한다.
-- [ ] T015 [P] [US2] `tests/e2e/visual.spec.ts` `room3d-cafe`(휴대폰): 머리글·채팅이 가리는 높이 합이 화면 높이의 절반 이하(FR-006), 머리글 글자 대비 ≥ 4.5:1(반투명 면 위).
+- [x] T014 [P] [US2] `tests/e2e/visual.spec.ts` `list`·`create`·`room2d`·`admin`(데스크톱·휴대폰): 본문 글자 대비 ≥ 4.5:1(SC-003, 계산된 글자색·배경색으로 WCAG 상대 휘도), 휴대폰에서 버튼·입력칸·링크 ≥ 44×44px(SC-003), `scrollWidth <= clientWidth`(SC-005). 지금 코드에서 실패 항목을 기록한다. — 완료: 대비는 반투명 배경을 아래와 섞어 WCAG 비로 잰다. 터치 크기는 클릭을 받는 가장 가까운 상자(입력칸 틀, 라디오 카드)로 잰다. 고치기 전 휴대폰 4화면 실패: Astryx 컨트롤 최대 36px(입력칸 틀 32px, 버튼 32px, 링크 24px), 데스크톱 대비는 모두 통과.
+- [x] T015 [P] [US2] `tests/e2e/visual.spec.ts` `room3d-cafe`(휴대폰): 머리글·채팅이 가리는 높이 합이 화면 높이의 절반 이하(FR-006), 머리글 글자 대비 ≥ 4.5:1(반투명 면 위). — 완료: 고치기 전 머리글 배경 불투명도 0(실내 하늘 #3b2f28 위 검은 글자), 휴대폰 점프 버튼 글자 대비 1.43으로 실패.
 
 ### Implementation
 
-- [ ] T016 [US2] `src/client/board/BoardPage.tsx`: 방 항목을 Astryx Card로(테마 그림 `/assets/previews/<테마>.jpg` + 제목 + 테마 이름 + 인원), 휴대폰 한 줄 한 장(FR-007). `contracts/screens.md`(001) S1 갱신.
-- [ ] T017 [P] [US2] `src/client/board/CreateRoomPage.tsx`·`EditRoomPage.tsx`(`RoomFields`는 `CreateRoomPage.tsx`에 있음): 인라인 크기·간격을 토큰으로, 테마 선택 그림 유지(FR-008), 터치 크기.
-- [ ] T018 [P] [US2] `src/client/room/RoomPage.tsx`·`ChatPanel.tsx`: 3D 위 머리글·채팅을 반투명 면(토큰 색) 위에, 휴대폰 높이 절반 이하(FR-006). `RemoteAvatar.tsx` 이름표 인라인 스타일을 토큰 값으로.
-- [ ] T019 [P] [US2] `src/client/room/room2d/Room2D.tsx`·`src/client/admin/AdminPage.tsx`: 같은 기준(FR-005, FR-012). T014·T015 통과, a11y.spec 통과.
+- [x] T016 [US2] `src/client/board/BoardPage.tsx`: 방 항목을 Astryx Card로(테마 그림 `/assets/previews/<테마>.jpg` + 제목 + 테마 이름 + 인원), 휴대폰 한 줄 한 장(FR-007). `contracts/screens.md`(001) S1 갱신. — 완료: Card 대신 `ListItem`에 테마 그림(`startContent`)과 왼쪽 정렬. 기존 E2E가 목록 항목·링크 구조에 기대고 있어 구조는 유지했다. 검사: 방마다 미리보기 그림.
+- [x] T017 [P] [US2] `src/client/board/CreateRoomPage.tsx`·`EditRoomPage.tsx`(`RoomFields`는 `CreateRoomPage.tsx`에 있음): 인라인 크기·간격을 토큰으로, 테마 선택 그림 유지(FR-008), 터치 크기. — 완료(변경 없음): T014 검사(대비·터치·가로 스크롤)가 통과해 고칠 것이 없었다. 남은 인라인 스타일은 위치·겹침용이라 토큰으로 바꾸지 않았다.
+- [x] T018 [P] [US2] `src/client/room/RoomPage.tsx`·`ChatPanel.tsx`: 3D 위 머리글·채팅을 반투명 면(토큰 색) 위에, 휴대폰 높이 절반 이하(FR-006). `RemoteAvatar.tsx` 이름표 인라인 스타일을 토큰 값으로. — 완료: 머리글에 채팅과 같은 반투명 흰 면(`rgb(255 255 255 / 0.85)`), 점프 버튼 글자색 `#1f1f1f`(`TouchControls.tsx`). 휴대폰 터치 크기는 `src/client/touch.css`(`pointer: coarse`에서 컨트롤·입력칸 틀·단독 링크 `min-height: 44px`; `min-height`가 컴포넌트의 `height`를 이겨 Astryx 클래스와 우선순위 싸움이 없다). 이름표 인라인 스타일은 그대로.
+- [x] T019 [P] [US2] `src/client/room/room2d/Room2D.tsx`·`src/client/admin/AdminPage.tsx`: 같은 기준(FR-005, FR-012). T014·T015 통과, a11y.spec 통과. — 완료(변경 없음): 2D·관리자 화면은 touch.css만으로 T014 통과. a11y.spec 통과. 로컬 E2E 전체 87개 통과(5.8분), SC-001 4.0초, 첫 3D 에셋 약 199KB.
 
 ---
 

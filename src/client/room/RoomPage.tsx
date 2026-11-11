@@ -143,7 +143,8 @@ export function Notice({ text, reload = false }: { text: string; reload?: boolea
 export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
   const [reporting, setReporting] = useState(false);
   return (
-    <Stack as="header" gap={2} padding={4}>
+    // 003 FR-006: its own light surface, the same as the chat's, so it reads over a dark 3D sky too.
+    <Stack as="header" gap={2} padding={4} style={{ background: 'rgb(255 255 255 / 0.85)' }}>
       {state.connection === 'reconnecting' && (
         <div role="status">
           <Banner status="warning" title={t('room.reconnecting')} />

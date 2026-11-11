@@ -78,6 +78,9 @@ export function BoardPage() {
           <ListItem
             key={r.id}
             href={`/rooms/${r.id}`}
+            align="start"
+            // 003 FR-007: the theme as a picture; the theme name stays in the text below for screen readers.
+            startContent={<img src={`/assets/previews/${r.themeId}.jpg`} alt="" width={96} height={54} style={{ borderRadius: 8, objectFit: 'cover' }} />}
             label={r.title}
             description={`${t(THEMES[r.themeId].nameKey)} · ${t('board.online', { n: r.onlineCount })} · ${ago(r.createdAt, now)}`}
           />

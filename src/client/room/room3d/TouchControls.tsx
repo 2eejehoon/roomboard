@@ -10,7 +10,8 @@ export function TouchControls() {
       <div role="group" aria-label={t('room3d.joystick')} style={{ position: 'fixed', left: 16, bottom: 16, zIndex: 10 }}>
         <Joystick joystickWrapperStyle={{ position: 'relative' }} />
       </div>
-      <VirtualButton id="jump" label={t('room3d.jump')} buttonWrapperStyle={{ right: 32, bottom: 64 }} />
+      {/* 003 SC-003: ecctrl's default label is light grey on the light cap (contrast 1.4). */}
+      <VirtualButton id="jump" label={t('room3d.jump')} buttonWrapperStyle={{ right: 32, bottom: 64 }} buttonCapStyle={{ color: '#1f1f1f' }} />
     </>
   );
 }
