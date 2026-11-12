@@ -9,9 +9,13 @@ describe('redact', () => {
     ['korean mobile', 'call 010-1234-5678 now'],
     ['korean mobile no dashes', 'call 01012345678 now'],
     ['korean landline', 'call 02-123-4567 now'],
+    ['korean mobile with spaces', 'call 010 1234 5678 now'],
+    ['korean mobile with dots', 'call 010.1234.5678 now'],
     ['international', 'call +82 10 1234 5678 now'],
     ['ipv4', 'from 192.168.0.1 port'],
     ['ipv6', 'from 2001:db8:85a3::8a2e:370:7334 port'],
+    ['ipv6 loopback', 'from ::1 port'],
+    ['ipv6 mapped', 'from ::ffff:c0a8:1 port'],
     ['ipv6 full', 'from 2001:0db8:0000:0000:0000:ff00:0042:8329 port'],
     ['uuid', 'room 3f2b8c1e-9a4d-4e2f-8b1a-0c9d8e7f6a5b gone'],
     ['hex token', `key ${'a1'.repeat(16)} bad`],
@@ -22,6 +26,17 @@ describe('redact', () => {
     const out = redact(input);
     expect(out).toContain(M);
     expect(out.split(' ')[0]).toBe(input.split(' ')[0]);
+  });
+
+  it('masks nested quotes as one span (V8 JSON.parse echoes the input)', () => {
+    const out = redact(`Unexpected token 'o', "{"note":"my secret memo","x":1 oops}" is not valid JSON`);
+    expect(out).not.toMatch(/note|secret|memo/);
+    expect(out).toMatch(/^Unexpected token .* is not valid JSON$/);
+  });
+
+  it('keeps long paths without digits (tokens almost always have one)', () => {
+    const s = 'Failed to fetch /api/rooms/some-room-name/messages-list';
+    expect(redact(s)).toBe(s);
   });
 
   it('masks every match, not just the first', () => {
