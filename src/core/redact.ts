@@ -3,8 +3,9 @@
 const MASK = '[가림]';
 const H = '[0-9a-f]{1,4}';
 const PATTERNS: [RegExp, ((m: string) => string)?][] = [
-  // Quoted text, greedy to the last quote on the line: nested quotes (V8 JSON.parse echoes the input) must not reopen a gap.
-  [/"[^\n]*"|'[^\n]*'|“[^\n]*”|‘[^\n]*’/g],
+  // Quoted text, greedy to the last closing quote, across lines (V8 JSON.parse echoes the input, nested quotes and newlines
+  // included); with no closing quote, to the end. A ' right after a letter is an apostrophe (Can't), not an opening quote.
+  [/"[\s\S]*"|"[\s\S]*|(?<![A-Za-z])'[\s\S]*'|(?<![A-Za-z])'[\s\S]*|“[\s\S]*”|“[\s\S]*|‘[\s\S]*’|‘[\s\S]*/g],
   [/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g], // email
   [/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi], // uuid
   [/\b(?:\d{1,3}\.){3}\d{1,3}\b/g], // ipv4, before ipv6 so an embedded ::ffff:a.b.c.d loses every octet

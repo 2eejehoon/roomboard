@@ -39,6 +39,15 @@ describe('redact', () => {
     expect(redact(s)).toBe(s);
   });
 
+  it('masks quoted text across lines, and an unclosed quote to the end', () => {
+    expect(redact('Unexpected token \'m\', "{\n  my secret memo\n}" is not valid JSON')).not.toMatch(/secret/);
+    expect(redact('Unterminated string "my secret\nmemo')).toBe('Unterminated string [가림]');
+  });
+
+  it("keeps apostrophes inside words (Safari: Can't find variable)", () => {
+    expect(redact("ReferenceError: Can't find variable: foo")).toBe("ReferenceError: Can't find variable: foo");
+  });
+
   it('leaves no octet of an IPv4 embedded in IPv6', () => {
     for (const ip of ['::ffff:192.168.0.1', '2001:db8::192.168.0.1']) expect(redact(`from ${ip} port`)).not.toMatch(/\d/);
   });
