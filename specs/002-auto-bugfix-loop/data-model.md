@@ -34,6 +34,7 @@
 |---|---|---|
 | day | TEXT PK | `YYYY-MM-DD` (UTC) |
 | issues_created | INTEGER NOT NULL | 하루 상한 10 (FR-013) |
+| reports_received | INTEGER NOT NULL DEFAULT 0 | 그날 받은 자동 리포트 수, 하루 상한 1000 (FR-003, research R4) |
 
 - 열린 버그 이슈 수(상한 20)는 동기화 때 GitHub에서 센다.
 
