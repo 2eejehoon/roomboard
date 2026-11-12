@@ -108,11 +108,11 @@ description: "Task list for 002-auto-bugfix-loop"
 
 **Independent Test**: quickstart B5~B8.
 
-- [ ] T030 [P] [US1] `tests/core/redact.test.ts`: 이메일·전화번호(한국 형식)·IPv4/IPv6·UUID·긴 토큰·따옴표 문장 → `[가림]`, 정상 오류 문구 유지
-- [ ] T031 [P] [US1] `tests/core/fingerprint.test.ts`: 상위 앱 프레임 3개 기준, 줄·열 번호 변화에 같은 지문, vendor 프레임 무시
+- [x] T030 [P] [US1] `tests/core/redact.test.ts`: 이메일·전화번호(한국 형식)·IPv4/IPv6·UUID·긴 토큰·따옴표 문장 → `[가림]`, 정상 오류 문구 유지
+- [x] T031 [P] [US1] `tests/core/fingerprint.test.ts`: 상위 앱 프레임 3개 기준, 줄·열 번호 변화에 같은 지문, vendor 프레임 무시
 - [ ] T032 [P] [US1] `tests/worker/bug-reports.test.ts`: `POST /api/bug-reports` 항상 202, 4KB 초과 413, 집계(`count`, 분포), 3건+manifest 일치 시 `gated`, 서버 오류 즉시 gated, 요청 한도 초과 조용히 버림
 - [ ] T033 [P] [US1] `tests/worker/github-sync.test.ts`(가짜 GitHub API): 새 지문 이슈 생성(contracts/github.md 형식, `source:service`, gated면 `agent:gated`), 기존 이슈 본문 표 갱신, 하루 11번째·열린 이슈 21번째 생성 안 함, `fixed_version` 이후 재발 시 재오픈+`regressed`, PAT 만료 30일 전 알림 이슈
-- [ ] T034 [US1] `src/core/redact.ts`, `src/core/fingerprint.ts`
+- [x] T034 [US1] `src/core/redact.ts`, `src/core/fingerprint.ts`. core에는 암호 API가 없어(헌법 IV) `fingerprint`는 SHA-256 함수를 인자로 받는다(호출하는 클라이언트·Worker가 `crypto.subtle`을 넘긴다)
 - [ ] T035 [US1] `migrations/0002_bug_reports.sql`(data-model.md `bug_fingerprints`, `github_sync_state`, `user_bug_reports`)
 - [ ] T036 [US1] `src/worker/bug-reports.ts`, `src/worker/github-sync.ts`(Cron 5분), `wrangler.jsonc`에 Cron 추가, 빌드 시 `manifest.json` 생성
 - [ ] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한

@@ -12,6 +12,7 @@ describe('redact', () => {
     ['international', 'call +82 10 1234 5678 now'],
     ['ipv4', 'from 192.168.0.1 port'],
     ['ipv6', 'from 2001:db8:85a3::8a2e:370:7334 port'],
+    ['ipv6 full', 'from 2001:0db8:0000:0000:0000:ff00:0042:8329 port'],
     ['uuid', 'room 3f2b8c1e-9a4d-4e2f-8b1a-0c9d8e7f6a5b gone'],
     ['hex token', `key ${'a1'.repeat(16)} bad`],
     ['base64 token', `key ${'Ab9+/'.repeat(7)}== bad`],
@@ -33,7 +34,8 @@ describe('redact', () => {
       'RangeError: Maximum call stack size exceeded',
       'NetworkError when attempting to fetch resource.',
       'at RoomPage (assets/index-3f2b8c1e.js:12:345)',
-      'version 1.2.3 build 2026-11-12',
+      'version 1.2.3 build 2026-11-12 at 12:34:56',
+      'Failed to fetch https://roomboard.example.dev/assets/RoomPage-a1b2c3.js',
     ]) {
       expect(redact(s)).toBe(s);
     }

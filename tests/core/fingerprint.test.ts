@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { fingerprint, type Frame } from '../../src/core/fingerprint.ts';
+import { fingerprint as fp, type Frame } from '../../src/core/fingerprint.ts';
+
+const sha256 = (s: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+const fingerprint = (name: string, frames: Frame[]) => fp(name, frames, sha256);
 
 const f = (file: string, fn: string, line = 1, col = 1): Frame => ({ file, fn, line, col });
 const app = [f('assets/index-abc.js', 'RoomPage'), f('assets/index-abc.js', 'useRoom'), f('assets/room3d-def.js', 'Avatar')];
