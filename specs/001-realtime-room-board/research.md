@@ -70,6 +70,8 @@
   마이그레이션을 적용한다(PR끼리 스키마가 달라도 충돌 없음, 무료 DB 10개 한도 안에서 열린 PR 8개까지).
   PR이 닫히면 `wrangler delete --name roomboard-pr-<번호>`와 `wrangler d1 delete`로 정리한다. DO 클래스를 가진
   Worker도 `wrangler delete`로 지워진다(#45 정리 run 42925740045에서 Worker·D1 `roomboard-pr-45` 삭제 성공. Container 확인 권한 경고가 나오지만 삭제에는 영향 없음). 배포 URL은 PR 댓글로 남긴다.
+- **운영 배포**(T108): `deploy.yml`을 main에서 손으로 실행한다. Environment `production`(운영자 승인, 배포 브랜치 `main`)에
+  미리보기와 같은 이름의 Secrets 6개를 따로 두고(`ADMIN_TOKEN`·`SERVER_SECRET`은 새 값), Worker·D1 `roomboard`에 배포한다.
 - **Alternatives**: 앞단 Worker + DO 전용 Worker 분리(앞단만 미리보기 URL) — 미리보기가 운영 DO를
   같이 써서 데이터가 섞이므로 기각.
 - **사용자 작업 필요**: 저장소 Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ADMIN_TOKEN`, `SERVER_SECRET`,
@@ -203,7 +205,7 @@
   S3·S6(T104) 뒤 251.5KB. 삭제된 방 모달은 확인 버튼 하나뿐이라(`AlertDialog`는 취소 버튼을 늘 그린다) `Dialog`를 쓰지 않았다.
   그래서 수정 화면만 지연 로딩하면 첫 청크가 208.7KB로 준다(수정 화면 청크 39.4KB, 시험 빌드로 잼). 청크를 못 받을 때의 오류 경계가 함께 필요해 운영자 결정을 기다린다.
   채팅 패널(T105) 뒤에도 251.5KB. Astryx `Button`은 바쁨 알림용 빈 `role="status"` live region을 안에 늘 둔다. live region 수를 정해 둔 곳(채팅 패널)에서는 네이티브 버튼을 쓴다.
-  신고 대화상자·관리자 화면(T091, T092) 뒤 260.8KB, 숨긴 채팅 읽기 목록(`VisuallyHidden`) 뒤 261.0KB(+9.5KB, `TabList`와 두 화면 코드. `Dialog`·`RadioList`·`List`는 이미 들어 있었다). 관리자 화면도 지연 로딩 후보지만 위 결정과 같이 운영자 결정을 기다린다.
+  신고 대화상자·관리자 화면(T091, T092) 뒤 260.8KB, 숨긴 채팅 읽기 목록(`VisuallyHidden`) 뒤 261.0KB(+9.5KB, `TabList`와 두 화면 코드. `Dialog`·`RadioList`·`List`는 이미 들어 있었다). 관리자 화면도 지연 로딩 후보다. 운영자 결정(2026-11-12): 두 화면의 지연 로딩은 추후 기능으로 둔다(판례 2026-11-12-roadmap-after-v1).
   첫 청크 구성(source map 기준, 압축 전): Astryx theme 런타임 54KB, Layer 32KB(Button의 tooltip이 끌어옴), utils 33KB,
   i18n+ICU 메시지 파서 약 51KB, 컴포넌트 하나당 1~8KB. 대부분 한 번 드는 공통 비용이라 다음 화면마다 늘어나는 양은 작다.
   화면을 더 옮길 때마다 이 숫자를 다시 잰다. 테마 CSS에 외부 폰트 요청이

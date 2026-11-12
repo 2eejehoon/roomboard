@@ -134,3 +134,4 @@ wrangler.jsonc, vite.config.ts, vitest.config.ts, playwright.config.ts
 3. `src/core` 테스트 → 구현 (스토리 공통 기반).
 4. US1 + US2 (P1) → US3·US4·US5 (P2) → US6·US7 (P3). 각 스토리는 테스트 먼저.
 5. 미리보기 배포 워크플로는 Cloudflare Secrets가 준비되면 붙인다.
+6. 운영 배포는 main에서 손으로 실행하는 워크플로로 연다(research R3, T108).

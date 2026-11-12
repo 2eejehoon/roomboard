@@ -25,6 +25,8 @@ npm run check:docs
 ## GitHub Secrets
 
 미리보기용 여섯 개는 저장소 Secrets가 아니라 Environment `preview`(배포마다 운영자 승인, 배포 브랜치 제한 없음)의 Secrets에 둔다.
+운영 배포(`deploy.yml`, Actions에서 main으로 Run workflow)는 같은 이름의 여섯 개를 Environment `production`(운영자 승인, 배포 브랜치 `main`)에 따로 둔다.
+`ADMIN_TOKEN`·`SERVER_SECRET`은 미리보기와 다른 새 값으로, Turnstile 위젯 호스트에는 `roomboard.<계정>.workers.dev`가 들어 있어야 한다.
 
 | 이름 | 쓰는 곳 |
 |---|---|
