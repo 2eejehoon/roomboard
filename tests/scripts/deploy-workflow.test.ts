@@ -24,7 +24,9 @@ it('deploys the production Worker and D1 with production rate limits', () => {
 
 it('ships no test hooks, and a failed deploy fails the job', () => {
   const w = wf();
-  expect(w).toMatch(/npm run build[\s\S]*npm run check:bundle[\s\S]*wrangler deploy/);
+  // The live DB is migrated only after the build and the bundle check pass (PR #54 review).
+  expect(w).toMatch(/npm run build[\s\S]*npm run check:bundle[\s\S]*d1 migrations apply[\s\S]*wrangler deploy --secrets-file/);
+  expect(w.match(/d1 migrations apply/g)).toHaveLength(1);
   const deploy = w.split(/\n {6}- /).find((s) => s.includes('wrangler deploy'))!;
   expect(deploy).toMatch(/set -o pipefail[\s\S]*wrangler deploy/);
   expect(deploy).toMatch(/\[ -n "\$url" \] \|\| \{ echo "::error::/);

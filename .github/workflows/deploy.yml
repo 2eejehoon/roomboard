@@ -48,7 +48,6 @@ jobs:
             c.d1_databases[0].database_id = process.argv[1];
             fs.writeFileSync("wrangler.jsonc", JSON.stringify(c, null, 2));
           ' "$id"
-          npx wrangler d1 migrations apply "$NAME" --remote
       - env:
           VITE_TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY }}
         run: |
@@ -68,6 +67,8 @@ jobs:
             [ -n "${!k}" ] || { echo "::error::Environment production에 $k가 없습니다."; exit 1; }
           done
           trap 'rm -f "$RUNNER_TEMP/secrets.json"' EXIT
+          # Migrate the live DB only once the build and the bundle check have passed, right before the new Worker goes out (PR #54 review).
+          npx wrangler d1 migrations apply "$NAME" --remote
           jq -n '{ADMIN_TOKEN: env.ADMIN_TOKEN, SERVER_SECRET: env.SERVER_SECRET, TURNSTILE_SECRET: env.TURNSTILE_SECRET}' > "$RUNNER_TEMP/secrets.json"
           npx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json" | tee deploy.log
           url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)

@@ -46,10 +46,10 @@
 | [2026-11-10-preview-no-branch-rule](2026-11-10-preview-no-branch-rule.md) | 미리보기 Environment는 배포 브랜치 제한 없이, 승인만으로 | 유효 |
 | [2026-11-11-visual-direction](2026-11-11-visual-direction.md) | 003 시각 품질: 3D는 아늑한 로우폴리, 화면은 전체를 고르게 | 유효 |
 | [2026-11-11-no-reflection-env](2026-11-11-no-reflection-env.md) | 003 3D 조명: HDRI·반사 환경 없이 해·반구광만, 첫 3D 에셋 상한 3MB | 유효 |
+| [2026-11-12-roadmap-after-v1](2026-11-12-roadmap-after-v1.md) | v1 다음 순서: 운영 배포 → 버그 자동 보고 → 상호작용·방꾸미기 | 유효 |
 
 ## 판례 쓰는 법
 
 - 파일 이름 `YYYY-MM-DD-<slug>.md`, 40줄 이하.
 - 항목: 날짜, 대상, 출처(PR·이슈), 대체한 판례, 결정, 이유, 검토한 대안.
 - 머지 후에는 고치지 않는다. 결정이 바뀌면 새 판례를 쓰고 옛 판례 맨 아래에 `대체됨: <파일 이름>` 한 줄만 덧붙이고 이 표의 상태를 바꾼다.
-| [2026-11-12-roadmap-after-v1](2026-11-12-roadmap-after-v1.md) | v1 다음 순서: 운영 배포 → 버그 자동 보고 → 상호작용·방꾸미기 | 유효 |
