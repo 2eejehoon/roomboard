@@ -164,3 +164,33 @@ test('T046: right after a long frame the label is already where the avatar is', 
   expect(Math.abs(endX - startX), 'the avatar moved on screen').toBeGreaterThan(20);
   expect(Math.abs(afterStall - endX), `label after the long frame at ${afterStall}, start ${startX}, end ${endX}`).toBeLessThanOrEqual(5);
 });
+
+// T107: in the Claude app's in-app browser the page flashed white while the joystick moved (the app dragged the page). Chromium
+// shows no flash, so this checks what the page controls: touch drags on the joystick and the 3D view are cancelled, and the page
+// behind the canvas is the sky, not white. The final check is the operator's phone inside the Claude app.
+test('T107: touch drags on the joystick and the 3D view do not drag the page, and the page behind is not white', async ({ browser, isMobile }) => {
+  test.skip(!isMobile, 'touch only');
+  const a = await newPage(browser);
+  await enter(a);
+  await expect(a.locator('canvas')).toBeVisible();
+  const joystick = await a.getByRole('group', { name: ko['room3d.joystick'] }).boundingBox();
+  const view = a.viewportSize()!;
+  await a.evaluate(() => {
+    const w = window as unknown as { __moves: boolean[] };
+    w.__moves = [];
+    addEventListener('touchmove', (e) => w.__moves.push(e.defaultPrevented));
+  });
+  const cdp = await a.context().newCDPSession(a);
+  const drag = async (x: number, y: number) => {
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let i = 1; i <= 5; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - i * 20 }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  };
+  await drag(joystick!.x + joystick!.width / 2, joystick!.y + joystick!.height / 2);
+  await drag(view.width / 2, view.height / 2);
+  const moves = await a.evaluate(() => (window as unknown as { __moves: boolean[] }).__moves);
+  expect(moves.length, 'the drags reached the page').toBeGreaterThan(0);
+  expect(moves.every(Boolean), `every touchmove is cancelled: ${moves}`).toBe(true);
+  const bg = await a.evaluate(() => getComputedStyle(document.documentElement).backgroundColor);
+  expect(bg, 'the page behind the canvas').not.toMatch(/^rgba\(0, 0, 0, 0\)$|^rgb\(255, 255, 255\)$/);
+});
