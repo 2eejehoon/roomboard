@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mistakeTags, tallyMistakes } from '../../src/core/mistake-tally';
+import { mistakeTags, tallyMistakes } from '../../src/core/mistake-tally.ts';
 
 const categories = ['skip-test', 'pii-in-logs'];
 
