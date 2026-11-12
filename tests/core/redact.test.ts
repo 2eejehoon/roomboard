@@ -39,6 +39,10 @@ describe('redact', () => {
     expect(redact(s)).toBe(s);
   });
 
+  it('leaves no octet of an IPv4 embedded in IPv6', () => {
+    for (const ip of ['::ffff:192.168.0.1', '2001:db8::192.168.0.1']) expect(redact(`from ${ip} port`)).not.toMatch(/\d/);
+  });
+
   it('masks every match, not just the first', () => {
     expect(redact('a@b.com and c@d.com')).toBe(`${M} and ${M}`);
   });
