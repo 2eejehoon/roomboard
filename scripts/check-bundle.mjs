@@ -19,7 +19,7 @@ try {
   // missing or not JSON: reported below like any other unusable manifest
 }
 // Same version format as src/worker/bug-reports.ts; vendor- chunks are what fingerprint() leaves out (vite.config.ts).
-const usable = /^(\d{12}-[0-9a-f]{7,12}|dev)$/.test(manifest?.version) && manifest.chunks?.some((c) => c.startsWith('vendor-'));
+const usable = /^(\d{12}-[0-9a-f]{7,12}|dev)$/.test(manifest?.version) && manifest.chunks?.some((/** @type {string} */ c) => c.startsWith('vendor-'));
 if (!usable) {
   console.log(`check-bundle: ${dir}/manifest.json is missing or has no valid version or vendor- chunk. See the manifest plugin in vite.config.ts.`);
   process.exit(1);
