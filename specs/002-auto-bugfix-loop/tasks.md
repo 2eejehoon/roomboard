@@ -125,7 +125,7 @@ description: "Task list for 002-auto-bugfix-loop"
   (a) 한 일: `migrations/0002`, `POST /api/bug-reports`, `onError`의 서버 오류 기록, manifest는 `/manifest.json`을 `ASSETS`로 읽음(판례 2026-11-13-bug-intake-worker).
   (b)에 남은 것: IP당 한도(바인딩·테스트), `/manifest.json` 생성, DO 안의 잡히지 않은 예외 기록(지금은 Hono `onError`만).
   (b)에서 함께(PR #61 리뷰): `manifest.chunks`에 있는 파일 이름은 `redact()`를 건너뛰고 빌드 밖 이름만 가린다. 테스트: 긴 토큰 패턴에 걸릴 만큼 긴
-  빌드 청크 이름(`useRoomConnectionState-BXjaK0XS.js`)이 진짜 이름으로 저장되고 다른 청크와 지문이 갈리는지, 빌드 밖 위조 이름은 여전히 가려지는지.
+  빌드 청크 이름(`RoomConnectionStatusPanel-BXjaK0XS.js`)이 진짜 이름으로 저장되고 다른 청크와 지문이 갈리는지, 빌드 밖 위조 이름은 여전히 가려지는지.
   머지 뒤 확인: 운영 배포 → 운영자가 자기 기기에서 합성 리포트를 보낸다(`curl`) → 세션이 GitHub 이슈 생성을 확인하고 닫는다(클라우드 세션은 운영 URL에 닿지 않음).
 - [ ] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한
 - [ ] T038 [US1] `.github/workflows/agent-fix.yml`에 client 이슈용 소스맵 해석 사전 단계(`scripts/resolve-stack.mjs`, LLM 호출 전)
