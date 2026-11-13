@@ -49,7 +49,8 @@
 | [2026-11-12-roadmap-after-v1](2026-11-12-roadmap-after-v1.md) | v1 다음 순서: 운영 배포 → 버그 자동 보고 → 상호작용·방꾸미기 | 일부 대체됨(004 범위) |
 | [2026-11-12-enhancement-spec](2026-11-12-enhancement-spec.md) | 상호작용·방꾸미기는 고도화 스펙 004 하나로 | 유효 |
 | [2026-11-12-bug-report-intake](2026-11-12-bug-report-intake.md) | 오류 리포트 수집: 앱 버전 형식, Worker 재가림, 수집 한도 | 유효 |
-| [2026-11-13-bug-intake-worker](2026-11-13-bug-intake-worker.md) | 오류 리포트 수집 Worker: 파일 이름도 가림, manifest가 없으면 닫힌 쪽으로 | 유효 |
+| [2026-11-13-bug-intake-worker](2026-11-13-bug-intake-worker.md) | 오류 리포트 수집 Worker: 파일 이름도 가림, manifest가 없으면 닫힌 쪽으로 | 일부 대체됨(파일 이름 가림) |
+| [2026-11-13-intake-limit-alert](2026-11-13-intake-limit-alert.md) | 수집 한도 도달은 하루 한 번 알림, 빌드 청크 이름은 가리지 않음 | 유효 |
 
 ## 판례 쓰는 법
 
