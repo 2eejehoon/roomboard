@@ -66,7 +66,10 @@ it('a full create → join → chat → report → edit → admin run leaves no 
   const bugReport = {
     errorName: 'AuditError',
     message: `mail a.b@example.com from ${IPV4} ${IPV6} 010-1234-5678 key ${deviceKey(11)}`,
-    frames: [{ file: `https://roomboard.example/assets/index-BXjaK0XS.js?ip=${IPV4}&key=${deviceKey(11)}`, fn: 'f', line: 1, col: 1 }],
+    frames: [
+      { file: `https://roomboard.example/assets/index-BXjaK0XS.js?ip=${IPV4}&key=${deviceKey(11)}`, fn: 'f', line: 1, col: 1 },
+      { file: `https://roomboard.example/assets/a.b@example.com-${IPV4}.js`, fn: deviceKey(11), line: 1, col: 1 },
+    ],
     appVersion: IPV4,
     view: '3d',
     browser: 'chrome',

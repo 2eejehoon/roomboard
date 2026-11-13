@@ -10,7 +10,7 @@ export type Sha256 = (text: string) => Promise<ArrayBuffer>;
 
 // Vite names chunks "<name>-<8 char hash>.js"; the hash changes on every build that touches the chunk.
 const withoutBuildHash = (file: string) => file.replace(/-[\w-]{8}(?=\.m?js$)/, '');
-const isVendor = (file: string) => file.includes('node_modules') || /(^|\/)vendor[-.]/.test(file);
+export const isVendor = (file: string) => file.includes('node_modules') || /(^|\/)vendor[-.]/.test(file);
 
 /** research R4: SHA-256(name + top 3 app frames as "file:fn"), first 16 hex chars. Line/col and build hash left out on purpose. */
 export async function fingerprint(errorName: string, frames: Frame[], sha256: Sha256): Promise<string> {
