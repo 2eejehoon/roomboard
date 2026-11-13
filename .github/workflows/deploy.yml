@@ -52,6 +52,8 @@ jobs:
           VITE_TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY }}
         run: |
           [ -n "$VITE_TURNSTILE_SITEKEY" ] || { echo "::error::Environment production에 TURNSTILE_SITEKEY가 없습니다."; exit 1; }
+          # 002 research R4: build time (UTC) then the short SHA; vite.config.ts writes it to /manifest.json.
+          export VITE_APP_VERSION="$(date -u +%Y%m%d%H%M)-${GITHUB_SHA:0:7}"
           npm run build
           npm run check:bundle
       - id: deploy
@@ -61,15 +63,17 @@ jobs:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           SERVER_SECRET: ${{ secrets.SERVER_SECRET }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+          # 002 research R3: fine-grained PAT (this repo, Issues read/write) for github-sync.ts.
+          GITHUB_ISSUES_TOKEN: ${{ secrets.GITHUB_ISSUES_TOKEN }}
         run: |
           set -o pipefail
-          for k in ADMIN_TOKEN SERVER_SECRET TURNSTILE_SECRET; do
+          for k in ADMIN_TOKEN SERVER_SECRET TURNSTILE_SECRET GITHUB_ISSUES_TOKEN; do
             [ -n "${!k}" ] || { echo "::error::Environment production에 $k가 없습니다."; exit 1; }
           done
           trap 'rm -f "$RUNNER_TEMP/secrets.json"' EXIT
           # Migrate the live DB only once the build and the bundle check have passed, right before the new Worker goes out (PR #54 review).
           npx wrangler d1 migrations apply "$NAME" --remote
-          jq -n '{ADMIN_TOKEN: env.ADMIN_TOKEN, SERVER_SECRET: env.SERVER_SECRET, TURNSTILE_SECRET: env.TURNSTILE_SECRET}' > "$RUNNER_TEMP/secrets.json"
+          jq -n '{ADMIN_TOKEN: env.ADMIN_TOKEN, SERVER_SECRET: env.SERVER_SECRET, TURNSTILE_SECRET: env.TURNSTILE_SECRET, GITHUB_ISSUES_TOKEN: env.GITHUB_ISSUES_TOKEN}' > "$RUNNER_TEMP/secrets.json"
           npx wrangler deploy --secrets-file "$RUNNER_TEMP/secrets.json" | tee deploy.log
           url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1 || true)
           [ -n "$url" ] || { echo "::error::배포 출력에서 workers.dev URL을 찾지 못했습니다."; exit 1; }
