@@ -16,6 +16,8 @@ describe('redact', () => {
     ['ipv6', 'from 2001:db8:85a3::8a2e:370:7334 port'],
     ['ipv6 loopback', 'from ::1 port'],
     ['ipv6 mapped', 'from ::ffff:c0a8:1 port'],
+    ['ipv6 after key colon', 'host ip:2001:db8::1 port'],
+    ['ipv6 after equals', 'host host=::1 port'],
     ['ipv6 full', 'from 2001:0db8:0000:0000:0000:ff00:0042:8329 port'],
     ['uuid', 'room 3f2b8c1e-9a4d-4e2f-8b1a-0c9d8e7f6a5b gone'],
     ['hex token', `key ${'a1'.repeat(16)} bad`],

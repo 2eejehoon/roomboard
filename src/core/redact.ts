@@ -9,7 +9,9 @@ const PATTERNS: [RegExp, ((m: string) => string)?][] = [
   [/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g], // email
   [/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi], // uuid
   [/\b(?:\d{1,3}\.){3}\d{1,3}\b/g], // ipv4, before ipv6 so an embedded ::ffff:a.b.c.d loses every octet
-  [new RegExp(`(?<![\\w:])(?:(?:${H}:){7}${H}|(?:(?:${H}:)+|:):(?:${H}(?::${H})*)?)(?![\\w:])`, 'gi')], // ipv6: full, or with ::. Every group ends at exactly one ':', so no backtracking blowup
+  // ipv6, full or with ::. Starts anywhere but inside a group (so ip:2001:db8::1 too); each group ends at exactly one ':',
+  // which keeps backtracking linear (ReDoS).
+  [new RegExp(`(?<![0-9a-f])(?<![0-9a-f:]:)(?:(?:${H}:){7}${H}|(?:(?:${H}:)+|:):(?:${H}(?::${H})*)?)(?![\\w:])`, 'gi')],
   [/\+\d{1,3}[ -]?\d{1,4}(?:[ -]?\d{3,4}){2}\b/g], // international phone
   [/\b0\d{1,2}[-. ]?\d{3,4}[-. ]?\d{4}\b/g], // korean phone
   // Long hex/base64 token. Only with a digit: long digit-free paths survive, and random 32+ char tokens almost never lack one.
