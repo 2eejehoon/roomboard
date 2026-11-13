@@ -15,7 +15,9 @@ if (hits.length) {
 let manifest;
 try {
   manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
-} catch {}
+} catch {
+  // missing or not JSON: reported below like any other unusable manifest
+}
 // Same version format as src/worker/bug-reports.ts; vendor- chunks are what fingerprint() leaves out (vite.config.ts).
 const usable = /^(\d{12}-[0-9a-f]{7,12}|dev)$/.test(manifest?.version) && manifest.chunks?.some((c) => c.startsWith('vendor-'));
 if (!usable) {
