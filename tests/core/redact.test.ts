@@ -52,6 +52,16 @@ describe('redact', () => {
     for (const ip of ['::ffff:192.168.0.1', '2001:db8::192.168.0.1']) expect(redact(`from ${ip} port`)).not.toMatch(/\d/);
   });
 
+  it('runs in linear time on hostile input (Worker runs it on untrusted 4KB bodies)', () => {
+    const start = performance.now();
+    redact(' :' + 'a'.repeat(40) + 'g');
+    expect(performance.now() - start).toBeLessThan(100);
+  });
+
+  it('leaves a lone colon alone', () => {
+    expect(redact('x : y')).toBe('x : y');
+  });
+
   it('masks every match, not just the first', () => {
     expect(redact('a@b.com and c@d.com')).toBe(`${M} and ${M}`);
   });
