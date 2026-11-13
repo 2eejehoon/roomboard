@@ -63,14 +63,28 @@ it('a full create → join → chat → report → edit → admin run leaves no 
   const mine = items.find((i) => i.roomId === roomId)!;
   expect((await call('POST', `/admin/reports/${mine.id}/resolve`, undefined, IPV6, adminEnv)).status).toBe(204);
   expect((await call('DELETE', `/admin/rooms/${roomId}`, undefined, IPV4, adminEnv)).status).toBe(204);
+  const bugReport = {
+    errorName: 'AuditError',
+    message: `mail a.b@example.com from ${IPV4} ${IPV6} 010-1234-5678 key ${deviceKey(11)}`,
+    frames: [
+      { file: `https://roomboard.example/assets/index-BXjaK0XS.js?ip=${IPV4}&key=${deviceKey(11)}`, fn: 'f', line: 1, col: 1 },
+      { file: `https://roomboard.example/assets/a.b@example.com-${IPV4}.js`, fn: deviceKey(11), line: 1, col: 1 },
+    ],
+    appVersion: IPV4,
+    view: '3d',
+    browser: 'chrome',
+  };
+  expect((await call('POST', '/bug-reports', bugReport, IPV6)).status).toBe(202);
 
   const { results: tables } = await env.DB.prepare(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations'",
   ).all<{ name: string }>();
-  expect(tables.map((t) => t.name).sort()).toEqual(['reports', 'rooms']);
+  expect(tables.map((t) => t.name).sort()).toEqual(['bug_fingerprints', 'github_sync_state', 'reports', 'rooms', 'user_bug_reports']);
+  // What shows the run really wrote each table. user_bug_reports has no API yet (US3, T039).
+  const written: Record<string, string> = { rooms: roomId, reports: roomId, bug_fingerprints: 'AuditError', github_sync_state: new Date().toISOString().slice(0, 10) };
   for (const { name } of tables) {
     const dump = JSON.stringify((await env.DB.prepare(`SELECT * FROM "${name}"`).all()).results);
-    expect(dump).toContain(roomId); // the run really wrote here
+    if (written[name]) expect(dump).toContain(written[name]);
     for (const [kind, re] of Object.entries(PATTERNS)) expect(dump.match(re)?.[0], `${name}: ${kind}`).toBeUndefined();
     expect(dump).not.toContain('audit-agent');
   }

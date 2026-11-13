@@ -33,7 +33,7 @@
 | 컬럼 | 타입 | 규칙 |
 |---|---|---|
 | day | TEXT PK | `YYYY-MM-DD` (UTC) |
-| issues_created | INTEGER NOT NULL | 하루 상한 10 (FR-013) |
+| issues_created | INTEGER NOT NULL DEFAULT 0 | 하루 상한 10 (FR-013). 수집 경로가 `reports_received`만으로 그날 행을 처음 만든다 |
 | reports_received | INTEGER NOT NULL DEFAULT 0 | 그날 받은 자동 리포트 수, 하루 상한 1000 (FR-003, research R4) |
 
 - 열린 버그 이슈 수(상한 20)는 동기화 때 GitHub에서 센다.
@@ -59,7 +59,8 @@
 
 - `.github/mistake-categories.yml`: `- id: <kebab>` / `description: <한 줄>`. 라벨 `cause:<id>`와 리뷰 태그 `[mistake:<id>]`의 허용 목록.
 - `docs/precedents/*.md`: 헌법 Governance 형식.
-- `build/manifest.json`(빌드 산출물, 배포 포함): 청크 파일 이름 목록과 앱 버전. FR-015 게이트에 사용.
+- `/manifest.json`(빌드 산출물, 정적 자산으로 배포): `{"version": "<앱 버전>", "chunks": ["index-BXjaK0XS.js", …]}`. Worker가 `ASSETS`로 읽어
+  FR-015 게이트(청크 이름)와 앱 버전 검사·서버 오류의 버전에 쓴다. 없거나 JSON이 아니면 게이트를 열지 않고 버전은 `unknown`.
 
 ## 상태 전이
 

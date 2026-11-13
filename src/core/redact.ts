@@ -1,5 +1,5 @@
-// research R4: runs on client and Worker before anything is sent, stored or published. Never applied to frames[].file
-// (fingerprint and the R5 manifest check need real file names; the Worker strips query and hash from those instead).
+// research R4: runs on client and Worker before anything is sent, stored or published. The Worker applies it to frames[].file
+// only after cutting the file down to its name: real chunk names (index-BXjaK0XS.js) match no pattern, forged ones may.
 const MASK = '[가림]';
 const PATTERNS: [RegExp, ((m: string) => string)?][] = [
   // Quoted text, greedy to the last closing quote, across lines (V8 JSON.parse echoes the input, nested quotes and newlines
