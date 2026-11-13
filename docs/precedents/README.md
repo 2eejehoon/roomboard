@@ -48,6 +48,7 @@
 | [2026-11-11-no-reflection-env](2026-11-11-no-reflection-env.md) | 003 3D 조명: HDRI·반사 환경 없이 해·반구광만, 첫 3D 에셋 상한 3MB | 유효 |
 | [2026-11-12-roadmap-after-v1](2026-11-12-roadmap-after-v1.md) | v1 다음 순서: 운영 배포 → 버그 자동 보고 → 상호작용·방꾸미기 | 일부 대체됨(004 범위) |
 | [2026-11-12-enhancement-spec](2026-11-12-enhancement-spec.md) | 상호작용·방꾸미기는 고도화 스펙 004 하나로 | 유효 |
+| [2026-11-12-bug-report-intake](2026-11-12-bug-report-intake.md) | 오류 리포트 수집: 앱 버전 형식, Worker 재가림, 수집 한도 | 유효 |
 
 ## 판례 쓰는 법
 
