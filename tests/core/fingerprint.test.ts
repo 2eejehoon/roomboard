@@ -17,6 +17,12 @@ describe('fingerprint', () => {
     expect(await fingerprint('TypeError', moved)).toBe(await fingerprint('TypeError', app));
   });
 
+  it('ignores the build hash in chunk names, so a redeploy keeps the fingerprint (FR-012)', async () => {
+    const rebuilt = app.map((x) => ({ ...x, file: x.file.replace('-abc.js', '-BXjaK0XS.js').replace('-def.js', '-B6_g54-M.js') }));
+    const other = app.map((x) => ({ ...x, file: x.file.replace('-abc.js', '-Wy9s6hX0.js').replace('-def.js', '-BIMq5mOQ.js') }));
+    expect(await fingerprint('TypeError', rebuilt)).toBe(await fingerprint('TypeError', other));
+  });
+
   it('uses only the top 3 app frames', async () => {
     expect(await fingerprint('TypeError', [...app, f('assets/index-abc.js', 'main')])).toBe(await fingerprint('TypeError', app));
     expect(await fingerprint('TypeError', app.slice(0, 2))).not.toBe(await fingerprint('TypeError', app));
