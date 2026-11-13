@@ -59,14 +59,19 @@ async function readManifest(env: Env, url: string): Promise<Manifest | undefined
   }
 }
 
-async function record(env: Env, o: Occurrence): Promise<void> {
+// chunks: names from the deployed build, kept as is; any other name is redacted, since a 23+ char module name in a real
+// chunk name matches the long-token pattern and would merge fingerprints (PR #61 review).
+async function record(env: Env, o: Occurrence, chunks: string[] = []): Promise<void> {
   const { meta } = await env.DB.prepare(DAY_SQL).bind(new Date().toISOString().slice(0, 10)).run();
   if (meta.changes === 0) return; // over the day's limit: dropped without a trace (FR-003)
 
   const frames = o.frames
     .filter((f) => !isVendor(f.file))
     .slice(0, 20)
-    .map((f) => ({ file: clip(fileName(f.file), 200), fn: clip(f.fn, 100), line: f.line, col: f.col }));
+    .map((f) => {
+      const name = fileName(f.file);
+      return { file: chunks.includes(name) ? name : clip(name, 200), fn: clip(f.fn, 100), line: f.line, col: f.col };
+    });
   const errorName = clip(o.errorName, 100);
   const now = Date.now();
   const path = (key?: string) => (key ? `$."${key}"` : null);
@@ -92,8 +97,10 @@ async function record(env: Env, o: Occurrence): Promise<void> {
 export async function receiveBugReport(c: C): Promise<Response> {
   // Always 202, so a sender cannot tell what was kept. A failure here is never recorded as a server error (spec Edge Cases).
   try {
-    const parsed = clientErrorReport.safeParse(await c.req.json());
-    if (parsed.success) {
+    // research R4: the IP is the limiter key only, never stored. Over the limit is dropped like everything else, as 202.
+    const { success } = await c.env.RL_BUG_REPORT.limit({ key: c.req.header('cf-connecting-ip') ?? 'unknown' });
+    const parsed = success ? clientErrorReport.safeParse(await c.req.json()) : undefined;
+    if (parsed?.success) {
       const { appVersion, ...report } = parsed.data;
       const manifest = await readManifest(c.env, c.req.url);
       const key = (v: string) => (v === 'dev' ? '' : v.slice(0, 12));
@@ -101,7 +108,7 @@ export async function receiveBugReport(c: C): Promise<Response> {
       const known = manifest && VERSION.test(appVersion) && key(appVersion) <= key(manifest.version);
       const top = report.frames.filter((f) => !isVendor(f.file)).slice(0, 3);
       const inBuild = !!manifest && top.length > 0 && top.every((f) => manifest.chunks.includes(fileName(f.file)));
-      await record(c.env, { source: 'client', ...report, appVersion: known ? appVersion : 'unknown', inBuild });
+      await record(c.env, { source: 'client', ...report, appVersion: known ? appVersion : 'unknown', inBuild }, manifest?.chunks);
     }
   } catch (err) {
     console.error('bug report not stored', err instanceof Error ? err.name : typeof err);

@@ -3,3 +3,5 @@ ADMIN_TOKEN=dev-admin-token
 SERVER_SECRET=dev-server-secret
 # Cloudflare's official always-pass Turnstile test secret.
 TURNSTILE_SECRET=1x0000000000000000000000000000000AA
+# Placeholder only: a local run must never hold a real GitHub token.
+GITHUB_ISSUES_TOKEN=dev-no-github
