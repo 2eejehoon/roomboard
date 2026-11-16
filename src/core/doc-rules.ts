@@ -18,7 +18,7 @@ const REQUIRED_FIELDS = ['- 날짜:', '- 대상:', '- 출처:', '- 대체한 판
 const NEEDS_PRECEDENT = [/^\.specify\/memory\/constitution\.md$/, /^specs\/[^/]+\/spec\.md$/, /^specs\/[^/]+\/plan\.md$/];
 
 const isPrecedent = (path: string) => path.startsWith(PRECEDENT_DIR) && path !== INDEX && !path.slice(PRECEDENT_DIR.length).includes('/');
-const lineCount = (text: string) => text.replace(/\n+$/, '').split('\n').length;
+export const lineCount = (text: string) => text.replace(/\n+$/, '').split('\n').length;
 
 export function checkDocs({ changes, head, base, labels }: DocsInput): Violation[] {
   const out: Violation[] = [];
@@ -95,7 +95,7 @@ export function checkDocs({ changes, head, base, labels }: DocsInput): Violation
 
 type Limit = { glob: string; pattern: RegExp; max: number | null };
 
-function parseLimits(constitution: string): Limit[] {
+export function parseLimits(constitution: string): Limit[] {
   const section = constitution.split(/^## /m).find((s) => s.startsWith('문서 구조')) ?? '';
   const out: Limit[] = [];
   for (const line of section.split('\n')) {

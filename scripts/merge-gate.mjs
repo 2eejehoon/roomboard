@@ -8,8 +8,8 @@ import { parseArgs } from 'node:util';
 // Allowlist: a session PR auto-merges only if every changed path is here. Anything else (workflows, agent rules,
 // scripts, package files, tool configs, new files at the root) defaults to a human merge.
 const AUTO = [/^src\//, /^tests\//, /^public\//, /^docs\//, /^specs\//, /^migrations\//, /^index\.html$/, /^README\.md$/];
-// Under src/ but imported by gate scripts (agent-gate.mjs, check-docs.mjs).
-const HUMAN = [/^src\/core\/(agent-gate|doc-rules)\.ts$/];
+// Under src/ but imported by gate scripts (agent-gate.mjs, check-docs.mjs, mistake-tally.mjs opens agent:run issues).
+const HUMAN = [/^src\/core\/(agent-gate|doc-rules|mistake-tally)\.ts$/];
 
 const { values } = parseArgs({ options: { base: { type: 'string' }, head: { type: 'string', default: 'HEAD' }, 'head-ref': { type: 'string', default: '' } } });
 if (!values.base) {

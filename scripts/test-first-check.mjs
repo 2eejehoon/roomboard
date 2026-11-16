@@ -22,6 +22,11 @@ const fail = (/** @type {string} */ msg) => {
 };
 
 const base = git('merge-base', values.base, values.head);
+// 002 US6: a doc-garden PR changes only Markdown; there is no behavior to reproduce.
+if (git('diff', '--no-renames', '--name-only', `${base}...${values.head}`).split('\n').every((f) => f.endsWith('.md'))) {
+  console.log('test-first: 문서만 바꾼 PR이라 건너뜁니다.');
+  process.exit(0);
+}
 const first = git('rev-list', '--reverse', '--no-merges', `${base}..${values.head}`).split('\n')[0];
 if (!first) fail('PR에 커밋이 없습니다.');
 const tests = git('diff-tree', '--no-commit-id', '--name-only', '--diff-filter=AM', '-r', first)

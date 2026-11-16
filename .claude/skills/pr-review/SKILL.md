@@ -32,6 +32,8 @@ Read `.specify/memory/constitution.md` first. Then check the diff and the code i
 - Every finding needs a file and line and a concrete situation that goes wrong. No evidence, no finding.
 - Mark each finding **blocking** (bug, security, privacy, constitution violation) or **suggestion** (everything else).
 - Post each finding as an inline comment on the line. Post one short summary comment with `gh pr comment`.
+- If a blocking finding fits a category in `.github/mistake-categories.yml`, end its comment with `[mistake:<id>]`.
+  Two records of one category open a guardrail issue (002 FR-030).
 - No style taste. If nothing is wrong, say so in one line.
 
 ## Output

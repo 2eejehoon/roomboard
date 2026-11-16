@@ -72,4 +72,22 @@ describe('scripts/test-first-check.mjs', () => {
     expect(r.status).toBe(1);
     expect(r.stdout).toContain('head');
   });
+
+  // 002 US6: a doc-garden PR changes only Markdown, so there is no behavior to reproduce first.
+  it('passes a PR that changes only Markdown files', () => {
+    const base = commit('base');
+    write('CLAUDE.md', 'tidied\n');
+    commit('docs: tidy');
+    const r = run(base);
+    expect(r.stdout).toContain('문서만');
+    expect(r.status).toBe(0);
+  });
+
+  it('still requires a test when Markdown and code change together', () => {
+    const base = commit('base');
+    write('CLAUDE.md', 'tidied\n');
+    write('src/add.ts', 'export const add = (a: number, b: number) => a + b;\n');
+    commit('docs and code');
+    expect(run(base).status).toBe(1);
+  });
 });

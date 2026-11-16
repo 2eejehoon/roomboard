@@ -51,6 +51,7 @@
 | [2026-11-12-bug-report-intake](2026-11-12-bug-report-intake.md) | 오류 리포트 수집: 앱 버전 형식, Worker 재가림, 수집 한도 | 유효 |
 | [2026-11-13-bug-intake-worker](2026-11-13-bug-intake-worker.md) | 오류 리포트 수집 Worker: 파일 이름도 가림, manifest가 없으면 닫힌 쪽으로 | 일부 대체됨(파일 이름 가림) |
 | [2026-11-13-intake-limit-alert](2026-11-13-intake-limit-alert.md) | 수집 한도 도달은 하루 한 번 알림, 빌드 청크 이름은 가리지 않음 | 유효 |
+| [2026-11-12-guardrail-via-agent-fix](2026-11-12-guardrail-via-agent-fix.md) | 장치·문서 정리 에이전트는 agent-fix를 같이 쓴다 | 유효 |
 
 ## 판례 쓰는 법
 

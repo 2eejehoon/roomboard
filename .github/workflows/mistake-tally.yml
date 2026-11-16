@@ -1,0 +1,34 @@
+name: mistake-tally
+# 002 US4 (FR-030): on a merged PR or a new review comment, count cause:<id> / [mistake:<id>] records and open a
+# kind:guardrail issue on the second one (scripts/mistake-tally.mjs).
+on:
+  pull_request_target:
+    types: [closed]
+  pull_request_review_comment:
+    types: [created]
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+  actions: write # dispatch agent-fix: an issue made with GITHUB_TOKEN fires no `labeled` event
+concurrency:
+  group: mistake-tally # two events at once must not both open an issue
+  cancel-in-progress: false
+jobs:
+  tally:
+    if: github.event_name != 'pull_request_target' || github.event.pull_request.merged
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Default branch only: review-comment events would otherwise check out the PR's code with this token.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: node scripts/mistake-tally.mjs

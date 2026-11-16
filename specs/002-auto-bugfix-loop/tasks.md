@@ -86,10 +86,10 @@ description: "Task list for 002-auto-bugfix-loop"
 **Independent Test**: quickstart B13.
 
 - [x] T021 [P] [US4] `tests/core/mistake-tally.test.ts`: `tallyMistakes(events, categories)` — `cause:<id>` 라벨 PR과 `[mistake:<id>]` 리뷰 댓글을 분류별로 세고, 2가 되는 분류만 반환, 목록에 없는 분류 무시, 열린 장치 이슈가 있으면 "댓글만"
-- [ ] T022 [US4] `.github/mistake-categories.yml`: 초기 분류(research R6)
-- [ ] T023 [US4] `src/core/mistake-tally.ts`, `scripts/mistake-tally.mjs`(GitHub 검색으로 이벤트 수집)
-- [ ] T024 [US4] `.claude/skills/guardrail/SKILL.md`: 구조 > 타입 > 린트 > 테스트 > 문서, 원인 커밋에서 실패 출력 첨부, 대체된 문서 문장 삭제
-- [ ] T025 [US4] `.github/workflows/mistake-tally.yml`: PR 머지·리뷰 댓글 이벤트 → 2회째면 `kind:guardrail`+`agent:run` 이슈
+- [x] T022 [US4] `.github/mistake-categories.yml`: 초기 분류(research R6)
+- [x] T023 [US4] `src/core/mistake-tally.ts`, `scripts/mistake-tally.mjs`(GitHub API 목록으로 이벤트 수집, 검색은 색인 지연이 있어 쓰지 않음). 리뷰 태그는 쓰기 권한자·`claude[bot]` 것만. 테스트 `tests/scripts/mistake-tally.test.ts`(가짜 gh). `yaml` 의존성 없이 정해진 형식을 정규식으로 읽음
+- [x] T024 [US4] `.claude/skills/guardrail/SKILL.md`: 구조 > 타입 > 린트 > 테스트 > 문서, 원인 커밋에서 실패 출력 첨부, 대체된 문서 문장 삭제. agent-fix가 `kind:` 라벨로 스킬을 고르고 PR에 `cause:` 대신 `kind:` 라벨(`scripts/agent-gate.mjs`), pr-review 스킬은 차단 지적에 `[mistake:<id>]`
+- [x] T025 [US4] `.github/workflows/mistake-tally.yml`: PR 머지·리뷰 댓글 이벤트 → 2회 이상이고 그 분류의 장치 이슈가 없으면 `kind:guardrail`+`agent:run` 이슈 → agent-fix 실행(실행은 `concurrency`로 하나씩, #59 리뷰: 동시 기록 대응). **실제 실행(B13)**: 머지 뒤 확인
 
 ---
 
@@ -97,10 +97,10 @@ description: "Task list for 002-auto-bugfix-loop"
 
 **Independent Test**: quickstart B14.
 
-- [ ] T026 [P] [US6] `tests/scripts/doc-garden-scan.test.ts`: 문서 속 백틱 경로·npm 스크립트가 없으면 보고, 모두 있으면 빈 결과, 길이 상한 근접(90%) 보고
-- [ ] T027 [US6] `scripts/doc-garden-scan.mjs`
-- [ ] T028 [US6] `.claude/skills/doc-gardening/SKILL.md`: 지운 문장마다 이유, 줄 수 증가 이유, 장치로 대체된 지시 삭제
-- [ ] T029 [US6] `.github/workflows/doc-garden.yml`: 주 1회 + 수동, 스캔 결과가 비고 새 실수 기록이 없으면 종료, 아니면 에이전트로 정리 PR(`kind:doc-garden`)
+- [x] T026 [P] [US6] `tests/scripts/doc-garden-scan.test.ts`: 문서 속 백틱 경로·npm 스크립트가 없으면 보고, 모두 있으면 빈 결과, 길이 상한 근접(90%) 보고
+- [x] T027 [US6] `scripts/doc-garden-scan.mjs`(판례·vendored `speckit-*` 스킬 제외, 경로는 첫 마디가 저장소 루트 폴더인 것만). 현재 main에서 결과 0건
+- [x] T028 [US6] `.claude/skills/doc-gardening/SKILL.md`: 지운 문장마다 이유, 줄 수 증가 이유, 장치로 대체된 지시 삭제
+- [x] T029 [US6] `.github/workflows/doc-garden.yml`: 주 1회 + 수동, 스캔 결과가 비고 새 실수 기록(지난 7일)이 없으면 종료, 아니면 `kind:doc-garden`+`agent:run` 이슈 → agent-fix가 정리 PR(`kind:doc-garden`). `.md`만 바꾼 PR은 `test-first`가 건너뜀. **실제 실행(B14)**: 머지 뒤 확인
 
 ---
 
