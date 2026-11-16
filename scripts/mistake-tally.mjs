@@ -36,10 +36,10 @@ const triggerRecords = event.comment ? commentRecords(event.comment) : event.pul
 // No early exit on an event without records: it still opens a category a cancelled queued run left behind.
 
 // shortcut: lists every closed PR and review comment each run; fine at this repo's size, switch to a stored tally if runs get slow.
-// The event's own PR/comment is left out of the lists (it may lag there anyway) and added back once below.
+// The triggering PR (PR events) or comment is left out of the lists (it may lag there anyway) and added back once below.
 const others = [
   ...list(`repos/${repo}/pulls?state=closed&per_page=100`, '{number, merged_at, merge_commit_sha, labels: [.labels[] | {name}]}')
-    .filter((p) => p.number !== event.pull_request?.number)
+    .filter((p) => event.comment || p.number !== event.pull_request?.number)
     .flatMap(prRecords),
   ...list(`repos/${repo}/pulls/comments?per_page=100`, '{id, body, author_association, user: {login: .user.login}, pull_request_url, commit_id}')
     .filter((c) => c.id !== event.comment?.id)

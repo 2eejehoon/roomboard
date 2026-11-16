@@ -125,6 +125,18 @@ describe('scripts/mistake-tally.mjs', () => {
     expect(r.writes.find((c) => c[1] === 'create')).toContain('[guardrail] skip-test');
   });
 
+  // A review-comment payload also carries pull_request: that PR's own cause: label must still count.
+  it('does not comment when a review tag repeats the commented PR\'s own cause label', () => {
+    const event = { action: 'created', comment: comment(12, '[mistake:skip-test]', 'claude[bot]', 'NONE', 10), pull_request: pr(10, ['cause:skip-test']) };
+    const r = run(event, 'pull_request_review_comment', {
+      pulls: [pr(10, ['cause:skip-test']), pr(11, ['cause:skip-test'])],
+      comments: [comment(12, '[mistake:skip-test]', 'claude[bot]', 'NONE', 10)],
+      guardrails: [{ number: 21, title: '[guardrail] skip-test', state: 'open' }],
+    });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.writes).toEqual([]);
+  });
+
   it('does not count tags from untrusted commenters or unknown categories', () => {
     const event = { action: 'created', comment: comment(9, '[mistake:skip-test]', 'stranger', 'NONE') };
     const r = run(event, 'pull_request_review_comment', {
