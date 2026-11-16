@@ -85,7 +85,7 @@ description: "Task list for 002-auto-bugfix-loop"
 
 **Independent Test**: quickstart B13.
 
-- [ ] T021 [P] [US4] `tests/core/mistake-tally.test.ts`: `tallyMistakes(events, categories)` — `cause:<id>` 라벨 PR과 `[mistake:<id>]` 리뷰 댓글을 분류별로 세고, 2가 되는 분류만 반환, 목록에 없는 분류 무시, 열린 장치 이슈가 있으면 "댓글만"
+- [x] T021 [P] [US4] `tests/core/mistake-tally.test.ts`: `tallyMistakes(events, categories)` — `cause:<id>` 라벨 PR과 `[mistake:<id>]` 리뷰 댓글을 분류별로 세고, 2가 되는 분류만 반환, 목록에 없는 분류 무시, 열린 장치 이슈가 있으면 "댓글만"
 - [ ] T022 [US4] `.github/mistake-categories.yml`: 초기 분류(research R6)
 - [ ] T023 [US4] `src/core/mistake-tally.ts`, `scripts/mistake-tally.mjs`(GitHub 검색으로 이벤트 수집)
 - [ ] T024 [US4] `.claude/skills/guardrail/SKILL.md`: 구조 > 타입 > 린트 > 테스트 > 문서, 원인 커밋에서 실패 출력 첨부, 대체된 문서 문장 삭제
