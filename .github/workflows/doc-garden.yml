@@ -27,7 +27,9 @@ jobs:
       - run: |
           # One tidy at a time.
           [ -n "$(gh issue list --label kind:doc-garden --state open --json number --jq '.[0].number // empty')" ] && exit 0
-          scan=$(node scripts/doc-garden-scan.mjs) || true
+          # Exit 2 = findings; any other non-zero exit is a crash and must fail the run, not read as "nothing to tidy".
+          rc=0; scan=$(node scripts/doc-garden-scan.mjs) || rc=$?
+          [ "$rc" = 0 ] || [ "$rc" = 2 ] || exit "$rc"
           # New mistake records in the last week (US6 scenario 3): links only, no comment text.
           since=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
           prs=$(gh api --paginate "repos/$GH_REPO/pulls?state=closed&per_page=100" --jq ".[] | select(.merged_at > \"$since\") | select(any(.labels[]; .name | startswith(\"cause:\"))) | \"- PR #\(.number): \([.labels[].name | select(startswith(\"cause:\"))] | join(\", \"))\"")

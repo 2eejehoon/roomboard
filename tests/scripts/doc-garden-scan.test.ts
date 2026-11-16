@@ -34,7 +34,7 @@ describe('scripts/doc-garden-scan.mjs', () => {
   it('reports a missing path and a missing npm script', () => {
     write('CLAUDE.md', 'Read `src/core/gone.ts`, then `npm run nope`.\n');
     const r = run();
-    expect(r.status).toBe(1);
+    expect(r.status).toBe(2);
     expect(r.stdout).toContain('CLAUDE.md');
     expect(r.stdout).toContain('src/core/gone.ts');
     expect(r.stdout).toContain('npm run nope');
@@ -55,7 +55,7 @@ describe('scripts/doc-garden-scan.mjs', () => {
   it('reports a document at 90% or more of its length limit', () => {
     write('CLAUDE.md', `${lines(9)}\n`);
     const r = run();
-    expect(r.status).toBe(1);
+    expect(r.status).toBe(2);
     expect(r.stdout).toMatch(/CLAUDE\.md.*9.*10/);
   });
 });

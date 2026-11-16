@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // 002 US6 pre-check (no LLM): agent docs that mention missing paths or npm scripts, or sit at 90%+ of their length limit.
-// Run from the repository root. Prints one finding per line; exit 1 if any, 0 if nothing to tidy.
+// Run from the repository root. Prints one finding per line; exit 2 if any, 0 if nothing to tidy (1 stays a crash).
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { lineCount, parseLimits } from '../src/core/doc-rules.ts';
@@ -39,4 +39,4 @@ for (const doc of docs) {
   if (max && n >= max * 0.9) out.push(`${doc}: ${n}줄, 상한 ${max}줄의 90% 이상`);
 }
 for (const line of out) console.log(line);
-process.exit(out.length ? 1 : 0);
+process.exit(out.length ? 2 : 0);
