@@ -10,7 +10,6 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
-  actions: write # dispatch agent-fix: an issue made with GITHUB_TOKEN fires no `labeled` event
 concurrency:
   group: mistake-tally # two events at once must not both open an issue
   cancel-in-progress: false

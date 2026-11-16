@@ -115,8 +115,8 @@
   `core-imports-renderer`, `hardcoded-ui-string`, `pii-in-logs`, `test-hook-in-prod`, `skip-test`).
 - 버그 수정 PR: 라벨 `cause:<id>`. 리뷰 지적: 리뷰 댓글에 `[mistake:<id>]` 태그.
 - `mistake-tally.yml`(PR 머지, 리뷰 댓글 이벤트): REST 목록(닫힌 PR, 리뷰 댓글)으로 분류별 횟수를 세고(검색은 막 머지된 PR이
-  색인에 늦게 들어가 쓰지 않음), 2 이상이고 그 분류의 장치 이슈(열린 것·닫힌 것)가 없으면 `kind:guardrail` + `agent:run` 이슈를 열고 agent-fix를 `workflow_dispatch`로
-  실행한다(GITHUB_TOKEN으로 만든 이슈는 `labeled` 이벤트를 내지 않음). 같은 분류의 열린 장치 이슈가 있으면 새 기록일 때만 댓글, 닫힌 이슈가 있으면 아무것도 안 함.
+  색인에 늦게 들어가 쓰지 않음), 2 이상이고 그 분류의 장치 이슈(열린 것·닫힌 것)가 없으면 `kind:guardrail` + `agent:run` 이슈를 `agent:queued`로
+  열어 agent-queue가 agent-fix를 실행하게 한다(GITHUB_TOKEN으로 만든 이슈는 `labeled` 이벤트를 내지 않고, 직접 실행은 대기 중 취소될 수 있음). 같은 분류의 열린 장치 이슈가 있으면 새 기록일 때만 댓글, 닫힌 이슈가 있으면 아무것도 안 함.
   매 실행은 이번 이벤트의 분류만이 아니라 모든 분류를 확인한다(동시 실행 그룹이 대기 중인 실행을 취소해도 다음 실행이 복구).
   리뷰 태그는 공개 PR에 누구나 쓸 수 있으므로 쓰기 권한자와 리뷰 봇(`claude[bot]`)의 것만 센다.
 - 장치 이슈와 문서 정리 이슈(US6)는 별도 워크플로 없이 agent-fix가 `kind:` 라벨로 스킬을 골라 실행한다(판례 2026-11-12-guardrail-via-agent-fix).

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // 002 US4 (FR-030). Run by mistake-tally.yml on a merged PR or a new review comment. When a category from
-// .github/mistake-categories.yml has two or more records and no guardrail issue yet, opens a kind:guardrail issue and dispatches agent-fix
-// (an issue made with GITHUB_TOKEN fires no `labeled` event), or comments on the open one.
+// .github/mistake-categories.yml has two or more records and no guardrail issue yet, opens a kind:guardrail issue, or comments
+// on the open one. The issue goes on the agent queue (agent-queue.yml starts it): a direct dispatch can be cancelled while
+// pending in agent-fix's concurrency group, and nothing would retry it.
 // REST lists, not search: a just-merged PR can be missing from the search index.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -67,7 +68,6 @@ for (const a of tallyMistakes({ records, trigger: fresh, categories: [...categor
     continue;
   }
   const body = `실수 분류 \`${a.id}\`: ${categories.get(a.id)}\n\n두 번째로 기록돼 재발 방지 장치가 필요합니다(헌법 VI, 002 FR-030).\n\n${evidence}\n\n장치 에이전트는 .claude/skills/guardrail/SKILL.md를 따릅니다.`;
-  const url = gh('issue', 'create', '--title', `[guardrail] ${a.id}`, '--label', 'kind:guardrail,agent:run', '--body', body);
-  gh('workflow', 'run', 'agent-fix.yml', '-f', `issue=${url.split('/').pop()}`);
+  const url = gh('issue', 'create', '--title', `[guardrail] ${a.id}`, '--label', 'kind:guardrail,agent:run,agent:queued', '--body', body);
   console.log(`opened ${url}`);
 }

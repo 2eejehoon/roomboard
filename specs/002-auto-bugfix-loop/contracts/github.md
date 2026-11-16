@@ -58,11 +58,11 @@
 |---|---|---|
 | `.github/workflows/agent-fix.yml` | `issues: [reopened, labeled]`, `workflow_dispatch` | 잡 `fix`: 실행 조건 확인, 스킬 선택(`kind:guardrail`→guardrail, `kind:doc-garden`→doc-gardening, 그 밖→bugfix) → 소스 위치 해석(비용 0 사전 단계, client만) → claude-code-action 실행. 잡 `finish`(새 실행기): 브랜치 검사 → PR → 결과 댓글·라벨 |
 | `.github/workflows/agent-queue.yml` | `schedule: 매시` | 가장 오래된 `agent:queued` 이슈 하나 재실행 |
-| `.github/workflows/mistake-tally.yml` | `pull_request_target: closed(merged)`, `pull_request_review_comment: created` | `cause:`/`[mistake:]` 집계(REST 목록, 리뷰 태그는 쓰기 권한자·`claude[bot]` 것만), 2회 이상이고 그 분류의 장치 이슈가 없으면 `kind:guardrail`+`agent:run` 이슈 → agent-fix 실행(`workflow_dispatch`) |
+| `.github/workflows/mistake-tally.yml` | `pull_request_target: closed(merged)`, `pull_request_review_comment: created` | `cause:`/`[mistake:]` 집계(REST 목록, 리뷰 태그는 쓰기 권한자·`claude[bot]` 것만), 2회 이상이고 그 분류의 장치 이슈가 없으면 `kind:guardrail`+`agent:run`+`agent:queued` 이슈(agent-queue가 agent-fix 실행) |
 | `.github/workflows/doc-checks.yml` | `pull_request` | `scripts/check-docs.mjs` (contracts/doc-checks.md) |
 | `.github/workflows/pr-review.yml` | `pull_request`, `pull_request_target`(labeled `review:run`) | 독립 리뷰, 잡 `ai-review`가 차단 지적 시 실패 (research R10) |
 | `.github/workflows/labels-sync.yml` | `workflow_dispatch` | `.github/labels.json`의 라벨을 저장소에 생성·갱신 |
-| `.github/workflows/doc-garden.yml` | `schedule: 주 1회`, `workflow_dispatch` | 사전 검사(`scripts/doc-garden-scan.mjs`, 지난 7일 실수 기록) → 할 일 있을 때만 `kind:doc-garden`+`agent:run` 이슈 → agent-fix 실행 |
+| `.github/workflows/doc-garden.yml` | `schedule: 주 1회`, `workflow_dispatch` | 사전 검사(`scripts/doc-garden-scan.mjs`, 지난 7일 실수 기록) → 할 일 있을 때만 `kind:doc-garden`+`agent:run`+`agent:queued` 이슈(agent-queue가 agent-fix 실행) |
 
 ## 에이전트 결과 댓글
 

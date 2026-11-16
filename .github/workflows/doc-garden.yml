@@ -1,6 +1,6 @@
 name: doc-garden
 # 002 US6 (FR-050~052): weekly tidy of agent docs. A free pre-check decides; only when there is something to do does
-# it open a kind:doc-garden issue and dispatch agent-fix, which runs .claude/skills/doc-gardening.
+# it open a kind:doc-garden issue on the agent queue (agent-queue.yml starts agent-fix, which runs .claude/skills/doc-gardening).
 on:
   schedule:
     - cron: '23 18 * * 0' # Monday 03:23 KST
@@ -9,7 +9,6 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
-  actions: write
 jobs:
   scan:
     runs-on: ubuntu-latest
@@ -36,5 +35,4 @@ jobs:
           comments=$(gh api --paginate "repos/$GH_REPO/pulls/comments?since=$since&per_page=100" --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR" or .user.login == "claude[bot]") | select(.body | test("\\[mistake:[a-z0-9-]+\\]")) | "- 리뷰 댓글 \(.html_url): \([.body | scan("\\[mistake:[a-z0-9-]+\\]")] | unique | join(", "))"')
           if [ -z "$scan$prs$comments" ]; then echo "바꿀 것 없음"; exit 0; fi
           body=$(printf '에이전트용 문서 정리(002 US6). 사전 검사 결과:\n\n```\n%s\n```\n\n지난 7일 실수 기록:\n\n%s\n%s\n' "${scan:-없음}" "${prs:-}" "${comments:-}")
-          url=$(gh issue create --title "[doc-garden] $(date -u +%F)" --label kind:doc-garden,agent:run --body "$body")
-          gh workflow run agent-fix.yml -f issue="${url##*/}"
+          gh issue create --title "[doc-garden] $(date -u +%F)" --label kind:doc-garden,agent:run,agent:queued --body "$body"

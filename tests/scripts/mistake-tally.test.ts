@@ -60,16 +60,17 @@ beforeEach(() => {
 });
 
 describe('scripts/mistake-tally.mjs', () => {
-  it('opens a guardrail issue and dispatches the agent when a merged PR makes the second record', () => {
+  it('opens a queued guardrail issue when a merged PR makes the second record', () => {
     const event = { action: 'closed', pull_request: pr(5, ['cause:skip-test']) };
     // The just-merged PR is missing from the list (lag): the event payload still counts.
     const r = run(event, 'pull_request_target', { pulls: [pr(3, ['cause:skip-test'])], comments: [], guardrails: [] });
     expect(r.status, r.stderr).toBe(0);
     const create = r.writes.find((c) => c[1] === 'create');
     expect(create).toContain('[guardrail] skip-test');
-    expect(create?.join(' ')).toContain('kind:guardrail,agent:run');
+    // Queued, not dispatched: a dispatched run can be cancelled while pending, and nothing would retry it (#64 review).
+    expect(create?.join(' ')).toContain('kind:guardrail,agent:run,agent:queued');
     expect(create?.join(' ')).toContain('sha3');
-    expect(r.writes).toContainEqual(['workflow', 'run', 'agent-fix.yml', '-f', 'issue=77']);
+    expect(r.writes.filter((c) => c[0] === 'workflow')).toEqual([]);
   });
 
   it('comments on the open guardrail issue instead of opening a second one', () => {
