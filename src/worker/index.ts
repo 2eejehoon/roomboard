@@ -1,6 +1,8 @@
 import { Hono } from 'hono';
+import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { adminAuth, adminDeleteRoom, listReports, resolveReport } from './admin.ts';
+import { receiveBugReport, recordServerError } from './bug-reports.ts';
 import { rateLimit } from './rate-limit.ts';
 import { createReport } from './reports.ts';
 import { createRoom, deleteRoom, listRooms, requireRoom, updateRoom } from './rooms.ts';
@@ -20,6 +22,13 @@ app.onError((err, c) => {
     return c.json({ code: HTTP_CODES[err.status] ?? 'validation' }, err.status);
   }
   logError(err);
+  // FR-001: kept after the response; a failure to keep it must not change the 500.
+  const kept = recordServerError(c.env, c.req.url, err).catch(() => {});
+  try {
+    c.executionCtx.waitUntil(kept);
+  } catch {
+    // app.request() without an execution context (tests): the write still runs, just unawaited
+  }
   return c.json({ code: 'internal' }, 500);
 });
 
@@ -36,6 +45,8 @@ app.get('/rooms/:roomId', async (c) => c.json(await requireRoom(c.env.DB, c.req.
 app.patch('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), updateRoom);
 app.delete('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), deleteRoom);
 
+// research R4: always 202 (the per-IP limit lands with its rate limit binding, tasks.md T036 (b)).
+app.post('/bug-reports', bodyLimit({ maxSize: 4096 }), receiveBugReport);
 app.post('/reports', rateLimit((c) => c.env.RL_REPORT, 60_000), createReport);
 app.use('/admin/*', adminAuth);
 app.get('/admin/reports', listReports);

@@ -35,7 +35,7 @@
 | 지문 | `3fa2c1d09b7e4a51` |
 | 출처 | client / server |
 | 발생 | 37회 (처음 2026-11-07 01:02 UTC, 마지막 2026-11-07 03:40 UTC) |
-| 앱 버전 | 0.3.1 ~ 0.3.2 |
+| 앱 버전 | 202611070102-1a2b3c4 ~ 202611070340-5d6e7f8 |
 | 화면 | 3d 30, 2d 7 |
 | 브라우저 | chrome 25, safari 12 |
 
@@ -43,14 +43,14 @@
 `TypeError: Cannot read properties of undefined (reading 'p')`
 
 ### 스택 (앱 코드)
-- `assets/room3d-8f1c.js` `applyPeerMoved` 1:20431
+- `room3d-8f1c.js` `applyPeerMoved` 1:20431
 - ...
 
 이 이슈는 자동으로 만들어졌다. 개인정보·사용자 콘텐츠는 들어가지 않는다.
 ```
 
 - 발생 횟수·마지막 시각은 Cron 동기화 때 본문 표를 고쳐서 갱신한다(댓글을 쌓지 않음).
-- 재발 시: 이슈 재오픈 + `regressed` + 댓글 한 줄 "v<버전>에서 재발".
+- 재발 시: 이슈 재오픈 + `regressed` + 댓글 한 줄 "<버전>에서 재발"(버전 형식은 research R4).
 
 ## 워크플로
 

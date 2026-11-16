@@ -46,3 +46,14 @@ export const createReportRequest = z.object({
 export type CreateRoomRequest = z.infer<typeof createRoomRequest>;
 export type UpdateRoomRequest = z.infer<typeof updateRoomRequest>;
 export type CreateReportRequest = z.infer<typeof createReportRequest>;
+
+// POST /bug-reports. The Worker redacts and cuts these again (research R4), so the limits here only bound the input.
+const frame = z.object({ file: z.string().max(200), fn: z.string().max(100), line: z.int().min(0), col: z.int().min(0) });
+export const clientErrorReport = z.object({
+  errorName: z.string().max(100),
+  message: z.string().max(500),
+  frames: z.array(frame).max(20),
+  appVersion: z.string().max(40),
+  view: z.enum(['3d', '2d', 'board', 'admin']),
+  browser: z.enum(['chrome', 'safari', 'firefox', 'samsung', 'edge', 'other']),
+});

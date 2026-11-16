@@ -168,12 +168,14 @@ test('T046: right after a long frame the label is already where the avatar is', 
 // T107: in the Claude app's in-app browser the page flashed white while the joystick moved (the app dragged the page). Chromium
 // shows no flash, so this checks what the page controls: touch drags on the joystick and the 3D view are cancelled, and the page
 // behind the canvas is the sky, not white. The final check is the operator's phone inside the Claude app.
-test('T107: touch drags on the joystick and the 3D view do not drag the page, and the page behind is not white', async ({ browser, isMobile }) => {
+test('T107: touch drags on the joystick, the jump button and the 3D view do not drag the page, and the page behind is not white', async ({ browser, isMobile }) => {
   test.skip(!isMobile, 'touch only');
   const a = await newPage(browser);
   await enter(a);
   await expect(a.locator('canvas')).toBeVisible();
   const joystick = await a.getByRole('group', { name: ko['room3d.joystick'] }).boundingBox();
+  const jump = await a.locator('#ecctrl-virtual-button').boundingBox(); // PR #53 review: the jump button too
+  expect(jump, 'the jump button is on screen').not.toBeNull();
   const view = a.viewportSize()!;
   await a.evaluate(() => {
     const w = window as unknown as { __moves: boolean[] };
@@ -188,6 +190,9 @@ test('T107: touch drags on the joystick and the 3D view do not drag the page, an
   };
   await drag(joystick!.x + joystick!.width / 2, joystick!.y + joystick!.height / 2);
   await drag(view.width / 2, view.height / 2);
+  const before = (await a.evaluate(() => (window as unknown as { __moves: boolean[] }).__moves)).length;
+  await drag(jump!.x + jump!.width / 2, jump!.y + jump!.height / 2);
+  expect((await a.evaluate(() => (window as unknown as { __moves: boolean[] }).__moves)).length, 'the jump drag reached the page').toBeGreaterThan(before);
   const moves = await a.evaluate(() => (window as unknown as { __moves: boolean[] }).__moves);
   expect(moves.length, 'the drags reached the page').toBeGreaterThan(0);
   expect(moves.every(Boolean), `every touchmove is cancelled: ${moves}`).toBe(true);
