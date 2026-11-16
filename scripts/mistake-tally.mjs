@@ -8,9 +8,10 @@ import { readFileSync } from 'node:fs';
 import { mistakeTags, tallyMistakes } from '../src/core/mistake-tally.ts';
 
 const repo = process.env.GH_REPO;
-const gh = (/** @type {string[]} */ ...args) => execFileSync('gh', args, { encoding: 'utf8' }).trim();
-/** @param {string} path @returns {any[]} */
-const list = (path) => gh('api', '--paginate', path, '--jq', '.[]').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+// The full closed-PR list was 1.07 MB on 2026-11-16: keep only used fields and lift the 1 MiB default buffer.
+const gh = (/** @type {string[]} */ ...args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 256 << 20 }).trim();
+/** @param {string} path @param {string} fields jq object of the fields used @returns {any[]} */
+const list = (path, fields) => gh('api', '--paginate', path, '--jq', `.[] | ${fields}`).split('\n').filter(Boolean).map((l) => JSON.parse(l));
 
 const yml = readFileSync(new URL('../.github/mistake-categories.yml', import.meta.url), 'utf8');
 const categories = new Map([...yml.matchAll(/^- id: (\S+)\n {2}description: (.+)$/gm)].map((m) => [m[1], m[2]]));
@@ -37,10 +38,10 @@ const triggerRecords = event.comment ? commentRecords(event.comment) : event.pul
 // shortcut: lists every closed PR and review comment each run; fine at this repo's size, switch to a stored tally if runs get slow.
 // The event's own PR/comment is left out of the lists (it may lag there anyway) and added back once below.
 const others = [
-  ...list(`repos/${repo}/pulls?state=closed&per_page=100`)
+  ...list(`repos/${repo}/pulls?state=closed&per_page=100`, '{number, merged_at, merge_commit_sha, labels: [.labels[] | {name}]}')
     .filter((p) => p.number !== event.pull_request?.number)
     .flatMap(prRecords),
-  ...list(`repos/${repo}/pulls/comments?per_page=100`)
+  ...list(`repos/${repo}/pulls/comments?per_page=100`, '{id, body, author_association, user: {login: .user.login}, pull_request_url, commit_id}')
     .filter((c) => c.id !== event.comment?.id)
     .flatMap(commentRecords),
 ];
@@ -49,7 +50,7 @@ const fresh = triggerRecords.filter((t) => !others.some((r) => r.id === t.id && 
 const records = [...new Map([...others, ...triggerRecords].map((r) => [`${r.id} ${r.ref}`, r])).values()];
 // Open and closed: a closed guardrail issue means the guard was made (or ruled out), so nothing reopens it.
 const issues = Object.fromEntries(
-  list(`repos/${repo}/issues?state=all&labels=kind:guardrail&per_page=100`).flatMap((i) => {
+  list(`repos/${repo}/issues?state=all&labels=kind:guardrail&per_page=100`, '{number, title, state}').flatMap((i) => {
     const id = /^\[guardrail\] (\S+)$/.exec(i.title)?.[1];
     return id ? [[id, { number: i.number, open: i.state === 'open' }]] : [];
   }),

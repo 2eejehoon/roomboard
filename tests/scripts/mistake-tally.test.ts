@@ -116,6 +116,15 @@ describe('scripts/mistake-tally.mjs', () => {
     expect(r.writes).toEqual([]);
   });
 
+  // The real closed-PR list was 1.07 MB (2026-11-16), over execFileSync's 1 MiB default buffer.
+  it('handles list output over 1 MiB', () => {
+    const filler = Array.from({ length: 400 }, (_, i) => ({ ...pr(100 + i, []), padding: 'x'.repeat(4000) }));
+    const event = { action: 'closed', pull_request: pr(5, ['cause:skip-test']) };
+    const r = run(event, 'pull_request_target', { pulls: [...filler, pr(3, ['cause:skip-test'])], comments: [], guardrails: [] });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.writes.find((c) => c[1] === 'create')).toContain('[guardrail] skip-test');
+  });
+
   it('does not count tags from untrusted commenters or unknown categories', () => {
     const event = { action: 'created', comment: comment(9, '[mistake:skip-test]', 'stranger', 'NONE') };
     const r = run(event, 'pull_request_review_comment', {
