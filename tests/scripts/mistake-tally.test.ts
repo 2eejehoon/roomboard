@@ -94,6 +94,28 @@ describe('scripts/mistake-tally.mjs', () => {
     expect(r.writes).toEqual([]);
   });
 
+  it('opens a category left at 2 by a cancelled run, on an event with no tag', () => {
+    const event = { action: 'created', comment: comment(11, '태그 없음') };
+    const r = run(event, 'pull_request_review_comment', {
+      pulls: [pr(3, ['cause:pii-in-logs']), pr(4, ['cause:pii-in-logs'])],
+      comments: [comment(11, '태그 없음')],
+      guardrails: [],
+    });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.writes.find((c) => c[1] === 'create')).toContain('[guardrail] pii-in-logs');
+  });
+
+  it('does not comment again when the reviewer re-posts a tag on the same PR', () => {
+    const event = { action: 'created', comment: comment(10, '[mistake:skip-test]', 'claude[bot]', 'NONE', 3) };
+    const r = run(event, 'pull_request_review_comment', {
+      pulls: [pr(3, ['cause:skip-test']), pr(4, ['cause:skip-test'])],
+      comments: [comment(9, '[mistake:skip-test]', 'claude[bot]', 'NONE', 3), comment(10, '[mistake:skip-test]', 'claude[bot]', 'NONE', 3)],
+      guardrails: [{ number: 21, title: '[guardrail] skip-test', state: 'open' }],
+    });
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.writes).toEqual([]);
+  });
+
   it('does not count tags from untrusted commenters or unknown categories', () => {
     const event = { action: 'created', comment: comment(9, '[mistake:skip-test]', 'stranger', 'NONE') };
     const r = run(event, 'pull_request_review_comment', {

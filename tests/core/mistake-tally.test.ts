@@ -35,13 +35,22 @@ describe('tallyMistakes', () => {
     expect(tallyMistakes({ records, trigger: ['skip-test'], categories, issues: {} })).toEqual([]);
   });
 
-  it('only reports categories the triggering event recorded', () => {
+  // A queued run can be cancelled by a newer one (one pending run per concurrency group): any later run recovers it.
+  it('opens a category already at 2 with no issue even when this event recorded something else', () => {
     const records = [
       { id: 'skip-test', ref: 'pr#3' },
       { id: 'skip-test', ref: 'pr#4' },
       { id: 'pii-in-logs', ref: 'pr#5' },
     ];
-    expect(tallyMistakes({ records, trigger: ['pii-in-logs'], categories, issues: {} })).toEqual([]);
+    expect(tallyMistakes({ records, trigger: [], categories, issues: {} })).toEqual([{ id: 'skip-test', action: 'open' }]);
+  });
+
+  it('does not comment again when the event added no new record (re-posted review tag)', () => {
+    const records = [
+      { id: 'pii-in-logs', ref: 'pr#3' },
+      { id: 'pii-in-logs', ref: 'pr#4' },
+    ];
+    expect(tallyMistakes({ records, trigger: [], categories, issues: { 'pii-in-logs': { number: 21, open: true } } })).toEqual([]);
   });
 
   it('ignores ids not in the category list', () => {

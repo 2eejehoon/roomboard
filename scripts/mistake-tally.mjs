@@ -32,19 +32,21 @@ const prRecords = (p) =>
 const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH ?? '', 'utf8'));
 /** @type {{id: string, ref: string, sha: string}[]} */
 const triggerRecords = event.comment ? commentRecords(event.comment) : event.pull_request ? prRecords(event.pull_request) : [];
-if (!triggerRecords.length) process.exit(0);
+// No early exit on an event without records: it still opens a category a cancelled queued run left behind.
 
 // shortcut: lists every closed PR and review comment each run; fine at this repo's size, switch to a stored tally if runs get slow.
-// The trigger is in the list too unless the list lags; key by id+ref so it counts once.
-const records = [
-  ...new Map(
-    [
-      ...list(`repos/${repo}/pulls?state=closed&per_page=100`).flatMap(prRecords),
-      ...list(`repos/${repo}/pulls/comments?per_page=100`).flatMap(commentRecords),
-      ...triggerRecords,
-    ].map((r) => [`${r.id} ${r.ref}`, r]),
-  ).values(),
+// The event's own PR/comment is left out of the lists (it may lag there anyway) and added back once below.
+const others = [
+  ...list(`repos/${repo}/pulls?state=closed&per_page=100`)
+    .filter((p) => p.number !== event.pull_request?.number)
+    .flatMap(prRecords),
+  ...list(`repos/${repo}/pulls/comments?per_page=100`)
+    .filter((c) => c.id !== event.comment?.id)
+    .flatMap(commentRecords),
 ];
+// A record is new unless another PR label or comment already gave the same category on the same PR (re-posted tag).
+const fresh = triggerRecords.filter((t) => !others.some((r) => r.id === t.id && r.ref === t.ref)).map((t) => t.id);
+const records = [...new Map([...others, ...triggerRecords].map((r) => [`${r.id} ${r.ref}`, r])).values()];
 // Open and closed: a closed guardrail issue means the guard was made (or ruled out), so nothing reopens it.
 const issues = Object.fromEntries(
   list(`repos/${repo}/issues?state=all&labels=kind:guardrail&per_page=100`).flatMap((i) => {
@@ -53,7 +55,7 @@ const issues = Object.fromEntries(
   }),
 );
 
-for (const a of tallyMistakes({ records, trigger: triggerRecords.map((r) => r.id), categories: [...categories.keys()], issues })) {
+for (const a of tallyMistakes({ records, trigger: fresh, categories: [...categories.keys()], issues })) {
   // Body from trusted parts only (id, our description, links, SHAs): it becomes the agent's input.
   const evidence = records
     .filter((r) => r.id === a.id)
