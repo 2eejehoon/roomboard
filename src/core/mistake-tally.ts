@@ -1,4 +1,4 @@
-// 002 US4 (FR-030): count mistake records per category and act when one reaches its second record.
+// 002 US4 (FR-030): count mistake records per category and act once one has two or more and no guardrail issue yet.
 // A record is a merged PR's `cause:<id>` label or a review comment's `[mistake:<id>]` tag.
 
 export type MistakeRecord = { id: string; ref: string };
@@ -8,19 +8,20 @@ export function tallyMistakes({
   records,
   trigger,
   categories,
-  openIssues,
+  issues,
 }: {
   records: MistakeRecord[];
   trigger: string[];
   categories: string[];
-  openIssues: Record<string, number>;
+  // Guardrail issues per category, open or closed. A closed one means the guard exists (or was ruled out).
+  issues: Record<string, { number: number; open: boolean }>;
 }): TallyAction[] {
   const seen = new Set(records.map((r) => `${r.id}\n${r.ref}`));
   const count = (id: string) => [...seen].filter((k) => k.startsWith(`${id}\n`)).length;
-  // Only the categories this event recorded: an unrelated event must not re-fire a category already at 2.
+  // Only the categories this event recorded. `>= 2`, not `=== 2`: records #2 and #3 landing together are both seen as 3.
   return [...new Set(trigger)]
-    .filter((id) => categories.includes(id) && count(id) === 2)
-    .map((id) => (id in openIssues ? { id, action: 'comment', issue: openIssues[id] } : { id, action: 'open' }));
+    .filter((id) => categories.includes(id) && count(id) >= 2 && issues[id]?.open !== false)
+    .map((id): TallyAction => (issues[id] ? { id, action: 'comment', issue: issues[id].number } : { id, action: 'open' }));
 }
 
 export function mistakeTags(text: string): string[] {
