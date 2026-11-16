@@ -18,7 +18,8 @@ const commit = (msg: string) => {
   git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', msg);
   return git('rev-parse', 'HEAD');
 };
-const run = (base: string) => spawnSync('node', [SCRIPT, '--base', base, '--head', 'HEAD'], { cwd: repo, encoding: 'utf8' });
+const run = (base: string, headRef = 'agent/issue-1-fix') =>
+  spawnSync('node', [SCRIPT, '--base', base, '--head', 'HEAD', '--head-ref', headRef], { cwd: repo, encoding: 'utf8' });
 
 const TEST = `import { expect, it } from 'vitest';\nimport { add } from '../src/add.ts';\nit('adds', () => expect(add(1, 2)).toBe(3));\n`;
 
@@ -74,13 +75,21 @@ describe('scripts/test-first-check.mjs', () => {
   });
 
   // 002 US6: a doc-garden PR changes only Markdown, so there is no behavior to reproduce first.
-  it('passes a PR that changes only Markdown files', () => {
+  it('passes a doc-garden PR that changes only Markdown files', () => {
     const base = commit('base');
     write('CLAUDE.md', 'tidied\n');
     commit('docs: tidy');
-    const r = run(base);
+    const r = run(base, 'agent/issue-7-doc-garden');
     expect(r.stdout).toContain('문서만');
     expect(r.status).toBe(0);
+  });
+
+  // A bugfix agent must not answer a code bug with a docs-only PR and skip FR-021.
+  it('still requires a test for a docs-only PR on a non-doc-garden branch', () => {
+    const base = commit('base');
+    write('CLAUDE.md', 'tidied\n');
+    commit('docs only');
+    expect(run(base).status).toBe(1);
   });
 
   it('still requires a test when Markdown and code change together', () => {

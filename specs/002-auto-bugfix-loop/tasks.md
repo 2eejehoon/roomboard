@@ -100,7 +100,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T026 [P] [US6] `tests/scripts/doc-garden-scan.test.ts`: 문서 속 백틱 경로·npm 스크립트가 없으면 보고, 모두 있으면 빈 결과, 길이 상한 근접(90%) 보고
 - [x] T027 [US6] `scripts/doc-garden-scan.mjs`(판례·vendored `speckit-*` 스킬 제외, 경로는 첫 마디가 저장소 루트 폴더인 것만). 현재 main에서 결과 0건
 - [x] T028 [US6] `.claude/skills/doc-gardening/SKILL.md`: 지운 문장마다 이유, 줄 수 증가 이유, 장치로 대체된 지시 삭제
-- [x] T029 [US6] `.github/workflows/doc-garden.yml`: 주 1회 + 수동, 스캔 결과가 비고 새 실수 기록(지난 7일)이 없으면 종료, 아니면 `kind:doc-garden`+`agent:run` 이슈 → agent-fix가 정리 PR(`kind:doc-garden`). `.md`만 바꾼 PR은 `test-first`가 건너뜀. **실제 실행(B14)**: 머지 뒤 확인
+- [x] T029 [US6] `.github/workflows/doc-garden.yml`: 주 1회 + 수동, 스캔 결과가 비고 새 실수 기록(지난 7일)이 없으면 종료, 아니면 `kind:doc-garden`+`agent:run` 이슈 → agent-fix가 정리 PR(`kind:doc-garden`). `-doc-garden` 브랜치에서 `.md`만 바꾼 PR은 `test-first`가 건너뜀. **실제 실행(B14)**: 머지 뒤 확인
 
 ---
 

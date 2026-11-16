@@ -23,7 +23,7 @@ Keep agent docs true and short (constitution VI, 002 US6). Longer docs are a cos
    duplicates of another doc (keep one, link to it).
 4. If the issue lists mistake records since the last tidy that no guard could stop, add one short lesson line to the
    doc where agents will read it.
-5. Create a branch `agent/issue-<n>-doc-garden`, commit `docs: tidy agent docs (#<n>)`, push to `origin`. Change only
+5. Create a branch named exactly `agent/issue-<n>-doc-garden` (CI skips test-first only for that name), commit `docs: tidy agent docs (#<n>)`, push to `origin`. Change only
    `.md` files. The workflow opens the PR.
 
 If nothing needs changing, change nothing and return `not_reproduced` with "바꿀 것 없음" (FR-052).
