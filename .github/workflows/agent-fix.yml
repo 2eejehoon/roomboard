@@ -110,6 +110,8 @@ jobs:
         run: |
           [ -n "$OUT" ] && [ "$(jq -r .result <<<"$OUT")" = fixed ] || exit 0
           branch=$(jq -r .branch <<<"$OUT")
+          # test-first skips docs-only -doc-garden branches: only a kind:doc-garden issue may use that name.
+          case "$branch" in *-doc-garden) [ "$KIND" = kind:doc-garden ] || { echo "::error::$branch outside a kind:doc-garden issue"; exit 0; } ;; esac
           after=$(gh api "repos/$GH_REPO/git/ref/heads/$branch" --jq .object.sha 2>/dev/null || true)
           # No snapshot means we cannot tell a fresh push from a stale branch: do not open a PR.
           [ -n "$BEFORE" ] || { echo "::error::no pre-run branch snapshot"; exit 0; }

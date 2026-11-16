@@ -22,8 +22,8 @@ const fail = (/** @type {string} */ msg) => {
 };
 
 const base = git('merge-base', values.base, values.head);
-// 002 US6: a doc-garden PR changes only Markdown; there is no behavior to reproduce. Only on doc-garden branches, so a
-// bugfix agent cannot answer a code bug with a docs-only PR.
+// 002 US6: a doc-garden PR changes only Markdown; there is no behavior to reproduce. Only on -doc-garden branches, which
+// agent-fix opens a PR for only from kind:doc-garden issues, so a bugfix agent cannot skip FR-021 with a docs-only PR.
 if (values['head-ref'].endsWith('-doc-garden') && git('diff', '--no-renames', '--name-only', `${base}...${values.head}`).split('\n').every((f) => f.endsWith('.md'))) {
   console.log('test-first: 문서만 바꾼 PR이라 건너뜁니다.');
   process.exit(0);
