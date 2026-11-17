@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { adminAuth, adminDeleteRoom, listReports, resolveReport } from './admin.ts';
-import { receiveBugReport, recordServerError } from './bug-reports.ts';
+import { discardUserBugReport, issueUserBugReport, listUserBugReports, purgeUserBugReports, receiveBugReport, receiveUserBugReport, recordServerError } from './bug-reports.ts';
 import { syncGithub } from './github-sync.ts';
 import { rateLimit } from './rate-limit.ts';
 import { createReport } from './reports.ts';
@@ -49,10 +49,15 @@ app.delete('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), delete
 // research R4: always 202, the per-IP limit included (receiveBugReport).
 app.post('/bug-reports', bodyLimit({ maxSize: 4096 }), receiveBugReport);
 app.post('/reports', rateLimit((c) => c.env.RL_REPORT, 60_000), createReport);
+// precedent 2026-11-17-user-bug-reports: the same per-IP limit as content reports.
+app.post('/bug-reports/user', rateLimit((c) => c.env.RL_REPORT, 60_000), receiveUserBugReport);
 app.use('/admin/*', adminAuth);
 app.get('/admin/reports', listReports);
 app.post('/admin/reports/:reportId/resolve', resolveReport);
 app.delete('/admin/rooms/:roomId', adminDeleteRoom);
+app.get('/admin/bug-reports', listUserBugReports);
+app.post('/admin/bug-reports/:id/issue', issueUserBugReport);
+app.delete('/admin/bug-reports/:id', discardUserBugReport);
 
 app.get('/rooms/:roomId/ws', async (c) => {
   const { id } = await requireRoom(c.env.DB, c.req.param('roomId'));
@@ -89,8 +94,9 @@ export default {
     const id = /^\/rooms\/([^/]+)$/.exec(pathname)?.[1];
     return id ? roomPage(req, env, id) : env.ASSETS.fetch(req);
   },
-  // The 5-minute Cron (wrangler.jsonc). A failure waits for the next run and is logged only (github-sync.ts).
+  // The 5-minute Cron (wrangler.jsonc). A failure waits for the next run and is logged only (github-sync.ts, research R9).
   scheduled(controller, env, ctx) {
+    ctx.waitUntil(purgeUserBugReports(env, controller.scheduledTime).catch((err: unknown) => console.error('user bug report purge failed', err instanceof Error ? err.message : typeof err)));
     ctx.waitUntil(syncGithub(env, controller.scheduledTime).catch((err: unknown) => console.error('github sync failed', err instanceof Error ? err.message : typeof err)));
   },
 } satisfies ExportedHandler<Env>;

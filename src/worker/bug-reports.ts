@@ -1,9 +1,11 @@
 // T036 (a): POST /api/bug-reports and server error recording (contracts/openapi.yaml, data-model.md bug_fingerprints,
 // research R4·R5). Nothing from the client is trusted: every string is redacted and cut again here, and the fingerprint is ours.
 import type { Context } from 'hono';
-import { clientErrorReport } from '../core/api-schemas.ts';
+import { bugReportIssueRequest, clientErrorReport, userBugReport } from '../core/api-schemas.ts';
 import { fileName, fingerprint, isVendor, parseStack, type Frame } from '../core/fingerprint.ts';
-import { redact } from '../core/redact.ts';
+import { redact, redactIds } from '../core/redact.ts';
+import { github } from './github-sync.ts';
+import { verifyTurnstile } from './turnstile.ts';
 
 type C = Context<{ Bindings: Env }>;
 interface Manifest {
@@ -119,4 +121,70 @@ export async function recordServerError(env: Env, err: Error): Promise<void> {
   const frames = parseStack(err);
   const version = (await readManifest(env))?.version ?? 'unknown';
   await record(env, { source: 'server', errorName: err.name, message: err.message, frames, appVersion: version, inBuild: true });
+}
+
+// T041: user bug reports (FR-004·FR-014, research R9, precedent 2026-11-17-user-bug-reports). The RL_REPORT limit runs before this
+// (index.ts), validation before siteverify so a 400 does not spend the widget token (precedent 2026-11-08-create-room-check-order).
+const KEEP_MS = 30 * 86_400_000;
+// Mask, then cut: a mask can be longer than what it hides, and the column CHECK allows 1000.
+const clipIds = (text: string, max: number) => redactIds(text).slice(0, max);
+
+export async function receiveUserBugReport(c: C): Promise<Response> {
+  const parsed = userBugReport.safeParse(await c.req.json().catch(() => undefined));
+  if (!parsed.success) return c.json({ code: 'validation' }, 400);
+  const { text, context, turnstileToken } = parsed.data;
+  if (!(await verifyTurnstile(c.env.TURNSTILE_SECRET, turnstileToken))) return c.json({ code: 'turnstile_failed' }, 403);
+  const stored = { ...context, appVersion: VERSION.test(context.appVersion) ? context.appVersion : 'unknown' };
+  await c.env.DB.prepare("INSERT INTO user_bug_reports (text, context, status, created_at) VALUES (?, ?, 'pending', ?)")
+    .bind(clipIds(text, 1000), JSON.stringify(stored), Date.now())
+    .run();
+  return c.body(null, 201);
+}
+
+// shortcut: the newest 100 only, the contract has no cursor; add one if pending reports ever pile up past that.
+export async function listUserBugReports(c: C): Promise<Response> {
+  const { results } = await c.env.DB.prepare("SELECT id, text, context, created_at FROM user_bug_reports WHERE status = 'pending' ORDER BY id DESC LIMIT 100").all<{
+    id: number;
+    text: string;
+    context: string;
+    created_at: number;
+  }>();
+  const items = results.map((r) => ({ id: r.id, text: r.text, context: JSON.parse(r.context) as unknown, createdAt: r.created_at, expiresAt: r.created_at + KEEP_MS }));
+  return c.json({ items });
+}
+
+const pendingId = async (c: C) => {
+  const id = c.req.param('id') ?? '';
+  return /^\d+$/.test(id) && (await c.env.DB.prepare("SELECT 1 FROM user_bug_reports WHERE id = ? AND status = 'pending'").bind(Number(id)).first()) ? Number(id) : undefined;
+};
+
+// Only the admin's title and summary go public (contracts/github.md). No claim before the create: the admin screen stops a double click.
+export async function issueUserBugReport(c: C): Promise<Response> {
+  const id = await pendingId(c);
+  if (id === undefined) return c.json({ code: 'not_found' }, 404);
+  const parsed = bugReportIssueRequest.safeParse(await c.req.json().catch(() => undefined));
+  if (!parsed.success) return c.json({ code: 'validation' }, 400);
+  let issueNumber: number;
+  try {
+    if (!c.env.GITHUB_ISSUES_TOKEN) throw new Error('no GITHUB_ISSUES_TOKEN');
+    const body = `${clipIds(parsed.data.summary, 2000)}\n\n사용자 신고를 운영자가 요약한 이슈다. 신고 원문은 공개하지 않는다.`;
+    const { data } = await github(c.env.GITHUB_ISSUES_TOKEN)<{ number: number }>('POST', '/issues', { title: clipIds(parsed.data.title, 80), body, labels: ['source:user-report'] });
+    issueNumber = data.number;
+  } catch (err) {
+    console.error('user bug report issue failed', err instanceof Error ? err.message : typeof err);
+    return c.body(null, 502);
+  }
+  await c.env.DB.prepare("UPDATE user_bug_reports SET status = 'issued', issue_number = ? WHERE id = ?").bind(issueNumber, id).run();
+  return c.json({ issueNumber }, 201);
+}
+
+export async function discardUserBugReport(c: C): Promise<Response> {
+  const id = c.req.param('id') ?? '';
+  const { meta } = /^\d+$/.test(id) ? await c.env.DB.prepare('DELETE FROM user_bug_reports WHERE id = ?').bind(Number(id)).run() : { meta: { changes: 0 } };
+  return meta.changes ? c.body(null, 204) : c.json({ code: 'not_found' }, 404);
+}
+
+/** The 5-minute Cron (index.ts), apart from the GitHub sync so it runs where there is no issue token. */
+export async function purgeUserBugReports(env: Env, now: number): Promise<void> {
+  await env.DB.prepare('DELETE FROM user_bug_reports WHERE created_at < ?').bind(now - KEEP_MS).run();
 }

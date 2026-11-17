@@ -38,7 +38,7 @@ interface Issue {
 }
 
 type Gh = <T>(method: string, path: string, body?: unknown) => Promise<{ data: T; res: Response }>;
-const github =
+export const github =
   (token: string): Gh =>
   async (method, path, body) => {
     const res = await fetch(`https://api.github.com/repos/${REPO}${path}`, {
