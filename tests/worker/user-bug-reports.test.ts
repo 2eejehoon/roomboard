@@ -139,7 +139,7 @@ describe('admin user bug reports', () => {
   });
 
   it('issue: a public issue with only the admin summary, masked, labelled source:user-report', async () => {
-    const id = await insert('원문: 제 이메일은 a.b@example.com');
+    const id = await insert('신고자 글: 제 이메일은 a.b@example.com');
     const res = await admin('POST', `/bug-reports/${id}/issue`, { title: '저장 버튼 무반응 010-1234-5678', summary: '2D 화면에서 "저장"을 눌러도 반응 없음. 203.0.113.9' });
     expect(res.status).toBe(201);
     const { issueNumber } = await res.json<{ issueNumber: number }>();
@@ -147,7 +147,7 @@ describe('admin user bug reports', () => {
     const [issue] = created;
     expect(issue!.title).toBe('저장 버튼 무반응 [가림]');
     expect(issue!.body).toContain('2D 화면에서 "저장"을 눌러도 반응 없음. [가림]');
-    expect(issue!.body).not.toContain('원문');
+    expect(issue!.body).not.toContain('신고자 글');
     expect(issue!.labels).toEqual(['source:user-report']);
     expect(await byId(id)).toMatchObject({ status: 'issued', issue_number: issueNumber });
     // Issued: gone from the list, and a second click makes no second issue.

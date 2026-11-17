@@ -47,6 +47,7 @@ export type CreateRoomRequest = z.infer<typeof createRoomRequest>;
 export type UpdateRoomRequest = z.infer<typeof updateRoomRequest>;
 export type CreateReportRequest = z.infer<typeof createReportRequest>;
 
+const browser = z.enum(['chrome', 'safari', 'firefox', 'samsung', 'edge', 'other']);
 // POST /bug-reports. The Worker redacts and cuts these again (research R4), so the limits here only bound the input.
 const frame = z.object({ file: z.string().max(200), fn: z.string().max(100), line: z.int().min(0), col: z.int().min(0) });
 export const clientErrorReport = z.object({
@@ -55,5 +56,22 @@ export const clientErrorReport = z.object({
   frames: z.array(frame).max(20),
   appVersion: z.string().max(40),
   view: z.enum(['3d', '2d', 'board', 'admin']),
-  browser: z.enum(['chrome', 'safari', 'firefox', 'samsung', 'edge', 'other']),
+  browser,
 });
+
+// POST /bug-reports/user. Unknown context keys are dropped by the parse; the Worker masks identifiers before storing (research R9).
+export const userBugReport = z.object({
+  text: z.string().trim().min(1).max(1000),
+  context: z.object({
+    view: z.enum(['3d', '2d', 'board']),
+    themeId: themeId.optional(),
+    connection: z.enum(['connecting', 'open', 'reconnecting', 'closed']).optional(),
+    recentFingerprints: z.array(z.string().regex(/^[0-9a-f]{16}$/)).max(5).optional(),
+    appVersion: z.string().max(40),
+    browser,
+  }),
+  turnstileToken: z.string().min(1),
+});
+
+// POST /admin/bug-reports/{id}/issue
+export const bugReportIssueRequest = z.object({ title: z.string().trim().min(1).max(80), summary: z.string().trim().min(1).max(2000) });

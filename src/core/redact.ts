@@ -2,10 +2,10 @@
 // only after cutting the file down to its name, and only to names outside the deployed build: a real chunk name with a
 // 23+ char module name matches the long-token pattern.
 const MASK = '[가림]';
-const PATTERNS: [RegExp, ((m: string) => string)?][] = [
-  // Quoted text, greedy to the last closing quote, across lines (V8 JSON.parse echoes the input, nested quotes and newlines
-  // included); with no closing quote, to the end. A ' right after a letter is an apostrophe (Can't), not an opening quote.
-  [/"[\s\S]*"|"[\s\S]*|(?<![A-Za-z])'[\s\S]*'|(?<![A-Za-z])'[\s\S]*|“[\s\S]*”|“[\s\S]*|‘[\s\S]*’|‘[\s\S]*/g],
+// Quoted text, greedy to the last closing quote, across lines (V8 JSON.parse echoes the input, nested quotes and newlines
+// included); with no closing quote, to the end. A ' right after a letter is an apostrophe (Can't), not an opening quote.
+const QUOTED = /"[\s\S]*"|"[\s\S]*|(?<![A-Za-z])'[\s\S]*'|(?<![A-Za-z])'[\s\S]*|“[\s\S]*”|“[\s\S]*|‘[\s\S]*’|‘[\s\S]*/g;
+const IDS: [RegExp, ((m: string) => string)?][] = [
   [/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g], // email
   [/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi], // uuid
   [/\b(?:\d{1,3}\.){3}\d{1,3}\b/g], // ipv4, before ipv6 so an embedded ::ffff:a.b.c.d loses every octet
@@ -18,6 +18,11 @@ const PATTERNS: [RegExp, ((m: string) => string)?][] = [
   [/[A-Za-z0-9+/_-]{32,}={0,2}/g, (m) => (/\d/.test(m) ? MASK : m)],
 ];
 
+/** Identifiers only, for text people write on purpose (user bug reports, admin summaries): quotes there are not error echoes (research R9). */
+export function redactIds(text: string): string {
+  return IDS.reduce((s, [re, fn = () => MASK]) => s.replace(re, fn), text);
+}
+
 export function redact(text: string): string {
-  return PATTERNS.reduce((s, [re, fn = () => MASK]) => s.replace(re, fn), text);
+  return redactIds(text.replace(QUOTED, MASK));
 }
