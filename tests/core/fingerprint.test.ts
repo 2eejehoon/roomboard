@@ -55,6 +55,13 @@ describe('parseStack (research R4: V8, Firefox and Safari)', () => {
     ]);
   });
 
+  it('never reads a V8 header line as a frame, even when the message changed after the stack was made (PR #67 review)', () => {
+    // V8 writes the header from the message when the stack is first read; a later change leaves it stale.
+    const e = { message: 'wrapped: user text 010:12:34', stack: 'Error: user text 010:12:34\n    at f (https://x.dev/assets/index-abc.js:1:2)' };
+    expect(parseStack(e).some((x) => x.file.includes('user text'))).toBe(false);
+    expect(parseStack(e).length).toBeGreaterThan(0);
+  });
+
   it('returns no frames without a stack', () => {
     expect(parseStack({ message: '' })).toEqual([]);
   });
