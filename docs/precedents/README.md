@@ -52,6 +52,7 @@
 | [2026-11-13-bug-intake-worker](2026-11-13-bug-intake-worker.md) | 오류 리포트 수집 Worker: 파일 이름도 가림, manifest가 없으면 닫힌 쪽으로 | 일부 대체됨(파일 이름 가림) |
 | [2026-11-13-intake-limit-alert](2026-11-13-intake-limit-alert.md) | 수집 한도 도달은 하루 한 번 알림, 빌드 청크 이름은 가리지 않음 | 일부 대체됨(알림 대상 행) |
 | [2026-11-13-intake-build](2026-11-13-intake-build.md) | 오류 수집 빌드 설정: 함수 이름 유지, 패키지별 vendor 청크, IP 한도도 202 | 유효 |
+| [2026-11-17-github-sync](2026-11-17-github-sync.md) | GitHub 동기화: 목록 한 번으로 닫힘·상한·토큰 만료, 늦은 gated 라벨, 토큰 알림은 만료일로 한 번 | 유효 |
 | [2026-11-12-guardrail-via-agent-fix](2026-11-12-guardrail-via-agent-fix.md) | 장치·문서 정리 에이전트는 agent-fix를 같이 쓴다 | 유효 |
 
 ## 판례 쓰는 법

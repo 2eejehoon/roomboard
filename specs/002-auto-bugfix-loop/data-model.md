@@ -39,6 +39,12 @@
 
 - 열린 버그 이슈 수(상한 20)는 동기화 때 GitHub에서 센다.
 
+### token_alerts
+
+| 컬럼 | 타입 | 규칙 |
+|---|---|---|
+| expires | TEXT PK | 만료 임박 알림을 연 PAT 만료일(`YYYY-MM-DD`, research R3). 새 PAT는 만료일이 달라 다시 알린다 |
+
 ### user_bug_reports
 
 | 컬럼 | 타입 | 규칙 |

@@ -51,6 +51,23 @@
 
 - 발생 횟수·마지막 시각은 Cron 동기화 때 본문 표를 고쳐서 갱신한다(댓글을 쌓지 않음).
 - 재발 시: 이슈 재오픈 + `regressed` + 댓글 한 줄 "<버전>에서 재발"(버전 형식은 research R4).
+- 클라이언트 지문은 처음 이슈를 만들 때(1건) 대개 `agent:gated`가 없다. 나중에 `gated`가 되면 다음 동기화가 기존 이슈에 `agent:gated`를 더한다
+  (`labeled` 이벤트로 에이전트가 시작한다, FR-015).
+- 닫힘 판단: 동기화가 `source:service` 열린 이슈 목록을 한 번 읽어(열린 이슈 상한 20도 이 목록으로 센다) 목록에 없는 `open` 지문을 `closed`로,
+  `fixed_version`을 그때의 배포 버전으로 둔다. 재발은 `app_version_max`가 `fixed_version`보다 뒤일 때다.
+- DB에서 온 문자열(오류 이름·요약·함수·파일 이름)은 모두 코드 스팬 안에 넣고, 백틱은 `'`로, 줄바꿈은 공백으로 바꾼다(위조한 이름이 코드 스팬을 깨고
+  멘션·마크다운을 넣지 못하게). 제목은 줄바꿈만 바꾼다.
+
+## 운영자 알림 이슈 (`[ops]`)
+
+라벨 없음(에이전트가 실행되지 않음), FR-013 상한에 세지 않음. 본문은 아래 값만.
+
+| 알림 | 제목 | 본문 | 한 번만 |
+|---|---|---|---|
+| 하루 수집 한도(research R5) | `[ops] 오류 리포트 하루 한도 도달 <day>` | 날짜, 받은 건수 | `github_sync_state.limit_alerted` |
+| PAT 만료 30일 전(research R3) | `[ops] 이슈 토큰 만료 임박 <만료일>` | 만료일, 새 PAT를 Environment `production`의 `ISSUES_TOKEN`에 넣고 배포하라는 안내 | `token_alerts.expires` |
+
+만료일은 GitHub 응답 헤더 `github-authentication-token-expiration`에서 읽는다(운영자가 따로 넣는 값 없음). 헤더가 없거나 읽지 못하면 알리지 않는다.
 
 ## 워크플로
 

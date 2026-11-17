@@ -1,8 +1,9 @@
-import { createExecutionContext, waitOnExecutionContext } from 'cloudflare:test';
+import { createExecutionContext, runInDurableObject, waitOnExecutionContext } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 import { fingerprint, type Frame } from '../../src/core/fingerprint.ts';
 import { app } from '../../src/worker/index.ts';
+import { insertRoom } from './rooms-helpers.ts';
 
 // T032: POST /api/bug-reports and server error recording (contracts/openapi.yaml, data-model.md bug_fingerprints, research R4·R5).
 const VERSION = '202611130000-1a2b3c4';
@@ -212,6 +213,15 @@ describe('server errors', () => {
     expect(res.status).toBe(500);
     expect(await res.json()).toEqual({ code: 'internal' });
     expect(await rowCount()).toEqual(before);
+  });
+
+  it('an uncaught exception in a Durable Object handler (alarm, WebSocket events) is recorded and still thrown', async () => {
+    const stub = env.ROOM.getByName(await insertRoom());
+    await runInDurableObject(stub, async (instance) => {
+      Object.assign(instance, { env: { ...deployed, DB: failingDb(/UPDATE rooms/, 'DoAlarmFailure') } });
+      await expect(instance.alarm()).rejects.toThrow('DoAlarmFailure');
+    });
+    expect((await serverRows()).filter((r) => r.summary === 'DoAlarmFailure')).toEqual([expect.objectContaining({ error_name: 'Error', gated: 1, app_version_max: VERSION })]);
   });
 
   it('a 500 without an execution context (app.request in other tests) still answers', async () => {
