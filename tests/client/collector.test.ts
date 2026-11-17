@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { browserOf, installCollector, reportError, setRoomView, toReport } from '../../src/client/bug/collector.ts';
+import { browserOf, installCollector, recentFingerprints, reportError, setRoomView, toReport } from '../../src/client/bug/collector.ts';
+import { fingerprint } from '../../src/core/fingerprint.ts';
 import { clientErrorReport } from '../../src/core/api-schemas.ts';
 
 const chromeUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
@@ -88,6 +89,17 @@ describe('reportError', () => {
     expect(fetch).toHaveBeenCalledTimes(10);
     reportError(new Error('later'), 1e7 + 60_000);
     expect(fetch).toHaveBeenCalledTimes(11);
+  });
+
+  it('keeps the fingerprints the Worker will compute for the last 5 distinct reports sent, newest first (US3 context)', async () => {
+    stub();
+    const sha256 = (text: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    const errs = Array.from({ length: 7 }, (_, i) => error(`m${i}`, `E${i}: m${i}\n    at f${i} (https://x.dev/assets/index-BXjaK0XS.js?t=1:1:1)`, `E${i}`));
+    for (const [i, e] of errs.entries()) reportError(e, 1e9 + i);
+    reportError(errs[6]!, 1e9 + 7); // a repeat moves to the front, not in twice
+    await vi.waitFor(() => expect(recentFingerprints()).toHaveLength(5));
+    const fp = (i: number) => fingerprint(`E${i}`, [{ file: 'index-BXjaK0XS.js', fn: `f${i}`, line: 1, col: 1 }], sha256);
+    expect(recentFingerprints()).toEqual(await Promise.all([6, 5, 4, 3, 2].map(fp)));
   });
 
   it('drops values that are not Errors (no stack to fingerprint)', () => {
