@@ -36,3 +36,10 @@ it('a missing secret or D1 id stops with an error that names it', () => {
   const w = wf();
   for (const k of ['CLOUDFLARE_API_TOKEN가 없습니다', 'TURNSTILE_SITEKEY가 없습니다', '$k가 없습니다', 'D1 $NAME의 id를 찾지 못했습니다']) expect(w).toContain(k);
 });
+
+it('reads the issue token from a secret GitHub accepts: names cannot start with GITHUB_ (002 T036)', () => {
+  const w = wf();
+  expect(w).not.toMatch(/secrets\.GITHUB_/);
+  expect(w).toContain('GITHUB_ISSUES_TOKEN: ${{ secrets.ISSUES_TOKEN }}');
+  expect(w).toContain('Environment production에 ISSUES_TOKEN가 없습니다');
+});

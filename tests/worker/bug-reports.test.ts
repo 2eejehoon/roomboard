@@ -5,9 +5,10 @@ import { fingerprint, type Frame } from '../../src/core/fingerprint.ts';
 import { app } from '../../src/worker/index.ts';
 
 // T032: POST /api/bug-reports and server error recording (contracts/openapi.yaml, data-model.md bug_fingerprints, research R4·R5).
-// The per-IP limit needs a rate limit binding in wrangler.jsonc and is tested with it in PR (b) (tasks.md T036).
 const VERSION = '202611130000-1a2b3c4';
-const CHUNKS = ['index-BXjaK0XS.js', 'room3d-8f1cAb12.js'];
+// Module names of 23+ chars make chunk names the long-token pattern masks (PR #61 review).
+const LONG = ['RoomConnectionStatusPanel-BXjaK0XS.js', 'RoomConnectionStatusBanner-8f1cAb12.js'];
+const CHUNKS = ['index-BXjaK0XS.js', 'room3d-8f1cAb12.js', ...LONG];
 const assets = (manifest?: unknown) =>
   ({
     fetch: async (input: RequestInfo | URL) =>
@@ -30,8 +31,14 @@ const report = (errorName: string, extra: Record<string, unknown> = {}) => ({
   browser: 'chrome',
   ...extra,
 });
-const post = (body: unknown, e: Env = deployed) =>
-  app.request('/api/bug-reports', { method: 'POST', headers: { 'content-type': 'application/json' }, body: typeof body === 'string' ? body : JSON.stringify(body) }, e);
+let ipSeq = 0;
+const nextIp = () => `2001:db8::${(++ipSeq).toString(16)}`; // a fresh limiter key per request
+const post = (body: unknown, e: Env = deployed, ip = nextIp()) =>
+  app.request(
+    '/api/bug-reports',
+    { method: 'POST', headers: { 'content-type': 'application/json', 'cf-connecting-ip': ip }, body: typeof body === 'string' ? body : JSON.stringify(body) },
+    e,
+  );
 
 const sha256 = (text: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
 const fileNames = (fs: Frame[]) => fs.map((f) => ({ ...f, file: f.file.split('/').pop()! }));
@@ -98,6 +105,14 @@ describe('POST /api/bug-reports', () => {
     expect(JSON.parse(stored!.frames)[0].fn).toBe('[가림] '.repeat(33).slice(0, 100));
   });
 
+  it('keeps a chunk name of the deployed build as is, even one the long-token pattern would mask; names outside the build are masked', async () => {
+    const at = (file: string) => [{ ...frames()[0], file: `https://roomboard.example/assets/${file}` }];
+    for (const file of LONG) await post(report('LongChunkError', { frames: at(file) }));
+    await post(report('LongChunkError', { frames: at('RoomConnectionStatusForged-8f1cAb12.js') }));
+    const stored = await env.DB.prepare("SELECT frames FROM bug_fingerprints WHERE error_name = 'LongChunkError'").all<{ frames: string }>();
+    expect(stored.results.map((r) => JSON.parse(r.frames)[0].file).sort()).toEqual(['[가림].js', ...LONG].sort());
+  });
+
   it('stores appVersion as unknown unless it is in the build format and not newer than the deployed build; dev sorts first', async () => {
     for (const appVersion of ['a.b@example.com', '209912312359-1a2b3c4', '20261113-1a2b3c4']) expect((await post(report('VersionError', { appVersion }))).status).toBe(202);
     expect(await row('VersionError')).toMatchObject({ count: 3, app_version_min: 'unknown', app_version_max: 'unknown' });
@@ -129,6 +144,12 @@ describe('POST /api/bug-reports', () => {
     for (const body of ['{', '[]', report('ShapeError', { view: 'vr' }), report('ShapeError', { frames: Array(21).fill(frames()[0]) }), { errorName: 'ShapeError' }])
       expect((await post(body)).status).toBe(202);
     expect(await rowCount()).toEqual(before);
+  });
+
+  it('drops the 11th report from one IP within 60 s and still answers 202 (FR-003)', async () => {
+    const ip = '192.0.2.7';
+    for (let n = 1; n <= 11; n++) expect((await post(report('IpError'), deployed, ip)).status).toBe(202);
+    expect(await row('IpError')).toMatchObject({ count: 10 });
   });
 
   it('413 over 4KB', async () => {
