@@ -53,6 +53,7 @@
 | [2026-11-13-intake-limit-alert](2026-11-13-intake-limit-alert.md) | 수집 한도 도달은 하루 한 번 알림, 빌드 청크 이름은 가리지 않음 | 일부 대체됨(알림 대상 행) |
 | [2026-11-13-intake-build](2026-11-13-intake-build.md) | 오류 수집 빌드 설정: 함수 이름 유지, 패키지별 vendor 청크, IP 한도도 202 | 유효 |
 | [2026-11-17-github-sync](2026-11-17-github-sync.md) | GitHub 동기화: 목록 한 번으로 닫힘·상한·토큰 만료, 늦은 gated 라벨, 토큰 알림은 만료일로 한 번 | 유효 |
+| [2026-11-17-client-collector](2026-11-17-client-collector.md) | 클라이언트 오류 수집기: 탭당 분당 10건, Error가 아닌 값은 버림, 화면 종류 매핑 | 유효 |
 
 ## 판례 쓰는 법
 

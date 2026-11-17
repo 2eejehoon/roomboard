@@ -8,6 +8,7 @@ import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, us
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
 import { CLOSE } from '../../core/protocol.ts';
 import { navigate } from '../App.tsx';
+import { setRoomView } from '../bug/collector.ts';
 import { deviceKey, readView, saveView, type View } from '../device.ts';
 import { t } from '../i18n/t.ts';
 import { openRoomSocket, type RoomSocket } from '../net/room-socket.ts';
@@ -35,6 +36,10 @@ export function RoomPage({ id }: { id: string }) {
   const chat = useCallback((text: string) => socket.current?.chat(text), []);
   const [webgl] = useState(hasWebGL);
   const [view, setView] = useState<View>(() => initialView(readView(), webgl));
+  useEffect(() => {
+    setRoomView(view);
+    return () => setRoomView(null);
+  }, [view]);
   const [failed3d, setFailed3d] = useState(false);
   // Only a click is saved (precedent 2026-11-07-2d-view-rules); a failed 3D load falls back to 2D for this visit.
   const switchView = () => {

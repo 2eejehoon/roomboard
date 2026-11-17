@@ -18,3 +18,24 @@ export async function fingerprint(errorName: string, frames: Frame[], sha256: Sh
   const hash = new Uint8Array(await sha256(key));
   return Array.from(hash.subarray(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// The last path piece only: origin, path, query and hash can carry personal data or tokens (research R4).
+export const fileName = (file: string) => file.split(/[?#]/)[0]!.split('/').pop()!;
+
+// V8 "    at [async] fn (file:line:col)" or "    at file:line:col"; Firefox and Safari "fn@file:line:col" or "@file:line:col".
+const V8_LINE = /^\s*at (?:async )?(?:(.*?) \()?(.*?):(\d+):(\d+)\)?$/;
+const GECKO_LINE = /^(?:(.*?)@)?(.*?):(\d+):(\d+)$/;
+
+/** research R4. A V8 stack opens with "<name>: <message>" lines written at throw time; they are skipped (at least the first, even
+ * when the message changed later), since a message can echo input that looks like a frame. Firefox and Safari have no header,
+ * and their loose pattern is used only when no line is a V8 frame: it would read any "…:12:34" message line as one. */
+export function parseStack(err: { message: string; stack?: string }): Frame[] {
+  const lines = (err.stack ?? '').split('\n');
+  const v8 = lines.some((line) => V8_LINE.test(line));
+  const at = err.message ? lines[0]!.indexOf(`: ${err.message.split('\n')[0]}`) : -1;
+  const header = v8 ? (at >= 0 ? err.message.split('\n').length : 1) : 0;
+  return lines.slice(header).flatMap((line) => {
+    const m = (v8 ? V8_LINE : GECKO_LINE).exec(line);
+    return m ? [{ file: m[2]!, fn: m[1] ?? '', line: Number(m[3]), col: Number(m[4]) }] : [];
+  });
+}

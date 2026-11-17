@@ -2,7 +2,7 @@
 // research R4·R5). Nothing from the client is trusted: every string is redacted and cut again here, and the fingerprint is ours.
 import type { Context } from 'hono';
 import { clientErrorReport } from '../core/api-schemas.ts';
-import { fingerprint, isVendor, type Frame } from '../core/fingerprint.ts';
+import { fileName, fingerprint, isVendor, parseStack, type Frame } from '../core/fingerprint.ts';
 import { redact } from '../core/redact.ts';
 
 type C = Context<{ Bindings: Env }>;
@@ -27,8 +27,6 @@ const VERSION = /^(\d{12}-[0-9a-f]{7,12}|dev)$/;
 const sha256 = (text: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
 // Redact before cutting: a cut can split an email or token so that redact no longer sees it.
 const clip = (text: string, max: number) => redact(text).slice(0, max);
-// The last path piece only: origin, path, query and hash can carry personal data or tokens (research R4).
-const fileName = (file: string) => file.split(/[?#]/)[0]!.split('/').pop()!;
 // research R4: 'dev' sorts before every build, so it cannot be compared as a string.
 export const versionKey = (sql: string) => `CASE ${sql} WHEN 'dev' THEN '' ELSE substr(${sql}, 1, 12) END`;
 const pickVersion = (col: string, wins: '<' | '>') =>
@@ -117,19 +115,8 @@ export async function receiveBugReport(c: C): Promise<Response> {
   return c.body(null, 202);
 }
 
-// "    at [async] fn (file:line:col)" or "    at file:line:col"
-const STACK_LINE = /^\s*at (?:async )?(?:(.*?) \()?(.*?):(\d+):(\d+)\)?$/;
-
 export async function recordServerError(env: Env, err: Error): Promise<void> {
-  // Skip the "name: message" lines: a message can echo request content and look like a frame (same as logError in index.ts).
-  const header = `${err.name}: ${err.message}`.split('\n').length;
-  const frames = (err.stack ?? '')
-    .split('\n')
-    .slice(header)
-    .flatMap((line) => {
-      const m = STACK_LINE.exec(line);
-      return m ? [{ file: m[2]!, fn: m[1] ?? '', line: Number(m[3]), col: Number(m[4]) }] : [];
-    });
+  const frames = parseStack(err);
   const version = (await readManifest(env))?.version ?? 'unknown';
   await record(env, { source: 'server', errorName: err.name, message: err.message, frames, appVersion: version, inBuild: true });
 }
