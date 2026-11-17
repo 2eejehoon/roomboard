@@ -129,6 +129,7 @@ description: "Task list for 002-auto-bugfix-loop"
   (미리보기는 Cron·토큰 없음).
   (c) 한 일: `github-sync.ts`를 `scheduled`에 연결, `migrations/0003`(`limit_alerted`, `token_alerts`), DO의 `webSocketMessage`·`webSocketClose`·`webSocketError`·`alarm` 예외 기록(판례 2026-11-17-github-sync).
   머지 뒤 확인: 운영 배포 → 운영자가 자기 기기에서 합성 리포트를 보낸다(`curl`) → 세션이 GitHub 이슈 생성을 확인하고 닫는다(클라우드 세션은 운영 URL에 닿지 않음).
+  2026-11-17: 운영자가 Environment `production`에 `ISSUES_TOKEN`을 넣었다(다른 세션 경유 전달). 운영 배포는 아직 하지 않으므로 이 확인은 운영자가 배포할 때로 미룬다.
 - [ ] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한
 - [ ] T038 [US1] `.github/workflows/agent-fix.yml`에 client 이슈용 소스맵 해석 사전 단계(`scripts/resolve-stack.mjs`, LLM 호출 전)
 
