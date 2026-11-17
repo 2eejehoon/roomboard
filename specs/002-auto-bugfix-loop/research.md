@@ -83,6 +83,11 @@
 - 가림(공통 순수 함수 `src/core/redact.ts`, 클라이언트·Worker 양쪽에서 실행): 이메일, 전화번호(한국 형식 포함), IPv4/IPv6,
   UUID, 32자 이상 hex/base64 토큰 형식, 따옴표 안 문자열(사용자 콘텐츠가 오류 메시지에 들어가는 흔한 경로)을 `[가림]`으로 바꾼다.
 - 리포트 본문 크기 상한 4KB, 스택 프레임 최대 20개.
+- 클라이언트 수집기(`src/client/bug/collector.ts`): 잡히지 않은 오류는 window `error`(React 19가 경계 밖 렌더 오류도 `reportError`로 여기에 보낸다),
+  경계가 잡은 오류는 `createRoot`의 `onCaughtError`, 거부는 `unhandledrejection`. `Error`가 아닌 값(교차 출처 `Script error.`, 문자열 거부)은
+  스택이 없어 보내지 않는다. 가림 다음에 스키마 길이로 자르고, `file`은 파일 이름만 보낸다. UTF-8로 4KB를 넘으면 뒤쪽 프레임부터 뺀다.
+  탭마다 분당 10건(Worker의 IP당 한도와 같은 수)을 넘으면 보내지 않는다. 스택은 V8(`at fn (file:l:c)`)과 Firefox·Safari(`fn@file:l:c`) 형식을 읽는다.
+  `view`: 방 화면은 그때의 `3d`/`2d`, `/admin`은 `admin`, 나머지 화면은 `board`. `browser`는 UA에서 SamsungBrowser → Edg → Firefox → Chrome → Safari 순으로 고르고 UA 문자열은 보내지 않는다.
 - 앱 버전: 빌드 시각 UTC `YYYYMMDDHHmm`과 커밋 짧은 SHA를 이은 `202611120613-1a2b3c4`. 앞 12자리로 순서를 비교한다
   (FR-012 재발 판단에 "이후"가 필요해서. SHA만으로는 순서를 알 수 없다). 빌드가 `manifest.json`에 넣고, 클라이언트는 리포트에, Worker는 서버 오류에 쓴다.
   로컬 개발·테스트는 `dev`. 비교 함수는 `dev`를 따로 다룬다(어떤 버전보다 앞. 문자열 비교로는 `'dev'`가 뒤가 된다).

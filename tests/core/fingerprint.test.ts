@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fingerprint as fp, type Frame } from '../../src/core/fingerprint.ts';
+import { fileName, fingerprint as fp, parseStack, type Frame } from '../../src/core/fingerprint.ts';
 
 const sha256 = (s: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
 const fingerprint = (name: string, frames: Frame[]) => fp(name, frames, sha256);
@@ -37,5 +37,31 @@ describe('fingerprint', () => {
     const base = await fingerprint('TypeError', app);
     expect(await fingerprint('RangeError', app)).not.toBe(base);
     expect(await fingerprint('TypeError', [app[0]!, app[1]!, f('assets/room3d-def.js', 'Other')])).not.toBe(base);
+  });
+});
+
+describe('parseStack (research R4: V8, Firefox and Safari)', () => {
+  it('reads V8 frames and skips the "name: message" lines, even a message line that looks like a frame', () => {
+    const err = { name: 'TypeError', message: 'bad\n    at fake (evil.js:1:1)', stack: 'TypeError: bad\n    at fake (evil.js:1:1)\n    at RoomPage (https://x.dev/assets/index-abc.js:3:40)\n    at async https://x.dev/assets/room-d.js:5:6' };
+    expect(parseStack(err)).toEqual([f('https://x.dev/assets/index-abc.js', 'RoomPage', 3, 40), f('https://x.dev/assets/room-d.js', '', 5, 6)]);
+  });
+
+  it('reads Firefox and Safari frames, which have no header line, and drops lines without a location', () => {
+    const err = { name: 'TypeError', message: 'x is undefined', stack: 'RoomPage@https://x.dev/assets/index-abc.js:3:40\n@https://x.dev/assets/room-d.js:5:6\nglobal code@https://x.dev/a.js:1:2\n[native code]' };
+    expect(parseStack(err)).toEqual([
+      f('https://x.dev/assets/index-abc.js', 'RoomPage', 3, 40),
+      f('https://x.dev/assets/room-d.js', '', 5, 6),
+      f('https://x.dev/a.js', 'global code', 1, 2),
+    ]);
+  });
+
+  it('returns no frames without a stack', () => {
+    expect(parseStack({ name: 'Error', message: '' })).toEqual([]);
+  });
+});
+
+describe('fileName', () => {
+  it('keeps only the last path segment, without query or hash', () => {
+    expect(fileName('https://x.dev/assets/index-abc.js?token=1#h')).toBe('index-abc.js');
   });
 });
