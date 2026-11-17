@@ -247,6 +247,26 @@ describe('Cron GitHub sync: bug issues', () => {
     expect(bugIssues()).toHaveLength(1);
   });
 
+  it('stops creating at the first failed create, so a GitHub outage burns one of the day slots, not all of them', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    for (let i = 0; i < 3; i++) await insertFingerprint();
+    failCreate = true;
+    await sync();
+    expect(await env.DB.prepare('SELECT issues_created FROM github_sync_state WHERE day = ?').bind('2026-11-17').first('issues_created')).toBe(1);
+    failCreate = false;
+    await sync(deployed(), T0 + 5 * 60_000);
+    expect(bugIssues()).toHaveLength(3);
+  });
+
+  it('reuses the open issue that already carries the fingerprint when saving its number failed after the create', async () => {
+    const fp = await insertFingerprint();
+    issues.push({ number: 1, title: '[bug] Error: D1 down', body: `<!-- roomboard-fingerprint: ${fp} -->\n`, labels: ['source:service'], state: 'open', comments: [] });
+    await sync();
+    expect(issues).toHaveLength(1);
+    expect(await fpRow(fp)).toMatchObject({ status: 'open', issue_number: 1, synced_count: 1 });
+    expect(await env.DB.prepare('SELECT issues_created FROM github_sync_state WHERE day = ?').bind('2026-11-17').first('issues_created')).toBeNull();
+  });
+
   it('does nothing without the token (local dev, preview)', async () => {
     await insertFingerprint();
     await sync({ ...deployed(), GITHUB_ISSUES_TOKEN: '' });
