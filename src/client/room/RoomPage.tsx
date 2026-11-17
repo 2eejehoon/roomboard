@@ -8,6 +8,7 @@ import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, us
 import { CHANNEL_CAPACITY } from '../../core/channels.ts';
 import { CLOSE } from '../../core/protocol.ts';
 import { navigate } from '../App.tsx';
+import { BugReportDialog } from '../bug/BugReportDialog.tsx';
 import { setRoomView } from '../bug/collector.ts';
 import { deviceKey, readView, saveView, type View } from '../device.ts';
 import { t } from '../i18n/t.ts';
@@ -147,6 +148,7 @@ export function Notice({ text, reload = false }: { text: string; reload?: boolea
 // onSwitch is absent without WebGL: there is no 3D to switch to.
 export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
   const [reporting, setReporting] = useState(false);
+  const [bugging, setBugging] = useState(false);
   return (
     // 003 FR-006: its own light surface, the same as the chat's, so it reads over a dark 3D sky too.
     <Stack as="header" gap={2} padding={4} style={{ background: 'rgb(255 255 255 / 0.85)' }}>
@@ -167,9 +169,11 @@ export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; 
         {state.you && <Text as="p">{t('room.you', { nickname: state.you.nickname })}</Text>}
         {onSwitch && <Button label={t(view === '3d' ? 'room.view2d' : 'room.view3d')} variant="secondary" onClick={onSwitch} />}
         {id && <Button label={t('report.room')} variant="secondary" onClick={() => setReporting(true)} />}
+        {view && <Button label={t('bug.open')} variant="secondary" onClick={() => setBugging(true)} />}
         {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}
       </Stack>
       {id && reporting && <ReportDialog target={{ type: 'room', roomId: id }} onClose={() => setReporting(false)} />}
+      {view && bugging && <BugReportDialog context={{ view, themeId: state.room?.roomData.themeId, connection: state.connection }} onClose={() => setBugging(false)} />}
     </Stack>
   );
 }

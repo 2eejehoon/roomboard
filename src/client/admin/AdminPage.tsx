@@ -12,6 +12,7 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { useCallback, useEffect, useState } from 'react';
 import { LOCALE, t } from '../i18n/t.ts';
 import { Loading, NetworkError, RateLimited } from '../Status.tsx';
+import { BugReportsTab, type AdminCall } from './BugReportsTab.tsx';
 
 const KEY = 'rb.adminToken';
 const PANEL = 'admin-reports'; // one panel; both tabs fill it with their list
@@ -98,6 +99,7 @@ function TokenForm({ refused, onSubmit }: { refused: { retryAfterMs?: number } |
 
 function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (retryAfterMs?: number) => void }) {
   const [status, setStatus] = useState<Status>('open');
+  const [bugs, setBugs] = useState(false); // 002 US3: the bug reports tab, apart from the two report lists
   const [attempt, setAttempt] = useState(0);
   const key = `${status}.${attempt}`;
   // Each tab-and-attempt keeps its own result, so a late answer for another key cannot overwrite this one (PR #39 review).
@@ -116,9 +118,13 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
 
   // 410 is a room deleted already, which is what an admin delete wanted. 401 and 429 drop the token: RL_ADMIN counts only wrong
   // tokens, so a 429 here always means this one is wrong (PR #39 review). Other failures go to the caller.
-  const call = useCallback(
-    (path: string, method = 'GET'): Promise<Response | Fail | null> =>
-      fetch(`/api/admin/${path}`, { method, headers: { authorization: `Bearer ${token}` } }).then(
+  const call = useCallback<AdminCall>(
+    (path, method = 'GET', body) =>
+      fetch(`/api/admin/${path}`, {
+        method,
+        headers: { authorization: `Bearer ${token}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+        body: body ? JSON.stringify(body) : undefined,
+      }).then(
         async (res) => {
           if (res.ok || res.status === 410) return res;
           if (res.status === 401) return (onUnauthorized(), null);
@@ -159,53 +165,64 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
     <Stack gap={4} padding={4}>
       <Heading level={1}>{t('admin.heading')}</Heading>
       {/* A new attempt per visit: coming back to a tab never shows an old visit's error or retry (PR #39 review). */}
-      <TabList role="tablist" value={status} onChange={(v) => (setStatus(v as Status), setAttempt((n) => n + 1))}>
+      <TabList
+        role="tablist"
+        value={bugs ? 'bugs' : status}
+        onChange={(v) => (v === 'bugs' ? setBugs(true) : (setBugs(false), setStatus(v as Status), setAttempt((n) => n + 1)))}
+      >
         <Tab value="open" panelId={PANEL} label={t('admin.open')} />
         <Tab value="resolved" panelId={PANEL} label={t('admin.resolved')} />
+        <Tab value="bugs" panelId={PANEL} label={t('admin.bugs')} />
       </TabList>
       <Stack id={PANEL} role="tabpanel" gap={4}>
-        {failed?.fail.kind === 'network' && (
-          <NetworkError onRetry={() => void (typeof failed.retry === 'string' ? (setFailed(null), page(failed.retry)) : act(...failed.retry))} />
+        {bugs ? (
+          <BugReportsTab call={call} />
+        ) : (
+          <>
+            {failed?.fail.kind === 'network' && (
+              <NetworkError onRetry={() => void (typeof failed.retry === 'string' ? (setFailed(null), page(failed.retry)) : act(...failed.retry))} />
+            )}
+            {load.kind === 'loading' && <Loading />}
+            {load.kind === 'network' && <NetworkError onRetry={() => setAttempt((n) => n + 1)} />}
+            {load.kind === 'ok' && load.items.length === 0 && (
+              <div role="status">
+                <Banner status="info" title={t('admin.empty')} />
+              </div>
+            )}
+            {load.kind === 'ok' && load.items.length > 0 && (
+              <List>
+                {load.items.map((r) => (
+                  <ListItem
+                    key={r.id}
+                    label={
+                      <>
+                        {t(`admin.target.${r.targetType}`)} · <Link href={`/rooms/${r.roomId}`}>{r.roomTitle ?? t('admin.noTitle')}</Link>
+                      </>
+                    }
+                    description={
+                      <Stack gap={1}>
+                        {r.messageSnapshot && <Text as="p">{t('admin.snapshot', { ...r.messageSnapshot, at: time(r.messageSnapshot.sentAt) })}</Text>}
+                        <Text as="p">
+                          {t('admin.reason', { reason: t(`report.reason.${r.reason}`) })} · {t('admin.count', { n: r.reportCount })} ·{' '}
+                          {t('admin.at', { at: time(r.createdAt) })}
+                        </Text>
+                      </Stack>
+                    }
+                    endContent={
+                      status === 'open' && (
+                        <Stack direction="horizontal" gap={2} wrap="wrap">
+                          <Button label={t('admin.deleteRoom')} variant="destructive" onClick={() => setDeleting(r)} />
+                          <Button label={t('admin.resolve')} onClick={() => void act(`reports/${r.id}/resolve`, 'POST')} />
+                        </Stack>
+                      )
+                    }
+                  />
+                ))}
+              </List>
+            )}
+            {load.kind === 'ok' && load.nextCursor && <Button label={t('board.more')} variant="secondary" onClick={() => void page(load.nextCursor)} />}
+          </>
         )}
-        {load.kind === 'loading' && <Loading />}
-        {load.kind === 'network' && <NetworkError onRetry={() => setAttempt((n) => n + 1)} />}
-        {load.kind === 'ok' && load.items.length === 0 && (
-          <div role="status">
-            <Banner status="info" title={t('admin.empty')} />
-          </div>
-        )}
-        {load.kind === 'ok' && load.items.length > 0 && (
-          <List>
-            {load.items.map((r) => (
-              <ListItem
-                key={r.id}
-                label={
-                  <>
-                    {t(`admin.target.${r.targetType}`)} · <Link href={`/rooms/${r.roomId}`}>{r.roomTitle ?? t('admin.noTitle')}</Link>
-                  </>
-                }
-                description={
-                  <Stack gap={1}>
-                    {r.messageSnapshot && <Text as="p">{t('admin.snapshot', { ...r.messageSnapshot, at: time(r.messageSnapshot.sentAt) })}</Text>}
-                    <Text as="p">
-                      {t('admin.reason', { reason: t(`report.reason.${r.reason}`) })} · {t('admin.count', { n: r.reportCount })} ·{' '}
-                      {t('admin.at', { at: time(r.createdAt) })}
-                    </Text>
-                  </Stack>
-                }
-                endContent={
-                  status === 'open' && (
-                    <Stack direction="horizontal" gap={2} wrap="wrap">
-                      <Button label={t('admin.deleteRoom')} variant="destructive" onClick={() => setDeleting(r)} />
-                      <Button label={t('admin.resolve')} onClick={() => void act(`reports/${r.id}/resolve`, 'POST')} />
-                    </Stack>
-                  )
-                }
-              />
-            ))}
-          </List>
-        )}
-        {load.kind === 'ok' && load.nextCursor && <Button label={t('board.more')} variant="secondary" onClick={() => void page(load.nextCursor)} />}
       </Stack>
       <AlertDialog
         isOpen={deleting !== null}

@@ -5,12 +5,13 @@ import { RadioList, RadioListItem } from '@astryxdesign/core/RadioList';
 import { Stack } from '@astryxdesign/core/Stack';
 import { TextArea } from '@astryxdesign/core/TextArea';
 import { TextInput } from '@astryxdesign/core/TextInput';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useState, type FormEvent } from 'react';
 import { createRoomRequest, fieldErrors, type FieldErrors } from '../../core/api-schemas.ts';
 import { THEME_IDS, THEMES, type ThemeId } from '../../core/themes.ts';
 import { navigate } from '../App.tsx';
 import { t } from '../i18n/t.ts';
 import { NetworkError, RateLimited } from '../Status.tsx';
+import { Turnstile } from '../Turnstile.tsx';
 
 type Failure = { kind: 'turnstile' | 'network' } | { kind: 'rateLimited'; retryAfterMs: number } | null;
 
@@ -123,44 +124,4 @@ export function RoomFields({ value, onChange, errors }: { value: Fields; onChang
       </RadioList>
     </>
   );
-}
-
-// Cloudflare Turnstile, explicit rendering. The script loads once; each mount renders one widget.
-type TurnstileApi = { render(el: HTMLElement, o: Record<string, unknown>): string; remove(id: string): void };
-let script: Promise<TurnstileApi> | undefined;
-const loadTurnstile = () =>
-  (script ??= new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-    s.onload = () => resolve((window as unknown as { turnstile: TurnstileApi }).turnstile);
-    s.onerror = () => {
-      script = undefined;
-      reject(new Error('turnstile script'));
-    };
-    document.head.append(s);
-  }));
-
-// onError: the script did not load (blocked, offline); without it there is never a token.
-function Turnstile({ onToken, onError }: { onToken: (token: string) => void; onError: () => void }) {
-  const el = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    let id: string | undefined;
-    let live = true;
-    loadTurnstile()
-      .then((api) => {
-        if (!live || !el.current) return;
-        id = api.render(el.current, {
-          sitekey: import.meta.env.VITE_TURNSTILE_SITEKEY,
-          callback: onToken,
-          'expired-callback': () => onToken(''),
-          'error-callback': () => onToken(''),
-        });
-      })
-      .catch(() => live && onError());
-    return () => {
-      live = false;
-      if (id) void loadTurnstile().then((api) => api.remove(id!));
-    };
-  }, [onToken, onError]);
-  return <div ref={el} />;
 }

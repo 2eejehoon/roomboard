@@ -148,6 +148,7 @@
 
 - D1 `user_bug_reports`에 원문 저장. 가림은 식별자 패턴만(`redactIds`, 따옴표 가림 없음)이고 가린 다음에 자른다. 운영자 제목·요약도 같다.
 - 5분 Cron이 GitHub 동기화와 따로 30일 지난 행을 지운다. 운영자 "버리기"는 즉시 삭제.
+- 신고 화면은 방 머리 영역의 "버그 신고". `recentFingerprints`는 수집기가 보낸 리포트의 지문을 클라이언트가 같은 함수로 계산한 최근 5개(판례 2026-11-17-bug-report-dialog).
 - 한도는 콘텐츠 신고와 같은 `RL_REPORT`. 이슈화는 `source:user-report` 라벨, FR-013 상한에 세지 않는다(판례 2026-11-17-user-bug-reports).
 
 ## R10. 독립 리뷰 (US7)
