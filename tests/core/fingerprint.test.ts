@@ -62,6 +62,10 @@ describe('parseStack (research R4: V8, Firefox and Safari)', () => {
     expect(parseStack(e).length).toBeGreaterThan(0);
   });
 
+  it('skips a V8 header with no frame lines after it (PR #67 review)', () => {
+    expect(parseStack({ message: 'meeting at 10:30:45', stack: 'TypeError: meeting at 10:30:45' })).toEqual([]);
+  });
+
   it('returns no frames without a stack', () => {
     expect(parseStack({ message: '' })).toEqual([]);
   });
