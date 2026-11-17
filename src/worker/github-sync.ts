@@ -8,6 +8,7 @@ const REPO = '2eejehoon/roomboard';
 const DAY_ISSUES = 10; // FR-013
 const OPEN_ISSUES = 20; // FR-013
 const DAY_REPORTS = 1000; // research R4, same as bug-reports.ts
+const MARKER = /<!-- roomboard-fingerprint: ([0-9a-f]{16}) -->/;
 const TOKEN_WARN_MS = 30 * 86_400_000; // research R3
 // shortcut: per-run caps keep one run under the Workers free plan's 50 subrequests; the rest waits 5 minutes. Raise on a paid plan.
 const UPDATES_PER_RUN = 20;
@@ -31,6 +32,7 @@ interface Row {
 }
 interface Issue {
   number: number;
+  body?: string | null;
   labels: { name: string }[];
   pull_request?: unknown;
 }
@@ -112,6 +114,17 @@ export async function syncGithub(env: Env, now: number): Promise<void> {
   const { data: listed, res } = await gh<Issue[]>('GET', '/issues?state=open&labels=source:service&per_page=100');
   const open = new Set(listed.filter((i) => !i.pull_request).map((i) => i.number));
 
+  // A create whose D1 write then failed left the row 'new': link it to that issue instead of opening a second (PR #65 review).
+  const marked = new Map<string, number>();
+  for (const i of listed) {
+    const fp = MARKER.exec(i.body ?? '')?.[1];
+    if (fp) marked.set(fp, i.number);
+  }
+  const orphans = (await rows("status = 'new'", 1000)).filter((r) => marked.has(r.fingerprint));
+  await each(orphans, 'link', (r) =>
+    db.prepare("UPDATE bug_fingerprints SET status = 'open', issue_number = ? WHERE fingerprint = ?").bind(marked.get(r.fingerprint), r.fingerprint).run(),
+  );
+
   // An issue gone from the list was closed: remember the deployed version, so only a later one counts as a regression.
   const closed = (await rows("status = 'open'", 1000)).filter((r) => !open.has(r.issue_number!));
   await each(closed, 'close', (r) =>
@@ -148,15 +161,22 @@ export async function syncGithub(env: Env, now: number): Promise<void> {
       .bind(today)
       .run();
     if (slot.meta.changes === 0) break;
-    await each([r], 'create', async () => {
-      const labels = ['source:service', ...(r.gated ? ['agent:gated'] : [])];
-      const { data } = await gh<Issue>('POST', '/issues', { ...render(r), labels });
-      open.add(data.number);
-      await db
+    const labels = ['source:service', ...(r.gated ? ['agent:gated'] : [])];
+    let created: Issue;
+    try {
+      created = (await gh<Issue>('POST', '/issues', { ...render(r), labels })).data;
+    } catch (err) {
+      // GitHub is failing: stop here, so one slot is lost rather than the whole day's (PR #65 review).
+      console.error('github sync: create failed', err instanceof Error ? err.message : typeof err);
+      break;
+    }
+    open.add(created.number);
+    await each([r], 'save issue', () =>
+      db
         .prepare("UPDATE bug_fingerprints SET status = 'open', issue_number = ?, synced_count = ? WHERE fingerprint = ?")
-        .bind(data.number, r.count, r.fingerprint)
-        .run();
-    });
+        .bind(created.number, r.count, r.fingerprint)
+        .run(),
+    );
   }
 
   // [ops] alerts: no labels, so no agent and not counted against FR-013. The flag is set after the create, so a failure is retried.
