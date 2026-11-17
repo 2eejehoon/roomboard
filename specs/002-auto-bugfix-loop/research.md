@@ -66,7 +66,8 @@
 
 - **Decision**: Fine-grained PAT(이 저장소만, Issues 읽기·쓰기, Metadata 읽기)를 Worker Secret `GITHUB_ISSUES_TOKEN`으로 둔다.
   배포 워크플로는 Environment `production`의 `ISSUES_TOKEN`에서 읽는다(GitHub 비밀값 이름은 `GITHUB_`로 시작할 수 없다).
-  만료일(최대 1년)을 README와 판례에 적고, 만료 30일 전 알림 이슈를 Cron이 연다.
+  만료일(최대 1년)을 README와 판례에 적고, 만료 30일 전 알림 이슈를 Cron이 연다. 만료일은 GitHub 응답 헤더 `github-authentication-token-expiration`에서
+  읽고, 알림을 연 만료일을 `token_alerts`에 남겨 PAT 하나에 한 번만 연다(contracts/github.md `[ops]`).
 - 봇 이슈 구분은 작성자가 아니라 `source:service` 라벨로 한다(외부 사용자는 라벨을 못 붙임).
 - **Alternatives**: GitHub App(만료 없음, 봇 계정) — JWT 서명·설치 토큰 교환 코드가 늘어 지금은 과함. PAT 만료 관리가
   귀찮아지면 옮긴다.
