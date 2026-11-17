@@ -1,0 +1,40 @@
+name: doc-garden
+# 002 US6 (FR-050~052): weekly tidy of agent docs. A free pre-check decides; only when there is something to do does
+# it open a kind:doc-garden issue on the agent queue (agent-queue.yml starts agent-fix, which runs .claude/skills/doc-gardening).
+on:
+  schedule:
+    - cron: '23 18 * * 0' # Monday 03:23 KST
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: |
+          # One tidy at a time.
+          # Logged so a stuck one (e.g. agent:needs-human) shows in the run history instead of a silent pass.
+          open=$(gh issue list --label kind:doc-garden --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then echo "::notice::열린 문서 정리 이슈 #$open이 있어 건너뜁니다"; exit 0; fi
+          # Exit 2 = findings; any other non-zero exit is a crash and must fail the run, not read as "nothing to tidy".
+          rc=0; scan=$(node scripts/doc-garden-scan.mjs) || rc=$?
+          [ "$rc" = 0 ] || [ "$rc" = 2 ] || exit "$rc"
+          # New mistake records in the last week (US6 scenario 3): links only, no comment text.
+          since=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          prs=$(gh api --paginate "repos/$GH_REPO/pulls?state=closed&per_page=100" --jq ".[] | select(.merged_at > \"$since\") | select(any(.labels[]; .name | startswith(\"cause:\"))) | \"- PR #\(.number): \([.labels[].name | select(startswith(\"cause:\"))] | join(\", \"))\"")
+          comments=$(gh api --paginate "repos/$GH_REPO/pulls/comments?since=$since&per_page=100" --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR" or .user.login == "claude[bot]") | select(.body | test("\\[mistake:[a-z0-9-]+\\]")) | "- 리뷰 댓글 \(.html_url): \([.body | scan("\\[mistake:[a-z0-9-]+\\]")] | unique | join(", "))"')
+          if [ -z "$scan$prs$comments" ]; then echo "바꿀 것 없음"; exit 0; fi
+          body=$(printf '에이전트용 문서 정리(002 US6). 사전 검사 결과:\n\n```\n%s\n```\n\n지난 7일 실수 기록:\n\n%s\n%s\n' "${scan:-없음}" "${prs:-}" "${comments:-}")
+          gh issue create --title "[doc-garden] $(date -u +%F)" --label kind:doc-garden,agent:run,agent:queued --body "$body"

@@ -27,8 +27,8 @@ You are the fix agent for one GitHub issue. The workflow gives you the issue num
 4. Fix the root cause with the smallest change. Run `npm test -- --reporter=default` and `npm run typecheck`; both must pass.
    Commit: `fix: ... (#<n>)`. Push the branch to `origin`. The workflow opens the PR; do not open it yourself.
 5. Never skip, disable or weaken a test to get green.
-6. Pick one `cause` id: a short kebab-case name for the kind of mistake (for example `missing-null-check`). Prefer an id
-   from `.github/mistake-categories.yml` if that file exists.
+6. Pick one `cause` id: a short kebab-case name for the kind of mistake (for example `missing-null-check`). Use an id
+   from `.github/mistake-categories.yml` when one fits; only those ids count toward a guardrail (002 FR-030).
 
 If you cannot reproduce the bug with a test, change nothing and return `not_reproduced` with what you tried.
 

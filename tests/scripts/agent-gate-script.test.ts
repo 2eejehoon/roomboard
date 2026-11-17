@@ -8,6 +8,31 @@ const SCRIPT = join(import.meta.dirname, '../../scripts/agent-gate.mjs');
 
 // A queued second run receives the event payload from when it was created, without agent:attempt-1.
 // The gate must decide from the issue's current labels, not the stale payload.
+const gate = (labels: string[]) => {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-gate-'));
+  writeFileSync(join(dir, 'gh'), `#!/bin/sh\necho '${JSON.stringify({ labels: labels.map((name) => ({ name })) })}'\n`);
+  chmodSync(join(dir, 'gh'), 0o755);
+  writeFileSync(join(dir, 'event.json'), JSON.stringify({ inputs: { issue: '4' } }));
+  writeFileSync(join(dir, 'out'), '');
+  spawnSync('node', [SCRIPT], {
+    env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, GITHUB_EVENT_PATH: join(dir, 'event.json'), GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_OUTPUT: join(dir, 'out') },
+  });
+  return readFileSync(join(dir, 'out'), 'utf8');
+};
+
+// 002 US4·US6: guardrail and doc-garden issues reuse agent-fix with their own skill and PR label.
+it.each([
+  [['agent:run'], 'bugfix', ''],
+  [['agent:run', 'kind:guardrail'], 'guardrail', 'kind:guardrail'],
+  [['agent:run', 'kind:doc-garden'], 'doc-gardening', 'kind:doc-garden'],
+  [['agent:run', 'toString'], 'bugfix', ''], // a prototype key is not a kind
+])('labels %j run skill %s', (labels, skill, kind) => {
+  const out = gate(labels);
+  expect(out).toContain('run=true');
+  expect(out).toContain(`skill=${skill}\n`);
+  expect(out).toContain(`kind=${kind}\n`);
+});
+
 it('reads current labels instead of the stale event payload', () => {
   const dir = mkdtempSync(join(tmpdir(), 'agent-gate-'));
   const gh = join(dir, 'gh');

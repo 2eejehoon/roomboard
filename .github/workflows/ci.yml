@@ -54,4 +54,5 @@ jobs:
       - run: npm ci
       - env:
           BASE_REF: ${{ github.base_ref }}
-        run: node scripts/test-first-check.mjs --base "origin/$BASE_REF" --head HEAD
+          HEAD_REF: ${{ github.head_ref }}
+        run: node scripts/test-first-check.mjs --base "origin/$BASE_REF" --head HEAD --head-ref "$HEAD_REF"

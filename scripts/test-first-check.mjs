@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // FR-021: the first commit must add a test that fails there and passes at head.
-// Usage: node scripts/test-first-check.mjs --base <rev> [--head <rev>]
+// Usage: node scripts/test-first-check.mjs --base <rev> [--head <rev>] [--head-ref <branch>]
 import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
-const { values } = parseArgs({ options: { base: { type: 'string' }, head: { type: 'string', default: 'HEAD' } } });
+const { values } = parseArgs({ options: { base: { type: 'string' }, head: { type: 'string', default: 'HEAD' }, 'head-ref': { type: 'string', default: '' } } });
 if (!values.base) {
   console.error('usage: test-first-check --base <rev> [--head <rev>]');
   process.exit(2);
@@ -22,6 +22,12 @@ const fail = (/** @type {string} */ msg) => {
 };
 
 const base = git('merge-base', values.base, values.head);
+// 002 US6: a doc-garden PR changes only Markdown; there is no behavior to reproduce. Only on -doc-garden branches, which
+// agent-fix opens a PR for only from kind:doc-garden issues, so a bugfix agent cannot skip FR-021 with a docs-only PR.
+if (values['head-ref'].endsWith('-doc-garden') && git('diff', '--no-renames', '--name-only', `${base}...${values.head}`).split('\n').every((f) => f.endsWith('.md'))) {
+  console.log('test-first: 문서만 바꾼 PR이라 건너뜁니다.');
+  process.exit(0);
+}
 const first = git('rev-list', '--reverse', '--no-merges', `${base}..${values.head}`).split('\n')[0];
 if (!first) fail('PR에 커밋이 없습니다.');
 const tests = git('diff-tree', '--no-commit-id', '--name-only', '--diff-filter=AM', '-r', first)
