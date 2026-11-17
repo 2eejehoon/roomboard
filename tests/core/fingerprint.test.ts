@@ -42,12 +42,12 @@ describe('fingerprint', () => {
 
 describe('parseStack (research R4: V8, Firefox and Safari)', () => {
   it('reads V8 frames and skips the "name: message" lines, even a message line that looks like a frame', () => {
-    const err = { name: 'TypeError', message: 'bad\n    at fake (evil.js:1:1)', stack: 'TypeError: bad\n    at fake (evil.js:1:1)\n    at RoomPage (https://x.dev/assets/index-abc.js:3:40)\n    at async https://x.dev/assets/room-d.js:5:6' };
+    const err = { message: 'bad\n    at fake (evil.js:1:1)', stack: 'TypeError: bad\n    at fake (evil.js:1:1)\n    at RoomPage (https://x.dev/assets/index-abc.js:3:40)\n    at async https://x.dev/assets/room-d.js:5:6' };
     expect(parseStack(err)).toEqual([f('https://x.dev/assets/index-abc.js', 'RoomPage', 3, 40), f('https://x.dev/assets/room-d.js', '', 5, 6)]);
   });
 
   it('reads Firefox and Safari frames, which have no header line, and drops lines without a location', () => {
-    const err = { name: 'TypeError', message: 'x is undefined', stack: 'RoomPage@https://x.dev/assets/index-abc.js:3:40\n@https://x.dev/assets/room-d.js:5:6\nglobal code@https://x.dev/a.js:1:2\n[native code]' };
+    const err = { message: 'x is undefined', stack: 'RoomPage@https://x.dev/assets/index-abc.js:3:40\n@https://x.dev/assets/room-d.js:5:6\nglobal code@https://x.dev/a.js:1:2\n[native code]' };
     expect(parseStack(err)).toEqual([
       f('https://x.dev/assets/index-abc.js', 'RoomPage', 3, 40),
       f('https://x.dev/assets/room-d.js', '', 5, 6),
@@ -56,7 +56,7 @@ describe('parseStack (research R4: V8, Firefox and Safari)', () => {
   });
 
   it('returns no frames without a stack', () => {
-    expect(parseStack({ name: 'Error', message: '' })).toEqual([]);
+    expect(parseStack({ message: '' })).toEqual([]);
   });
 });
 

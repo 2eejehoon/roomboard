@@ -11,7 +11,7 @@ describe('toReport (research R4, contracts/openapi.yaml ClientErrorReport)', () 
     const r = toReport(error('no room "my secret room" for a@b.io', 'TypeError: x\n    at RoomPage (https://x.dev/assets/index-abc.js?t=1:3:40)'), '3d', chromeUA);
     expect(r).toEqual({
       errorName: 'TypeError',
-      message: 'no room [가림]',
+      message: 'no room [가림] for [가림]',
       frames: [{ file: 'index-abc.js', fn: 'RoomPage', line: 3, col: 40 }],
       appVersion: 'dev',
       view: '3d',

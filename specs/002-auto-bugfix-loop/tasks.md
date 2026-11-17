@@ -131,8 +131,8 @@ description: "Task list for 002-auto-bugfix-loop"
   머지 뒤 확인: 운영 배포 → 운영자가 자기 기기에서 합성 리포트를 보낸다(`curl`) → 세션이 GitHub 이슈 생성을 확인하고 닫는다(클라우드 세션은 운영 URL에 닿지 않음).
   (c) PR #65 리뷰 후속: 이슈 생성이 실패하면 그 실행의 생성을 멈추고(하루 슬롯 하나만 잃음), 생성 뒤 D1 쓰기가 실패해 `new`로 남은 지문은 열린 이슈 본문의 지문 표식으로 찾아 그 이슈에 잇는다.
   2026-11-17: 운영자가 Environment `production`에 `ISSUES_TOKEN`을 넣었다(다른 세션 경유 전달). 운영 배포는 아직 하지 않으므로 이 확인은 운영자가 배포할 때로 미룬다.
-- [ ] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한
-  정한 것(research R4, 판례 2026-11-17-client-collector): 분당 10건, `Error`가 아닌 값은 버림, view 매핑, 스택 파서는 core로 옮겨 Worker와 같이 씀.
+- [x] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한
+  한 일: 수집기, `main.tsx`의 `installCollector`·`onCaughtError`, RoomPage가 화면 종류를 알림. 정한 것(research R4, 판례 2026-11-17-client-collector): 분당 10건, `Error`가 아닌 값은 버림, view 매핑, 스택 파서는 core로 옮겨 Worker와 같이 씀.
 - [ ] T038 [US1] `.github/workflows/agent-fix.yml`에 client 이슈용 소스맵 해석 사전 단계(`scripts/resolve-stack.mjs`, LLM 호출 전)
 
 ---
