@@ -25,6 +25,7 @@ it.each([
   [['agent:run'], 'bugfix', ''],
   [['agent:run', 'kind:guardrail'], 'guardrail', 'kind:guardrail'],
   [['agent:run', 'kind:doc-garden'], 'doc-gardening', 'kind:doc-garden'],
+  [['agent:run', 'toString'], 'bugfix', ''], // a prototype key is not a kind
 ])('labels %j run skill %s', (labels, skill, kind) => {
   const out = gate(labels);
   expect(out).toContain('run=true');

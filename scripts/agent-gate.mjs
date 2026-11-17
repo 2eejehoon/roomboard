@@ -15,7 +15,7 @@ const labels = JSON.parse(execFileSync('gh', ['issue', 'view', String(issue), '-
 
 /** @type {Record<string, string>} */
 const SKILLS = { 'kind:guardrail': 'guardrail', 'kind:doc-garden': 'doc-gardening' };
-const kind = labels.find((/** @type {string} */ l) => l in SKILLS) ?? '';
+const kind = labels.find((/** @type {string} */ l) => Object.hasOwn(SKILLS, l)) ?? '';
 const skill = SKILLS[kind] ?? 'bugfix';
 const result = shouldRunAgent({ action: dispatch ? 'dispatch' : event.action, addedLabel: event.label?.name, labels });
 console.log(JSON.stringify({ issue, ...result }));
