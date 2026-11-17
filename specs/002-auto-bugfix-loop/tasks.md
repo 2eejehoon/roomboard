@@ -124,7 +124,7 @@ description: "Task list for 002-auto-bugfix-loop"
   `migrations/0003`(`github_sync_state.limit_alerted`)을 더한다.
   (a) 한 일: `migrations/0002`, `POST /api/bug-reports`, `onError`의 서버 오류 기록, manifest는 `/manifest.json`을 `ASSETS`로 읽음(판례 2026-11-13-bug-intake-worker).
   (b) 한 일(판례 2026-11-13-intake-build): IP당 한도(`RL_BUG_REPORT`, 넘으면 202), `/manifest.json` 생성과 `VITE_APP_VERSION`, 함수 이름 유지(`keepNames`),
-  패키지마다 `vendor-<패키지>` 청크, `manifest.chunks`에 있는 파일 이름은 가리지 않음(PR #61 리뷰), Cron과 빈 `scheduled`, 비밀값 `GITHUB_ISSUES_TOKEN`
+  패키지마다 `vendor-<패키지>` 청크, `manifest.chunks`에 있는 파일 이름은 가리지 않음(PR #61 리뷰), Cron과 빈 `scheduled`, Worker 비밀값 `GITHUB_ISSUES_TOKEN`(Environment 비밀값 이름은 `ISSUES_TOKEN`)
   (미리보기는 Cron·토큰 없음).
   남은 것(자동 머지 PR): `github-sync.ts`와 `migrations/0003`, DO 안의 잡히지 않은 예외 기록(지금은 Hono `onError`만).
   머지 뒤 확인: 운영 배포 → 운영자가 자기 기기에서 합성 리포트를 보낸다(`curl`) → 세션이 GitHub 이슈 생성을 확인하고 닫는다(클라우드 세션은 운영 URL에 닿지 않음).

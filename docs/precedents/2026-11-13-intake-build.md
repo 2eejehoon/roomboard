@@ -12,7 +12,7 @@
 - 빌드가 `/manifest.json`에 `{version, chunks}`를 쓴다. `chunks`는 클라이언트 JS 청크의 파일 이름, `version`은 `VITE_APP_VERSION`(없으면 `dev`).
   배포 워크플로가 `$(date -u +%Y%m%d%H%M)-<짧은 SHA>`로 넣는다.
 - IP당 분당 10건(`RL_BUG_REPORT`)을 넘으면 202로 버린다. 기존 `rateLimit` 미들웨어(429)는 쓰지 않는다.
-- Cron(5분)·비밀값 `GITHUB_ISSUES_TOKEN`은 이 PR에 넣고 `scheduled`는 비워 둔다. 미리보기는 Cron과 토큰을 빼고 배포한다.
+- Cron(5분)·Worker 비밀값 `GITHUB_ISSUES_TOKEN`(Environment `production`에서는 `ISSUES_TOKEN`. GitHub가 `GITHUB_`로 시작하는 이름을 거부)은 이 PR에 넣고 `scheduled`는 비워 둔다. 미리보기는 Cron과 토큰을 빼고 배포한다.
 - 한도 알림은 오늘 행만이 아니라 `reports_received >= 1000 AND limit_alerted = 0`인 모든 행을 본다.
 
 ## 이유

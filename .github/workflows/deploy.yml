@@ -63,13 +63,15 @@ jobs:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           SERVER_SECRET: ${{ secrets.SERVER_SECRET }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
-          # 002 research R3: fine-grained PAT (this repo, Issues read/write) for github-sync.ts.
-          GITHUB_ISSUES_TOKEN: ${{ secrets.GITHUB_ISSUES_TOKEN }}
+          # 002 research R3: fine-grained PAT (this repo, Issues read/write) for github-sync.ts. The Worker secret is
+          # GITHUB_ISSUES_TOKEN, but GitHub refuses secret names that start with GITHUB_, so the Environment holds ISSUES_TOKEN.
+          GITHUB_ISSUES_TOKEN: ${{ secrets.ISSUES_TOKEN }}
         run: |
           set -o pipefail
-          for k in ADMIN_TOKEN SERVER_SECRET TURNSTILE_SECRET GITHUB_ISSUES_TOKEN; do
+          for k in ADMIN_TOKEN SERVER_SECRET TURNSTILE_SECRET; do
             [ -n "${!k}" ] || { echo "::error::Environment production에 $k가 없습니다."; exit 1; }
           done
+          [ -n "$GITHUB_ISSUES_TOKEN" ] || { echo "::error::Environment production에 ISSUES_TOKEN가 없습니다."; exit 1; }
           trap 'rm -f "$RUNNER_TEMP/secrets.json"' EXIT
           # Migrate the live DB only once the build and the bundle check have passed, right before the new Worker goes out (PR #54 review).
           npx wrangler d1 migrations apply "$NAME" --remote
