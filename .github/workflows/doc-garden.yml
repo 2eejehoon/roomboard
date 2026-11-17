@@ -25,7 +25,9 @@ jobs:
           node-version: 22
       - run: |
           # One tidy at a time.
-          [ -n "$(gh issue list --label kind:doc-garden --state open --json number --jq '.[0].number // empty')" ] && exit 0
+          # Logged so a stuck one (e.g. agent:needs-human) shows in the run history instead of a silent pass.
+          open=$(gh issue list --label kind:doc-garden --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then echo "::notice::열린 문서 정리 이슈 #$open이 있어 건너뜁니다"; exit 0; fi
           # Exit 2 = findings; any other non-zero exit is a crash and must fail the run, not read as "nothing to tidy".
           rc=0; scan=$(node scripts/doc-garden-scan.mjs) || rc=$?
           [ "$rc" = 0 ] || [ "$rc" = 2 ] || exit "$rc"

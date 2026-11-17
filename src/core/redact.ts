@@ -1,5 +1,6 @@
 // research R4: runs on client and Worker before anything is sent, stored or published. The Worker applies it to frames[].file
-// only after cutting the file down to its name: real chunk names (index-BXjaK0XS.js) match no pattern, forged ones may.
+// only after cutting the file down to its name, and only to names outside the deployed build: a real chunk name with a
+// 23+ char module name matches the long-token pattern.
 const MASK = '[가림]';
 const PATTERNS: [RegExp, ((m: string) => string)?][] = [
   // Quoted text, greedy to the last closing quote, across lines (V8 JSON.parse echoes the input, nested quotes and newlines

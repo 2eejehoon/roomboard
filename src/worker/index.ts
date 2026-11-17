@@ -45,7 +45,7 @@ app.get('/rooms/:roomId', async (c) => c.json(await requireRoom(c.env.DB, c.req.
 app.patch('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), updateRoom);
 app.delete('/rooms/:roomId', rateLimit((c) => c.env.RL_PASSWORD, 60_000), deleteRoom);
 
-// research R4: always 202 (the per-IP limit lands with its rate limit binding, tasks.md T036 (b)).
+// research R4: always 202, the per-IP limit included (receiveBugReport).
 app.post('/bug-reports', bodyLimit({ maxSize: 4096 }), receiveBugReport);
 app.post('/reports', rateLimit((c) => c.env.RL_REPORT, 60_000), createReport);
 app.use('/admin/*', adminAuth);
@@ -88,4 +88,6 @@ export default {
     const id = /^\/rooms\/([^/]+)$/.exec(pathname)?.[1];
     return id ? roomPage(req, env, id) : env.ASSETS.fetch(req);
   },
+  // The 5-minute Cron (wrangler.jsonc) ships before github-sync.ts (tasks.md T036) so that PR needs no operator merge.
+  async scheduled() {},
 } satisfies ExportedHandler<Env>;
