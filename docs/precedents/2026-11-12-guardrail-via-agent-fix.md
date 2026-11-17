@@ -9,6 +9,8 @@
 
 - mistake-tally와 doc-garden 워크플로는 에이전트를 직접 돌리지 않는다. `kind:guardrail`·`kind:doc-garden` + `agent:run` 이슈를
   `agent:queued`로 만들어 매시 agent-queue가 agent-fix를 실행하게 한다. agent-fix는 `kind:` 라벨로 스킬(guardrail, doc-gardening)을 고른다.
+- 할 일이 없으면(`not_reproduced`) 문서 정리 이슈는 닫고, 장치 이슈는 `agent:needs-human`을 달아 열어 둔다(닫힌 장치 이슈는 그 분류를 영구히
+  멈춘다, PR #64 리뷰).
 - 이 PR에는 `cause:` 대신 `kind:` 라벨을 단다. 장치 PR이 같은 실수의 세 번째 기록으로 세지지 않게 하기 위해서다.
 - `-doc-garden` 브랜치에서 `.md`만 바꾼 에이전트 PR은 `test-first` 검사를 건너뛴다. 재현할 동작이 없다.
 - 집계는 검색 대신 REST 목록으로 한다. 2회 이상이고 그 분류의 장치 이슈(열린 것·닫힌 것)가 없을 때 연다(PR #59 리뷰: 기록 두 개가 동시에

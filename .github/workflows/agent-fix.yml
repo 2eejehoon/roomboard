@@ -82,7 +82,7 @@ jobs:
           claude_args: |
             --model opus
             --max-turns 60
-            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(npm ci),Bash(npm test:*),Bash(npx vitest:*),Bash(npm run typecheck),Bash(npm run lint:*),Bash(npx eslint:*),Bash(node scripts/doc-garden-scan.mjs)"
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(git:*),Bash(npm ci),Bash(npm test:*),Bash(npx vitest:*),Bash(npm run typecheck),Bash(npm run lint:*),Bash(npx eslint:*),Bash(node scripts/doc-garden-scan.mjs),Bash(ln -s:*)"
             --json-schema '{"type":"object","required":["result","title","body","cause","summary","branch"],"properties":{"result":{"enum":["fixed","not_reproduced"]},"branch":{"type":"string","pattern":"^(agent/[A-Za-z0-9._/-]+)?$"},"title":{"type":"string"},"body":{"type":"string"},"cause":{"type":"string","pattern":"^[a-z0-9-]{1,40}$"},"summary":{"type":"string"}}}'
 
   finish:
@@ -148,8 +148,9 @@ jobs:
             gh issue comment "$ISSUE" --body "$(printf '수정은 했지만 PR을 만들지 못했습니다(브랜치: %s). 워크플로 로그를 확인하세요.' "$(jq -r .branch <<<"$OUT")")"
           elif [ "$result" = not_reproduced ]; then
             gh issue comment "$ISSUE" --body "$(printf '재현하지 못해 PR을 열지 않았습니다.\n\n'; jq -r .summary <<<"$OUT")"
-            # Guardrail/doc-garden with nothing to do: close, or doc-garden would wait on this issue forever.
-            if [ -n "$KIND" ]; then gh issue close "$ISSUE"; fi
+            # Doc-garden with nothing to do: close (FR-052), or the weekly run would wait on it forever. Guardrail: a person
+            # decides, since a closed guardrail issue stops that category for good (constitution VI).
+            if [ "$KIND" = kind:doc-garden ]; then gh issue close "$ISSUE"; elif [ -n "$KIND" ]; then gh issue edit "$ISSUE" --add-label agent:needs-human; fi
           elif [ "$ATTEMPT" = 2 ]; then
             # shortcut: budget exhaustion and real failures both count as attempts; split them once the action reports usage-limit errors distinctly.
             gh issue edit "$ISSUE" --add-label agent:needs-human

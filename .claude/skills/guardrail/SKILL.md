@@ -27,12 +27,14 @@ guard so the same mistake cannot pass again.
 4. Add the guard. A lint error message must say how to fix the code (FR-032). Run `npm test -- --reporter=default`,
    `npm run typecheck` and `npm run lint`; all must pass on current code.
 5. Prove it on the past: for each cause commit, run the guard on the code before the fix (for a merged fix PR, the
-   merge commit's first parent: `git worktree add /tmp/past <sha>^`; for a review comment, `<sha>` itself). Keep the failing output
+   merge commit's first parent: `git worktree add /tmp/past <sha>^`; for a review comment, `<sha>` itself). The worktree has
+   no dependencies: `ln -s "$PWD/node_modules" /tmp/past/node_modules` before running tests or lint there. Keep the failing output
    short; it goes in the PR body. Restore everything before committing.
 6. If the guard now enforces a sentence in `CLAUDE.md`, a skill or `docs/`, delete that sentence in the same PR (FR-033).
 7. Commit `guard: <category> (#<n>)`, push the branch to `origin`. The workflow opens the PR.
 
-If no guard can be proven on the past commits, change nothing and return `not_reproduced` with why.
+If no guard can be proven on the past commits, change nothing and return `not_reproduced` with why. The issue then goes to
+a person (`agent:needs-human`); it stays open so the category is not dropped.
 
 ## Output
 
