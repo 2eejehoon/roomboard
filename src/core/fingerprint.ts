@@ -33,7 +33,8 @@ export function parseStack(err: { message: string; stack?: string }): Frame[] {
   const lines = (err.stack ?? '').split('\n');
   const v8 = lines.some((line) => V8_LINE.test(line));
   const at = err.message ? lines[0]!.indexOf(`: ${err.message.split('\n')[0]}`) : -1;
-  const header = v8 ? (at >= 0 ? err.message.split('\n').length : 1) : 0;
+  // A V8 header with no frames after it is still a header; a Firefox or Safari first line is a frame, never ": <message>".
+  const header = at >= 0 ? err.message.split('\n').length : v8 ? 1 : 0;
   return lines.slice(header).flatMap((line) => {
     const m = (v8 ? V8_LINE : GECKO_LINE).exec(line);
     return m ? [{ file: m[2]!, fn: m[1] ?? '', line: Number(m[3]), col: Number(m[4]) }] : [];
