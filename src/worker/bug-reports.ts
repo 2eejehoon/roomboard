@@ -30,7 +30,7 @@ const clip = (text: string, max: number) => redact(text).slice(0, max);
 // The last path piece only: origin, path, query and hash can carry personal data or tokens (research R4).
 const fileName = (file: string) => file.split(/[?#]/)[0]!.split('/').pop()!;
 // research R4: 'dev' sorts before every build, so it cannot be compared as a string.
-const versionKey = (sql: string) => `CASE ${sql} WHEN 'dev' THEN '' ELSE substr(${sql}, 1, 12) END`;
+export const versionKey = (sql: string) => `CASE ${sql} WHEN 'dev' THEN '' ELSE substr(${sql}, 1, 12) END`;
 const pickVersion = (col: string, wins: '<' | '>') =>
   `CASE WHEN excluded.${col} = 'unknown' THEN ${col} WHEN ${col} = 'unknown' OR ${versionKey(`excluded.${col}`)} ${wins} ${versionKey(col)} THEN excluded.${col} ELSE ${col} END`;
 // Distribution keys come from the request schema's enums, never free text.
@@ -50,10 +50,11 @@ const UPSERT_SQL = `INSERT INTO bug_fingerprints
     browser_counts = ${bump('browser_counts', 11)},
     gated = CASE WHEN ?13 AND count + 1 >= 3 THEN 1 ELSE gated END`;
 
-async function readManifest(env: Env, url: string): Promise<Manifest | undefined> {
+// The assets binding serves by path; the host is ignored, and Cron and Durable Objects have no request URL.
+export async function readManifest(env: Env): Promise<Manifest | undefined> {
   try {
     // Before the build writes it (PR (b)) the asset server answers with index.html, which fails to parse.
-    return await (await env.ASSETS.fetch(new URL('/manifest.json', url))).json<Manifest>();
+    return await (await env.ASSETS.fetch('https://assets.local/manifest.json')).json<Manifest>();
   } catch {
     return undefined;
   }
@@ -102,7 +103,7 @@ export async function receiveBugReport(c: C): Promise<Response> {
     const parsed = success ? clientErrorReport.safeParse(await c.req.json()) : undefined;
     if (parsed?.success) {
       const { appVersion, ...report } = parsed.data;
-      const manifest = await readManifest(c.env, c.req.url);
+      const manifest = await readManifest(c.env);
       const key = (v: string) => (v === 'dev' ? '' : v.slice(0, 12));
       // research R4: a version that is malformed or newer than the deployed build could carry text into a public issue or reopen one.
       const known = manifest && VERSION.test(appVersion) && key(appVersion) <= key(manifest.version);
@@ -119,7 +120,7 @@ export async function receiveBugReport(c: C): Promise<Response> {
 // "    at [async] fn (file:line:col)" or "    at file:line:col"
 const STACK_LINE = /^\s*at (?:async )?(?:(.*?) \()?(.*?):(\d+):(\d+)\)?$/;
 
-export async function recordServerError(env: Env, url: string, err: Error): Promise<void> {
+export async function recordServerError(env: Env, err: Error): Promise<void> {
   // Skip the "name: message" lines: a message can echo request content and look like a frame (same as logError in index.ts).
   const header = `${err.name}: ${err.message}`.split('\n').length;
   const frames = (err.stack ?? '')
@@ -129,6 +130,6 @@ export async function recordServerError(env: Env, url: string, err: Error): Prom
       const m = STACK_LINE.exec(line);
       return m ? [{ file: m[2]!, fn: m[1] ?? '', line: Number(m[3]), col: Number(m[4]) }] : [];
     });
-  const version = (await readManifest(env, url))?.version ?? 'unknown';
+  const version = (await readManifest(env))?.version ?? 'unknown';
   await record(env, { source: 'server', errorName: err.name, message: err.message, frames, appVersion: version, inBuild: true });
 }

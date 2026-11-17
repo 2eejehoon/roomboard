@@ -2,6 +2,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CLOSE } from '../core/protocol.ts';
 import { RoomSession, type ChatFields, type Outbox, type Participant, type RoomInfo } from '../core/room-session.ts';
+import { recordServerError } from './bug-reports.ts';
 import { signChat } from './chat-sign.ts';
 import { hashPassword, verifyPassword } from './password.ts';
 import { filter, requireRoom } from './rooms.ts';
@@ -66,7 +67,35 @@ export class RoomDurableObject extends DurableObject<Env> {
     for (const ws of sockets) await this.drop(ws, CLOSE.roomDeleted);
   }
 
-  async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+  // FR-001: the runtime calls these directly, so no Hono onError sees what they throw. fetch() and the RPC methods are left
+  // out: their errors reach the Worker route, which records them already.
+  webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
+    return this.recorded(() => this.onMessage(ws, message));
+  }
+
+  webSocketClose(ws: WebSocket): Promise<void> {
+    return this.recorded(() => this.gone(ws));
+  }
+
+  webSocketError(ws: WebSocket): Promise<void> {
+    return this.recorded(() => this.gone(ws));
+  }
+
+  alarm(): Promise<void> {
+    return this.recorded(() => this.onAlarm());
+  }
+
+  // Still thrown afterwards, so the runtime behaves as before (an alarm is retried).
+  private async recorded(run: () => Promise<void>): Promise<void> {
+    try {
+      await run();
+    } catch (err) {
+      await recordServerError(this.env, err instanceof Error ? err : new Error(String(err))).catch(() => {});
+      throw err;
+    }
+  }
+
+  private async onMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== 'string') return this.drop(ws, CLOSE.binary);
     const session = await this.session();
     if (!session) return this.drop(ws, 1011);
@@ -80,16 +109,8 @@ export class RoomDurableObject extends DurableObject<Env> {
     if (!wasJoined && participant) await this.schedule(now + ONLINE_DEBOUNCE_MS);
   }
 
-  webSocketClose(ws: WebSocket): Promise<void> {
-    return this.gone(ws);
-  }
-
-  webSocketError(ws: WebSocket): Promise<void> {
-    return this.gone(ws);
-  }
-
   // Closes sockets that missed the join deadline and writes online_count; one alarm serves both (no setTimeout, research R6).
-  async alarm(): Promise<void> {
+  private async onAlarm(): Promise<void> {
     const now = Date.now();
     let next = Infinity;
     for (const ws of [...this.sockets.values()]) {
