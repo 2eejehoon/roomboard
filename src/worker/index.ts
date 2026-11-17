@@ -3,6 +3,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
 import { adminAuth, adminDeleteRoom, listReports, resolveReport } from './admin.ts';
 import { receiveBugReport, recordServerError } from './bug-reports.ts';
+import { syncGithub } from './github-sync.ts';
 import { rateLimit } from './rate-limit.ts';
 import { createReport } from './reports.ts';
 import { createRoom, deleteRoom, listRooms, requireRoom, updateRoom } from './rooms.ts';
@@ -23,7 +24,7 @@ app.onError((err, c) => {
   }
   logError(err);
   // FR-001: kept after the response; a failure to keep it must not change the 500.
-  const kept = recordServerError(c.env, c.req.url, err).catch(() => {});
+  const kept = recordServerError(c.env, err).catch(() => {});
   try {
     c.executionCtx.waitUntil(kept);
   } catch {
@@ -88,6 +89,8 @@ export default {
     const id = /^\/rooms\/([^/]+)$/.exec(pathname)?.[1];
     return id ? roomPage(req, env, id) : env.ASSETS.fetch(req);
   },
-  // The 5-minute Cron (wrangler.jsonc) ships before github-sync.ts (tasks.md T036) so that PR needs no operator merge.
-  async scheduled() {},
+  // The 5-minute Cron (wrangler.jsonc). A failure waits for the next run and is logged only (github-sync.ts).
+  scheduled(controller, env, ctx) {
+    ctx.waitUntil(syncGithub(env, controller.scheduledTime).catch((err: unknown) => console.error('github sync failed', err instanceof Error ? err.message : typeof err)));
+  },
 } satisfies ExportedHandler<Env>;

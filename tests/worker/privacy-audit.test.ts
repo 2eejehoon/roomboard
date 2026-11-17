@@ -79,8 +79,8 @@ it('a full create → join → chat → report → edit → admin run leaves no 
   const { results: tables } = await env.DB.prepare(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%' AND name <> 'd1_migrations'",
   ).all<{ name: string }>();
-  expect(tables.map((t) => t.name).sort()).toEqual(['bug_fingerprints', 'github_sync_state', 'reports', 'rooms', 'user_bug_reports']);
-  // What shows the run really wrote each table. user_bug_reports has no API yet (US3, T039).
+  expect(tables.map((t) => t.name).sort()).toEqual(['bug_fingerprints', 'github_sync_state', 'reports', 'rooms', 'token_alerts', 'user_bug_reports']);
+  // What shows the run really wrote each table. user_bug_reports has no API yet (US3, T039); token_alerts only holds dates (Cron).
   const written: Record<string, string> = { rooms: roomId, reports: roomId, bug_fingerprints: 'AuditError', github_sync_state: new Date().toISOString().slice(0, 10) };
   for (const { name } of tables) {
     const dump = JSON.stringify((await env.DB.prepare(`SELECT * FROM "${name}"`).all()).results);

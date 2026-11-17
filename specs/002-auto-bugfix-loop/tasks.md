@@ -112,9 +112,10 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T031 [P] [US1] `tests/core/fingerprint.test.ts`: 상위 앱 프레임 3개 기준, 줄·열 번호 변화에 같은 지문, vendor 프레임 무시
 - [x] T032 [P] [US1] `tests/worker/bug-reports.test.ts`: `POST /api/bug-reports` 항상 202, 4KB 초과 413, 집계(`count`, 분포), 3건+manifest 일치 시 `gated`, 서버 오류 즉시 gated, 요청 한도 초과 조용히 버림
   (a)에서 IP당 한도 말고 모두 씀(하루 총량 포함). IP당 한도는 (b)에서 바인딩 `RL_BUG_REPORT`와 함께(요청마다 다른 IP를 보내 다른 테스트가 한도에 걸리지 않게).
-- [ ] T033 [P] [US1] `tests/worker/github-sync.test.ts`(가짜 GitHub API): 새 지문 이슈 생성(contracts/github.md 형식, `source:service`, gated면 `agent:gated`), 기존 이슈 본문 표 갱신, 하루 11번째·열린 이슈 21번째 생성 안 함, `fixed_version` 이후 재발 시 재오픈+`regressed`, PAT 만료 30일 전 알림 이슈,
+- [x] T033 [P] [US1] `tests/worker/github-sync.test.ts`(가짜 GitHub API): 새 지문 이슈 생성(contracts/github.md 형식, `source:service`, gated면 `agent:gated`), 기존 이슈 본문 표 갱신, 하루 11번째·열린 이슈 21번째 생성 안 함, `fixed_version` 이후 재발 시 재오픈+`regressed`, PAT 만료 30일 전 알림 이슈,
   하루 수집 한도에 닿은 날 `[ops]` 알림 이슈 한 번(다음 Cron에서는 다시 열지 않음, 이슈 생성 실패면 다음 Cron이 다시 시도,
   자정을 넘긴 다음 Cron에서도 전날 알림을 연다, PR #62 리뷰)
+  한 일: 위 목록 전부와 늦은 `agent:gated`, 코드 스팬 탈출 방지, 토큰 없으면 아무것도 안 함, GitHub 실패는 서버 오류로 기록하지 않음(판례 2026-11-17-github-sync).
 - [x] T034 [US1] `src/core/redact.ts`, `src/core/fingerprint.ts`. core에는 암호 API가 없어(헌법 IV) `fingerprint`는 SHA-256 함수를 인자로 받는다(호출하는 클라이언트·Worker가 `crypto.subtle`을 넘긴다)
 - [x] T035 [US1] `migrations/0002_bug_reports.sql`(data-model.md `bug_fingerprints`, `github_sync_state`, `user_bug_reports`). `github_sync_state.issues_created`에도 `DEFAULT 0`(수집 경로가 그날 행을 `reports_received`만으로 처음 만들 때 NOT NULL에 걸리지 않게, PR #58 리뷰)
 - [ ] T036 [US1] `src/worker/bug-reports.ts`, `src/worker/github-sync.ts`(Cron 5분), `wrangler.jsonc`에 Cron 추가, 빌드 시 `manifest.json` 생성.
@@ -126,7 +127,7 @@ description: "Task list for 002-auto-bugfix-loop"
   (b) 한 일(판례 2026-11-13-intake-build): IP당 한도(`RL_BUG_REPORT`, 넘으면 202), `/manifest.json` 생성과 `VITE_APP_VERSION`, 함수 이름 유지(`keepNames`),
   패키지마다 `vendor-<패키지>` 청크, `manifest.chunks`에 있는 파일 이름은 가리지 않음(PR #61 리뷰), Cron과 빈 `scheduled`, Worker 비밀값 `GITHUB_ISSUES_TOKEN`(Environment 비밀값 이름은 `ISSUES_TOKEN`)
   (미리보기는 Cron·토큰 없음).
-  남은 것(자동 머지 PR): `github-sync.ts`와 `migrations/0003`, DO 안의 잡히지 않은 예외 기록(지금은 Hono `onError`만).
+  (c) 한 일: `github-sync.ts`를 `scheduled`에 연결, `migrations/0003`(`limit_alerted`, `token_alerts`), DO의 `webSocketMessage`·`webSocketClose`·`webSocketError`·`alarm` 예외 기록(판례 2026-11-17-github-sync).
   머지 뒤 확인: 운영 배포 → 운영자가 자기 기기에서 합성 리포트를 보낸다(`curl`) → 세션이 GitHub 이슈 생성을 확인하고 닫는다(클라우드 세션은 운영 URL에 닿지 않음).
 - [ ] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한
 - [ ] T038 [US1] `.github/workflows/agent-fix.yml`에 client 이슈용 소스맵 해석 사전 단계(`scripts/resolve-stack.mjs`, LLM 호출 전)
