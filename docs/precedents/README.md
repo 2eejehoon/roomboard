@@ -54,6 +54,7 @@
 | [2026-11-13-intake-build](2026-11-13-intake-build.md) | 오류 수집 빌드 설정: 함수 이름 유지, 패키지별 vendor 청크, IP 한도도 202 | 유효 |
 | [2026-11-17-github-sync](2026-11-17-github-sync.md) | GitHub 동기화: 목록 한 번으로 닫힘·상한·토큰 만료, 늦은 gated 라벨, 토큰 알림은 만료일로 한 번 | 유효 |
 | [2026-11-17-client-collector](2026-11-17-client-collector.md) | 클라이언트 오류 수집기: 탭당 분당 10건, Error가 아닌 값은 버림, 화면 종류 매핑 | 유효 |
+| [2026-11-17-user-bug-reports](2026-11-17-user-bug-reports.md) | 사용자 버그 신고: 식별자만 가림, 신고 한도 공유, 30일 삭제는 5분 Cron | 유효 |
 
 ## 판례 쓰는 법
 

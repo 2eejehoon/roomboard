@@ -39,7 +39,7 @@ paths:
 
   /admin/bug-reports:
     get:
-      summary: 사용자 버그 신고 목록 (pending)
+      summary: 사용자 버그 신고 목록 (pending, 최신 100건)
       security: [{ adminToken: [] }]
       responses:
         '200':
@@ -132,19 +132,19 @@ components:
       type: object
       required: [text, context, turnstileToken]
       properties:
-        text: { type: string, minLength: 1, maxLength: 1000 }
+        text: { type: string, minLength: 1, maxLength: 1000, description: 앞뒤 공백을 뺀 길이. 서버가 식별자를 가린 뒤 저장 }
         context:
           type: object
           required: [view, appVersion, browser]
           properties:
             view: { type: string, enum: ['3d', '2d', 'board'] }
-            themeId: { type: string }
+            themeId: { type: string, description: '001 ThemeId 목록 중 하나' }
             connection: { type: string, enum: [connecting, open, reconnecting, closed] }
             recentFingerprints:
               type: array
               maxItems: 5
               items: { type: string, pattern: '^[0-9a-f]{16}$' }
-            appVersion: { type: string, maxLength: 40 }
+            appVersion: { type: string, maxLength: 40, description: '형식(research R4)이 아니면 unknown으로 저장' }
             browser: { type: string, enum: [chrome, safari, firefox, samsung, edge, other] }
         turnstileToken: { type: string }
 
