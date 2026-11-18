@@ -73,6 +73,7 @@ export class BenchRoom extends DurableObject {
     const [client, server] = Object.values(new WebSocketPair());
     const peerId = `p_${++this.seq}`;
     this.ctx.acceptWebSocket(server);
+    server.send(JSON.stringify({ t: 'you', peerId })); // the client needs its id to follow its own landing and KO
     server.serializeAttachment({ peerId });
     // ?ch= puts the socket in a channel; one DO serves every channel of a room (001 research R6).
     const ch = new URL(req.url).searchParams.get('ch') ?? '1';

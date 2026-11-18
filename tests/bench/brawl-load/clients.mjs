@@ -29,6 +29,7 @@ const clients = await Promise.all(
       const now = performance.now();
       if (measuring) { bytes += data.length; msgs++; }
       const m = JSON.parse(data);
+      if (m.t === 'you') c.peerId = m.peerId;
       if (m.t === 'knocked_out' || m.t === 'landed' || m.t === 'correction') {
         if (m.peerId === undefined || m.peerId === c.peerId) c.p = m.p;
       }
