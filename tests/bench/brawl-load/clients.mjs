@@ -60,7 +60,7 @@ const timers = clients.flatMap((c) => [
   }, 1000 / RATE),
 ]);
 
-setTimeout(() => {
+setTimeout(async () => {
   timers.forEach(clearInterval);
   const secs = (performance.now() - start - WARMUP_MS) / 1000;
   const pct = (a, q) => (a.length ? a.toSorted((x, y) => x - y)[Math.min(a.length - 1, Math.floor(a.length * q))].toFixed(1) : '-');
@@ -73,6 +73,8 @@ setTimeout(() => {
     perClientKBPerSec: +(bytes / N / secs / 1024).toFixed(1),
     clientLoopLagP99Ms: +(lag.percentile(99) / 1e6).toFixed(1),
   }));
+  const stats = await fetch(`${URL.replace('ws', 'http')}/${room}`).then((r) => r.json());
+  console.log(JSON.stringify({ alarmsPerSec: +(stats.alarms / (performance.now() - start) * 1000).toFixed(1), messagesPerSec: +(stats.messages / (performance.now() - start) * 1000).toFixed(1) }));
   clients.forEach((c) => c.ws.close());
   process.exit(0);
 }, SECONDS * 1000);

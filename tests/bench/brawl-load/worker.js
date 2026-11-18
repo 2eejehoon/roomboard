@@ -70,6 +70,8 @@ export class BenchRoom extends DurableObject {
   }
 
   async fetch(req) {
+    // GET without upgrade: alarm and message counts, for the request budget (research R1).
+    if (req.headers.get('Upgrade') !== 'websocket') return Response.json({ alarms: this.alarms ?? 0, messages: this.messages ?? 0 });
     const [client, server] = Object.values(new WebSocketPair());
     const peerId = `p_${++this.seq}`;
     this.ctx.acceptWebSocket(server);
@@ -84,6 +86,7 @@ export class BenchRoom extends DurableObject {
   async webSocketMessage(ws, raw) {
     const me = this.peers.get(ws.deserializeAttachment().peerId);
     if (!me) return;
+    this.messages = (this.messages ?? 0) + 1;
     const parsed = clientMessage.safeParse(JSON.parse(raw));
     if (!parsed.success) return;
     const msg = parsed.data;
@@ -145,6 +148,7 @@ export class BenchRoom extends DurableObject {
   }
 
   async alarm() {
+    this.alarms = (this.alarms ?? 0) + 1;
     this.due(Date.now());
   }
 
