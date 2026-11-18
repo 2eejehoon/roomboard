@@ -23,9 +23,12 @@ export default defineConfig(({ mode }) => ({
   environments: {
     client: {
       build: {
+        // 002 research R5: public maps for the fix agent's stack resolve (scripts/resolve-stack.mjs). Hidden: no map comment in the
+        // chunks. No sources inside: the repo is public anyway, and check:bundle would find dev-only code in them.
+        sourcemap: 'hidden',
         rolldownOptions: {
           // keepNames: stack frames keep function names, so a fingerprint survives a rebuild (research R4).
-          output: { minify: { mangle: { keepNames: true } }, codeSplitting: { groups: [{ name: vendorChunk }] } },
+          output: { sourcemapExcludeSources: true, minify: { mangle: { keepNames: true } }, codeSplitting: { groups: [{ name: vendorChunk }] } },
         },
       },
     },
