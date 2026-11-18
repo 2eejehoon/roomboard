@@ -2,6 +2,7 @@
 import type { ServerMessage } from '../../core/protocol.ts';
 import type { Pose, RoomInfo } from '../../core/room-session.ts';
 import { THEMES, type Vec3 } from '../../core/themes.ts';
+import { applyBrawl, flightPosition, initialBrawl, type BrawlState } from '../brawl/store.ts';
 
 type Welcome = Extract<ServerMessage, { t: 'welcome' }>;
 export type Peer = Welcome['peers'][number];
@@ -19,9 +20,10 @@ export type RoomState = {
   notices: Notice[];
   connection: Connection;
   closeCode: number | null;
+  brawl: BrawlState;
 };
 
-const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], chatLimited: null, notices: [], connection: 'connecting', closeCode: null };
+const initial: RoomState = { room: null, you: null, channel: null, peers: [], chat: [], chatLimited: null, notices: [], connection: 'connecting', closeCode: null, brawl: initialBrawl };
 
 export class RoomStore {
   private state = initial;
@@ -36,8 +38,11 @@ export class RoomStore {
     return () => this.listeners.delete(listener);
   };
 
-  apply(msg: ServerMessage): void {
+  apply(msg: ServerMessage, received = Date.now()): void {
     const s = this.state;
+    const pose = (id: string) => flightPosition(s.brawl, id, received) ?? (id === s.you?.peerId ? s.you.p : s.peers.find((p) => p.peerId === id)?.p);
+    const brawl = applyBrawl(s.brawl, msg, received, pose, msg.t === 'welcome' ? msg.you.peerId : s.you?.peerId);
+    if (brawl !== s.brawl) this.state = { ...this.state, brawl };
     switch (msg.t) {
       case 'welcome':
         // A reconnect into another channel must not mix the old channel's chat into the new one.
@@ -65,6 +70,13 @@ export class RoomStore {
         const spawn = { p: THEMES[msg.room.roomData.themeId].spawn, r: 0, a: 'idle' } as const;
         return this.set({ room: msg.room, you: s.you && { ...s.you, ...spawn }, peers: s.peers.map((p) => ({ ...p, ...spawn })) });
       }
+      case 'landed':
+      case 'respawned':
+        return this.place(msg.peerId, msg.p);
+      case 'swing':
+      case 'launch':
+      case 'knocked_out':
+        return this.set({});
       // room_deleted: the 4001 close that follows ends the connection (room-socket.ts).
     }
   }
@@ -76,6 +88,13 @@ export class RoomStore {
   // welcome opens the connection. Peers from before a drop are stale; the next welcome lists them again.
   setConnection(connection: 'reconnecting' | 'closed', closeCode: number | null = null): void {
     this.set({ connection, closeCode, peers: [] });
+  }
+
+  // The server moved a fighter (landing, respawn): the 004 flight ended where it says.
+  private place(peerId: string, p: Vec3): void {
+    const s = this.state;
+    if (s.you?.peerId === peerId) return this.set({ you: { ...s.you, p, a: 'idle' } });
+    this.set({ peers: s.peers.map((o) => (o.peerId === peerId ? { ...o, p, a: 'idle' } : o)) });
   }
 
   private notice(kind: Notice['kind'], nickname: string): Notice[] {

@@ -2,12 +2,15 @@
 // so the whole branch and the hook name drop out of the bundle (npm run check:bundle).
 import type { RoomSocket } from './net/room-socket.ts';
 import type { RoomStore } from './state/room-store.ts';
+import { flightPosition } from './brawl/store.ts';
 
 export function installTestHooks(store: RoomStore, socket: RoomSocket): void {
   if (import.meta.env.DEV) {
     (window as unknown as Record<string, unknown>).__roomboard = {
       state: store.getState,
       move: (p: [number, number, number], r: number) => socket.move(p, r, 'walk'),
+      // 004: where a fighter is drawn now (null when not flying); damage, launches and blocks are in state().brawl.
+      flight: (peerId: string) => flightPosition(store.getState().brawl, peerId, Date.now()),
     };
   }
 }
