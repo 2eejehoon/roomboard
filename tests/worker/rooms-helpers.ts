@@ -63,7 +63,7 @@ export async function connect(roomId: string): Promise<Client> {
 
 export async function joinRoom(roomId: string, n: number) {
   const c = await connect(roomId);
-  c.send({ t: 'join', v: 1, deviceKey: deviceKey(n) });
+  c.send({ t: 'join', v: 2, deviceKey: deviceKey(n) });
   const welcome = await c.next();
   if (welcome.t !== 'welcome') throw new Error(`expected welcome, got ${welcome.t}`);
   return { ...c, welcome };

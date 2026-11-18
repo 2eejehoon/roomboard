@@ -15,7 +15,17 @@ export type Look = { floor: string; sky: string; sun: Light & { direction: Vec3 
   | { kind: 'indoor'; wall: string }
   | { kind: 'outdoor'; fog: { near: number; far: number } }
 );
-export type Theme = { id: ThemeId; nameKey: `theme.${ThemeId}`; bounds: Bounds; spawn: Vec3; defaultObjects: RoomObject[]; zones: Zone[]; look: Look };
+// arenaEntrance: the floor cell [x, 0, z] (1 m) that teleports to the brawl arena (004 R5).
+export type Theme = {
+  id: ThemeId;
+  nameKey: `theme.${ThemeId}`;
+  bounds: Bounds;
+  spawn: Vec3;
+  arenaEntrance: Vec3;
+  defaultObjects: RoomObject[];
+  zones: Zone[];
+  look: Look;
+};
 
 // scale brings each model to room size (public/assets/CREDITS.md lists the sources).
 const box = (id: string, assetId: string, position: Vec3, rotationY = 0, scale?: number): RoomObject => ({ id, assetId, position, rotationY, collider: 'box', ...(scale && { scale }) });
@@ -26,6 +36,7 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
     nameKey: 'theme.cafe',
     bounds: { min: [-6, 0, -6], max: [6, 4, 6] },
     spawn: [0, 0, 4],
+    arenaEntrance: [5, 0, 2],
     defaultObjects: [
       box('counter', 'counter', [0, 0, -5]),
       box('table-1', 'table-round', [-3, 0, -1]),
@@ -49,6 +60,7 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
     nameKey: 'theme.library',
     bounds: { min: [-8, 0, -8], max: [8, 4, 8] },
     spawn: [0, 0, 6],
+    arenaEntrance: [7, 0, 5],
     defaultObjects: [
       box('shelf-1', 'bookshelf', [-7, 0, -4], Math.PI / 2, 0.7),
       box('shelf-2', 'bookshelf', [-7, 0, 0], Math.PI / 2, 0.7),
@@ -77,6 +89,7 @@ export const THEMES: Readonly<Record<ThemeId, Theme>> = {
     nameKey: 'theme.garden',
     bounds: { min: [-10, 0, -10], max: [10, 4, 10] },
     spawn: [0, 0, 8],
+    arenaEntrance: [9, 0, 4],
     defaultObjects: [
       box('well', 'well', [0, 0, 0], 0, 2),
       box('tree-1', 'tree', [-6, 0, -6], 0, 2),

@@ -17,6 +17,8 @@ export class RoomDurableObject extends DurableObject<Env> {
   private readonly sockets = new Map<string, WebSocket>();
   private readonly left = new Set<string>();
   private loading?: Promise<RoomSession | null>;
+  // The online_count last written (null after a wake). Brawl events share the alarm, so it writes D1 only on a change.
+  private onlineWritten: number | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -107,12 +109,19 @@ export class RoomDurableObject extends DurableObject<Env> {
     if (participant) ws.serializeAttachment({ peerId, connectedAt, participant } satisfies Attachment);
     await this.deliver(out);
     if (!wasJoined && participant) await this.schedule(now + ONLINE_DEBOUNCE_MS);
+    await this.scheduleEvents(session);
   }
 
-  // Closes sockets that missed the join deadline and writes online_count; one alarm serves both (no setTimeout, research R6).
+  // Closes sockets that missed the join deadline, runs due brawl events (004 R2) and writes online_count; one alarm serves
+  // them all (no setTimeout, research R6).
   private async onAlarm(): Promise<void> {
     const now = Date.now();
     let next = Infinity;
+    const session = await this.session();
+    if (session) {
+      await this.deliver(session.runEvents());
+      next = Math.min(next, session.nextEventAt() ?? Infinity);
+    }
     for (const ws of [...this.sockets.values()]) {
       const { participant, connectedAt } = att(ws);
       if (participant) continue;
@@ -120,7 +129,10 @@ export class RoomDurableObject extends DurableObject<Env> {
       else next = Math.min(next, connectedAt + JOIN_TIMEOUT_MS);
     }
     const online = [...this.sockets.values()].filter((ws) => att(ws).participant).length;
-    await this.env.DB.prepare('UPDATE rooms SET online_count = ? WHERE id = ?').bind(online, this.ctx.id.name!).run();
+    if (online !== this.onlineWritten) {
+      await this.env.DB.prepare('UPDATE rooms SET online_count = ? WHERE id = ?').bind(online, this.ctx.id.name!).run();
+      this.onlineWritten = online;
+    }
     if (next < Infinity) await this.schedule(next);
   }
 
@@ -170,6 +182,11 @@ export class RoomDurableObject extends DurableObject<Env> {
     const wasJoined = session.participant(peerId) !== null;
     await this.deliver(session.leave(peerId));
     if (wasJoined) await this.schedule(Date.now() + ONLINE_DEBOUNCE_MS);
+  }
+
+  private async scheduleEvents(session: RoomSession): Promise<void> {
+    const at = session.nextEventAt();
+    if (at !== null) await this.schedule(at);
   }
 
   // setAlarm replaces the pending alarm, so keep whichever is sooner.

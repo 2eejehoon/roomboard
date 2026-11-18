@@ -43,7 +43,8 @@ describe('protocol schemas match websocket.md', () => {
     );
     for (const e of brawlServerExamples) expect(serverMessageSchema.safeParse(e).error, e.t).toBeUndefined();
     const documented = new Set([...serverExamples, ...brawlServerExamples].map((e) => e.t));
-    expect(serverMessageSchema.options.map((o) => o.shape.t.value).filter((t) => !documented.has(t))).toEqual([]);
+    const types = serverMessageSchema.options.flatMap((o) => ('options' in o ? o.options : [o]).map((x) => x.shape.t.value));
+    expect(types.filter((t) => !documented.has(t))).toEqual([]);
   });
 
   it('close codes match the table', () => {

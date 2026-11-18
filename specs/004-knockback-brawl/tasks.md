@@ -43,32 +43,35 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T002 [P] `tests/core/protocol.test.ts`: 예시 수집을 문서 경로를 받는 함수로 바꾸고 001과 004 `contracts/websocket.md`를 모두 검사한다(004도 `## 클라이언트 → 서버`·`## 서버 → 클라이언트` 아래 `###` 절이라 같은 파서로 된다).
+- [X] T002 [P] `tests/core/protocol.test.ts`: 예시 수집을 문서 경로를 받는 함수로 바꾸고 001과 004 `contracts/websocket.md`를 모두 검사한다(004도 `## 클라이언트 → 서버`·`## 서버 → 클라이언트` 아래 `###` 절이라 같은 파서로 된다).
   004 클라이언트 예시 `t` = `move, hold, skill, guard, roll, air, block, match_start`, 서버 예시 = `welcome, swing, launch, landed, knocked_out, respawned, block, arena_reset, match`가 모두 파싱되고,
   서버 메시지 종류마다 001 또는 004에 예시가 있다. 경계 검사: `skill.nonce` 32자 초과 거부, `move.d` 길이 > 1 거부, `block.h`는 `-1 | 0 | 1`만, `block.kind`는 `place`일 때만(`dirt | stone`),
   2KB 넘는 메시지 거부(기존 `MAX_MESSAGE_BYTES`), `join.v`가 1이면 `unsupported_version`. 지금 코드에서 실패 확인.
   - 실패 확인: 001 welcome 예시(v2로 고침)가 `v: literal(1)`에 걸림, 004 예시 `hold` 등 모든 새 `t`가 스키마에 없음, `move.d` 길이 검사 없음(zod가 `d`를 버려 통과). `block` 거부 경우는 `t`가 없어서 통과했으므로 구현 뒤 다시 본다.
-- [ ] T003 [P] `specs/001-realtime-room-board/contracts/websocket.md`: `join`(`"v": 1`)과 `welcome`(`"v": 1`) 예시를 `"v": 2`로, welcome 예시에 v2 필수 필드
+- [X] T003 [P] `specs/001-realtime-room-board/contracts/websocket.md`: `join`(`"v": 1`)과 `welcome`(`"v": 1`) 예시를 `"v": 2`로, welcome 예시에 v2 필수 필드
   `"arena": { "blocks": [], "fighters": [], "match": null }`와 `"at"`을 더하고 "v2 추가 필드는 004 websocket.md" 한 줄로 링크한다(001 예시가 v2 스키마에서도 통과하도록).
-- [ ] T004 [P] `tests/core/brawl/tuning.test.ts`: `TUNING`의 키가 data-model "조정표"의 키 열과 하나씩 대응하고 값이 초기값과 같다(spec 기술 표, 강펀치 `damage` `[12, 22]`,
+- [X] T004 [P] `tests/core/brawl/tuning.test.ts`: `TUNING`의 키가 data-model "조정표"의 키 열과 하나씩 대응하고 값이 초기값과 같다(spec 기술 표, 강펀치 `damage` `[12, 22]`,
   `hitstunMaxMs` 300, `skills.jab1.cooldownMs` 350 등 R12). 잽 다시 쓰기 시간 + `hitstop.minMs` > `hitstunMaxMs`(FR-012, US1-7)를 검사한다. 지금은 파일이 없어 실패.
-- [ ] T005 [P] `tests/core/brawl/arena.test.ts`: 기본 경기장(`size` 24×12×24, 돌 한 겹 바닥, FR-016), 칸 ↔ 월드 좌표(`origin + cell × block.size`), 차이 적용(`changed`의 null = 부서진 기본 블록),
+- [X] T005 [P] `tests/core/brawl/arena.test.ts`: 기본 경기장(`size` 24×12×24, 돌 한 겹 바닥, FR-016), 칸 ↔ 월드 좌표(`origin + cell × block.size`), 차이 적용(`changed`의 null = 부서진 기본 블록),
   `inArena(p)`/평화 구역(R5), `starts`·`exit`, 테마마다 `arenaEntrance`가 테마 범위 안이고 경기장 `bounds`가 모든 테마 범위와 겹치지 않음, `koY` = 바닥 − `koDepth`. 실패 확인.
   - 실패 확인: `src/core/brawl/arena.ts`·`tuning.ts`가 없어 모듈을 찾지 못함(T004·T005 모두).
-- [ ] T006 [P] `tests/core/movement.test.ts`·`tests/core/room-session.test.ts`에 더함: 이동 검사가 테마 범위 또는 경기장 범위 안이면 통과하고 두 영역 사이의 걷기 이동은 거부,
+- [X] T006 [P] `tests/core/movement.test.ts`·`tests/core/room-session.test.ts`에 더함: 이동 검사가 테마 범위 또는 경기장 범위 안이면 통과하고 두 영역 사이의 걷기 이동은 거부,
   입구 칸에 들어선 `move` → 나에게 `correction`(경기장 시작 지점), 남에게 `peer_moved`, 출구 칸 → 방 시작 지점(R5). 날아가는 중·경직 중의 출구 칸은 동작하지 않음(FR-014). 실패 확인.
   - 실패 확인: `validateMove`가 영역 목록을 받지 않아 `TypeError`, room-session은 `arena.ts`가 없어 실패. 날아가는 중·경직 중의 출구 칸은 궤적·경직이 생기는 US1에서 확인한다(T015로 옮김).
 
 ### Implementation
 
-- [ ] T007 `src/core/brawl/tuning.ts`: `TUNING` 상수(`as const`)와 `Tuning` 타입. data-model 표의 모든 키 + 위 린트 대상 키. T004 통과.
-- [ ] T008 `src/core/protocol.ts`: `PROTOCOL_VERSION = 2`, 004 websocket.md의 클라이언트·서버 메시지 스키마(제약을 그대로: `nonce` ≤ 32자, `d` 길이 ≤ 1, `h` ∈ `-1 | 0 | 1`,
+- [X] T007 `src/core/brawl/tuning.ts`: `TUNING` 상수(`as const`)와 `Tuning` 타입. data-model 표의 모든 키 + 위 린트 대상 키. T004 통과.
+- [X] T008 `src/core/protocol.ts`: `PROTOCOL_VERSION = 2`, 004 websocket.md의 클라이언트·서버 메시지 스키마(제약을 그대로: `nonce` ≤ 32자, `d` 길이 ≤ 1, `h` ∈ `-1 | 0 | 1`,
   `launch.p` 소수 2자리·`v`·`s` 3자리, `rate_limited.scope`에 `block`), welcome의 `arena`·`at`. T002·T003 통과. 클라이언트(`src/client/net/`)는 상수를 쓰므로 그대로 v2를 보낸다.
-- [ ] T009 `src/core/brawl/arena.ts`·`src/core/themes.ts`(`arenaEntrance`)·`src/core/movement.ts`·`src/core/room-session.ts`: 경기장 상수·칸 도우미·평화 구역, 두 영역 이동 검사, 입구·출구 순간이동. T005·T006 통과.
-- [ ] T010 `src/core/brawl/brawl-session.ts` 뼈대: 채널 하나의 난투 상태(참가자 `Fighter` 맵, 블록 차이, 판), `handle(peerId, msg, now) → Outbox`, `nextEventAt()`, `runEvents(now) → Outbox`(지난 사건 따라잡기, R2).
+- [X] T009 `src/core/brawl/arena.ts`·`src/core/themes.ts`(`arenaEntrance`)·`src/core/movement.ts`·`src/core/room-session.ts`: 경기장 상수·칸 도우미·평화 구역, 두 영역 이동 검사, 입구·출구 순간이동. T005·T006 통과.
+- [X] T010 `src/core/brawl/brawl-session.ts` 뼈대: 채널 하나의 난투 상태(참가자 `Fighter` 맵, 블록 차이, 판), `handle(peerId, msg, now) → Outbox`, `nextEventAt()`, `runEvents(now) → Outbox`(지난 사건 따라잡기, R2).
   `room-session.ts`가 채널마다 `BrawlSession`을 갖고 난투 메시지를 넘긴다. `src/worker/room-do.ts` `onAlarm`이 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각 계산에 넣는다.
   welcome에 `arena`(차이·경기장 사람·판)를 넣는다. 기존 worker·core 테스트 전부 통과.
-- [ ] T011 `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
+  - 결과: 뼈대는 `nextEventAt()`(아직 null)·`runEvents()`·`view()`만 둔다. `handle`은 처음 쓰는 US1(T021)에서 더한다(쓰지 않는 인자 린트).
+    `onAlarm`은 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각에 넣으며, 난투 alarm이 잦아져도 D1 `online_count`는 값이 바뀔 때만 쓴다.
+    `npx vitest run` 614개 통과(`room-do`·`online-count` 포함), `npm run typecheck`·`npx eslint .` 통과.
+- [ ] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
   늦게 받은 궤적은 지금 위치로 짧게 보간(Edge Cases). `src/client/test-hooks.ts`에 난투 상태 읽기(피해 %, 위치, 블록 차이, 판)를 더한다(개발 빌드 전용).
 
 **Checkpoint**: 기존 E2E(us1~us7·a11y·perf) 통과, v1 클라이언트는 4002를 받는다.
@@ -254,6 +257,6 @@ T012 knockback.test ∥ T013 flight.test ∥ T014 fighter.test ∥ T015 brawl-se
 ## Implementation Strategy
 
 - MVP는 US1(+ 같은 P1인 US2). US1만으로 경기장에서 밀어 떨어뜨리는 놀이가 되므로 US1 PR이 머지되면 미리보기로 운영자 확인을 받는다.
-- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T011, (3) US1 core(T012~T015·T018~T021), (4) US1 worker·화면(T016·T017·T022~T026), (5) US2, (6) US3,
+- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4) US1 worker·화면(T011·T016·T017·T022~T026), (5) US2, (6) US3,
   (7) US4, (8) US5, (9) T054~T058, (10) T059~T060. `scripts/`·설정을 바꾸는 PR은 운영자 머지다.
 - 각 PR은 테스트 실패 확인 → 구현 → 통과를 항목 끝에 적고, 머지되면 이 파일의 체크를 갱신한다.

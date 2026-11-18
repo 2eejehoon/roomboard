@@ -16,12 +16,13 @@ function stateWith(peers: number) {
   const s = new RoomStore();
   s.apply({
     t: 'welcome',
-    v: 1,
+    v: 2,
     you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' },
     channel: 2,
     room,
     peers: Array.from({ length: peers }, (_, i) => peer(`p${i}`)),
     spawn: [0, 0, 4],
+    arena: { blocks: [], fighters: [], match: null }, at: 0,
   });
   return s;
 }
