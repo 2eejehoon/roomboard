@@ -16,15 +16,23 @@ export type BrawlState = {
   blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks'];
   // When my next skill is accepted, in server time (swing.readyAt).
   readyAt: number;
+  // The last few hits and knock-outs, for the 2D live log (FR-033).
+  log: LogEntry[];
 };
+export type LogEntry = { id: number; kind: 'hit' | 'ko' | 'respawn'; peerId: string; by?: string; damage?: number };
 
-export const initialBrawl: BrawlState = { offset: null, fighters: {}, blocks: [], readyAt: 0 };
+export const initialBrawl: BrawlState = { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [] };
+const LOG_SIZE = 5;
+const logged = (s: BrawlState, ...entries: Omit<LogEntry, 'id'>[]): LogEntry[] => {
+  let id = s.log.at(-1)?.id ?? 0;
+  return [...s.log, ...entries.map((e) => ({ ...e, id: ++id }))].slice(-LOG_SIZE);
+};
 const ARENA = makeArena(TUNING);
 const flights = new WeakMap<Launch, Flight>();
 
 export const serverNow = (s: BrawlState, local: number) => local - (s.offset ?? 0);
 
-function flightOf(launch: Launch): Flight {
+export function flightOf(launch: Launch): Flight {
   let f = flights.get(launch);
   // shortcut: replays on the default arena; US3 (T043) passes the channel's blocks.
   if (!f) flights.set(launch, (f = simulate(launch, buildGrid(ARENA, new Map()), ARENA, TUNING)));
@@ -63,16 +71,17 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
     case 'swing': {
       let fighters = next.fighters;
       for (const h of msg.hits) fighters = { ...fighters, [h.peerId]: { ...(fighters[h.peerId] ?? blank), damage: h.damage, ...launched(h.peerId, h.launch) } };
-      return { ...next, fighters, readyAt: msg.peerId === me ? msg.readyAt : s.readyAt };
+      const log = logged(next, ...msg.hits.map((h) => ({ kind: 'hit' as const, peerId: h.peerId, by: msg.peerId, damage: h.damage })));
+      return { ...next, fighters, log, readyAt: msg.peerId === me ? msg.readyAt : s.readyAt };
     }
     case 'launch':
       return { ...next, fighters: set(msg.peerId, launched(msg.peerId, msg.launch)) };
     case 'landed':
       return { ...next, fighters: set(msg.peerId, { launch: null, from: null }) };
     case 'knocked_out':
-      return { ...next, fighters: set(msg.peerId, { launch: null, from: null, knockedOut: true }) };
+      return { ...next, fighters: set(msg.peerId, { launch: null, from: null, knockedOut: true }), log: logged(next, { kind: 'ko', peerId: msg.peerId }) };
     case 'respawned':
-      return { ...next, fighters: set(msg.peerId, blank) };
+      return { ...next, fighters: set(msg.peerId, blank), log: logged(next, { kind: 'respawn', peerId: msg.peerId }) };
     default:
       return next;
   }

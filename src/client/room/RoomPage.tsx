@@ -102,7 +102,7 @@ export function RoomPage({ id }: { id: string }) {
               <Banner status="info" title={t('room2d.fallback')} />
             </div>
           )}
-          <Room2D room={room} state={state} />
+          <Room2D room={room} state={state} move={move} brawl={brawl} />
         </>
       )}
       <ChatPanel roomId={id} state={state} send={chat} view={view} />
