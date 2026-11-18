@@ -45,7 +45,8 @@ describe('BrawlSession: jab, flight, landing (FR-031, R2, R4)', () => {
       at: 20_000,
       hitstopMs: 35,
       readyAt: 20_000 + 35 + 350,
-      hits: [{ peerId: 'b', damage: 3, guarded: false, hitstopMs: 35, launch: { t: 20_035, p: [31.5, 1, 4.5], v: [0.78, 0, 0], s: 1.3, cause: 'hit' } }],
+      // r is kept to 2 decimals (1.57), so the push is a hair off +x.
+      hits: [{ peerId: 'b', damage: 3, guarded: false, hitstopMs: 35, launch: { t: 20_035, p: [31.5, 1, 4.5], v: [0.78, 0, 0.001], s: 1.3, cause: 'hit' } }],
     });
   });
 
@@ -66,7 +67,7 @@ describe('BrawlSession: jab, flight, landing (FR-031, R2, R4)', () => {
     expect(s.runEvents(landAt - 1).send).toEqual([]);
     const [landed] = msgs(s.runEvents(landAt), 'a', 'landed');
     expect(landed).toMatchObject({ peerId: 'b', end: 'land' });
-    expect(landed.p[0]).toBeCloseTo(31.5 + 0.78 ** 2 / 12, 2);
+    expect(Math.abs(landed.p[0] - 31.5 - 0.78 ** 2 / 12)).toBeLessThan(0.013);
     expect(s.participant('b')?.pose.p).toEqual(landed.p);
     expect(s.nextEventAt()).toBeNull();
   });

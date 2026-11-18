@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { facingDir, launchVector, resolveHit } from '../../../src/core/brawl/knockback.ts';
-import { TUNING } from '../../../src/core/brawl/tuning.ts';
+import { TUNING, type Tuning } from '../../../src/core/brawl/tuning.ts';
 
-const hit = (o: Partial<Parameters<typeof resolveHit>[0]>, tuning = TUNING) => resolveHit({ before: 0, skill: 'jab1', chargeMs: 0, guarded: false, ...o }, tuning);
+// Strength is a float sum (1 + 3 × 0.1 is 1.3000000000000003); it is rounded only when it goes into a launch.
+const hit = (o: Partial<Parameters<typeof resolveHit>[0]>, tuning: Tuning = TUNING) => {
+  const r = resolveHit({ before: 0, skill: 'jab1', chargeMs: 0, guarded: false, ...o }, tuning);
+  return { ...r, strength: Number(r.strength.toFixed(9)) };
+};
 
 describe('resolveHit (FR-002, FR-003, FR-010, FR-020, SC-004)', () => {
   it('a jab at 0% deals 3% and knocks back with strength 1 + 3 × 0.1 = 1.3', () => {
@@ -35,7 +39,8 @@ describe('resolveHit (FR-002, FR-003, FR-010, FR-020, SC-004)', () => {
   it('hitstop is 30 + 4 ms per strength up to 150; finishers (jab 3, full smash, strength ≥ 30) take 150', () => {
     expect(hit({}).hitstopMs).toBe(35);
     expect(hit({ skill: 'jab3' }).hitstopMs).toBe(150);
-    expect(hit({ skill: 'smash', chargeMs: 999 }).hitstopMs).toBe(Math.round(30 + hit({ skill: 'smash', chargeMs: 999 }).strength * 4));
+    expect(hit({ skill: 'smash', chargeMs: 0 }).hitstopMs).toBe(112); // 30 + 20.4 × 4
+    expect(hit({ skill: 'smash', chargeMs: 999 }).hitstopMs, 'strength 32.4 ≥ 30').toBe(150);
     expect(hit({ skill: 'smash', chargeMs: 1000 }).hitstopMs).toBe(150);
     expect(hit({ before: 50, skill: 'throw' })).toMatchObject({ strength: 59, hitstopMs: 150 });
   });

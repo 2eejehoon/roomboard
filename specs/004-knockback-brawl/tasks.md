@@ -90,20 +90,20 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T012 [P] [US1] `tests/core/brawl/knockback.test.ts`(SC-004): FR-002 넉백 세기, FR-010 방어 순서(피해 × 0.2 → 누적 → 세기 → × 0.2; 0%에서 잽 1.3 → 0.212, US1-5), 피해 상한 999,
+- [X] T012 [P] [US1] `tests/core/brawl/knockback.test.ts`(SC-004): FR-002 넉백 세기, FR-010 방어 순서(피해 × 0.2 → 누적 → 세기 → × 0.2; 0%에서 잽 1.3 → 0.212, US1-5), 피해 상한 999,
   경직 = max(타격 정지, min(300, s × 40))(잽 1타 52ms, 상한 300ms), 타격 정지(최소 30, 최대 150, 4ms/세기, 마무리 = 잽 3타·끝까지 모은 강펀치·세기 ≥ 30이면 150), R11 값 20.4·32.4·126,
   강펀치 피해가 모은 시간에 비례(0ms 12%, 1000ms 이상 22%), 각도 → 속도 벡터를 `precision`대로 반올림. `TUNING` 사본의 값 하나를 바꾸면 결과가 따라 바뀜(SC-005).
   - 실패 확인: `knockback.ts`가 없어 모듈을 찾지 못함. 몸무게 기준 100은 `weightBase`로 조정표에 더함(린트, data-model 먼저). tuning.test는 새 키로 실패.
-- [ ] T013 [P] [US1] `tests/core/brawl/flight.test.ts`(SC-003·SC-004, R3): 같은 `launch`·블록으로 `stepFlight`를 두 번 돌려 모든 점이 같음, 1/60초 고정 간격·중력 20, 3D DDA로 한 간격에
+- [X] T013 [P] [US1] `tests/core/brawl/flight.test.ts`(SC-003·SC-004, R3): 같은 `launch`·블록으로 `stepFlight`를 두 번 돌려 모든 점이 같음, 1/60초 고정 간격·중력 20, 3D DDA로 한 간격에
   1칸 넘게 움직여도 블록을 건너뛰지 않음(s ≥ 100), 윗면에 내려앉으면 `land`(미끄러지지 않음), 땅에서 0°로 시작한 궤적만 `groundFriction`으로 미끄러짐(0% 잽 약 5cm, 100% 약 3.8m, R12) 후 `land`,
   가장자리에서 떨어지기 시작, `koY` 아래면 `ko`. 벽 규칙(튕김·뚫림·낙법)은 US3(T034).
   - 실패 확인: `flight.ts`가 없어 모듈을 찾지 못함. 벽(옆면·아랫면)은 US1에서 `wall` 끝으로 멈추기만 하고 튕김·뚫림·낙법은 T034·T039.
-- [ ] T014 [P] [US1] `tests/core/brawl/fighter.test.ts`(FR-007·008·009·010·011·012·034): 잽 단계(앞 잽 다시 쓰기 끝부터 0.4초 안이면 다음 타, 늦으면 1타), 다시 쓰기 시간 =
+- [X] T014 [P] [US1] `tests/core/brawl/fighter.test.ts`(FR-007·008·009·010·011·012·034): 잽 단계(앞 잽 다시 쓰기 끝부터 0.4초 안이면 다음 타, 늦으면 1타), 다시 쓰기 시간 =
   타격 시각 + 때린 사람 타격 정지(맞은 사람 중 최댓값, 헛스윙 0) + 기술별 시간, 그 전 `skill` 무시, 강펀치 모은 시간 = `hold` 수신 → `skill` 수신(최대 1000ms, R9), 닿는 거리 + `reachSlack`,
   정면 120° 방어, 던지기는 방어 무시·방향은 마지막 `d`, 구르기 기력 15·무적 300ms·기력 모자라면 무시, 기력 회복 초당 10(값과 시각만 저장), 경직 중 기술·방어·구르기 거부(방어 누름은 기록),
   경직이 풀리면 날아가는 중에도 기술·구르기 허용(궤적 중 구르기는 무적만, R2), 평화 구역에서는 공격도 피격도 없음(FR-013).
   - 실패 확인: `fighter.ts`가 없어 모듈을 찾지 못함. 닿는 사람은 보는 방향 앞쪽 반, 다시 쓰기 시간은 기술 셋이 함께 씀(data-model에 먼저 적음).
-- [ ] T015 [P] [US1] `tests/core/brawl/brawl-session.test.ts`: 가짜 시계로 잽 → `swing`(때린 사람에게만 `nonce`, `hitstopMs`·`readyAt`, `hits[].launch.t` = 타격 시각 + 타격 정지), 날아가는 중
+- [X] T015 [P] [US1] `tests/core/brawl/brawl-session.test.ts`: 가짜 시계로 잽 → `swing`(때린 사람에게만 `nonce`, `hitstopMs`·`readyAt`, `hits[].launch.t` = 타격 시각 + 타격 정지), 날아가는 중
   `move.p` 무시·`d`만 받음(R4), 타격 판정은 궤적의 지금 위치로, `nextEventAt()`이 착지·넉아웃 시각, `runEvents` → `landed`/`knocked_out`(`respawnAt` = +3000, 판 밖이면 `stocks: null`) →
   3초 뒤 `respawned`(피해 0%, 시작 지점), 걸어서 떨어짐은 보낸 높이로 넉아웃(R4 shortcut), US1-7 반격 틈(100%에서 잽 연타 사이에 경직이 0.08초 이상 먼저 풀림).
   - 실패 확인: 11개 중 9개 실패(`swing`이 오지 않음, 날아가는 중 `move`가 그대로 중계됨, `nextEventAt` 없음). 평화 구역 무시·쿨다운 무시처럼 "보내지 않음"을 보는 2개는 지금도 통과.
@@ -115,11 +115,15 @@
 
 ### Implementation
 
-- [ ] T018 [P] [US1] `src/core/brawl/knockback.ts`: 피해·세기·경직·타격 정지·방어·`launchVector(angleDeg, facing, s, tuning)`(서버만 sin/cos, 반올림, R3). T012 통과.
-- [ ] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
-- [ ] T020 [US1] `src/core/brawl/fighter.ts`: `Fighter`(data-model 필드 그대로: `damage` 0~999 정수, `stamina` 0~max + `staminaAt`, `stunUntil`, `invulnUntil`, `cooldownUntil`, `jabStep`·`jabAt`,
+- [X] T018 [P] [US1] `src/core/brawl/knockback.ts`: 피해·세기·경직·타격 정지·방어·`launchVector(angleDeg, facing, s, tuning)`(서버만 sin/cos, 반올림, R3). T012 통과.
+  - 결과: T012 통과. 방향 틀기는 US5(T052). 넉백 세기는 반올림하지 않고 `launch.s`로 보낼 때 3자리로 반올림한다.
+- [X] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
+  - 결과: T013 통과. 함수 이름은 `simulate`(점 목록과 끝)와 `positionAt`. 미끄럼 거리는 v²/(2×6)과 한 간격 이동 이내로 같다.
+- [X] T020 [US1] `src/core/brawl/fighter.ts`: `Fighter`(data-model 필드 그대로: `damage` 0~999 정수, `stamina` 0~max + `staminaAt`, `stunUntil`, `invulnUntil`, `cooldownUntil`, `jabStep`·`jabAt`,
   `holdAt`, `guarding`·`guardPressedAt`, `inputDir`, `airJumps`·`airRecovers`, `flight`, `knockedOutAt`) 허용 검사와 상태 전이. T014 통과.
-- [ ] T021 [US1] `src/core/brawl/brawl-session.ts`: `handle(me, msg, members, now) → Outbox`, `runEvents(now)`(지난 사건 따라잡기, R2), `room-session.ts`가 난투 메시지를 넘김, `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
+- [X] T021 [US1] `src/core/brawl/brawl-session.ts`: `handle(me, msg, members, now) → Outbox`, `runEvents(now)`(지난 사건 따라잡기, R2), `room-session.ts`가 난투 메시지를 넘김, `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
+  - 결과: T015 통과. `RoomSession.receive`가 메시지마다 지난 사건을 먼저 보내고, `move`는 날아가는 중·경직 중·넉아웃 중에 `d`만 받는다. 입구로 들어가면 `fighter`가 생기고 출구로 나가면 없어진다.
+    맞은 사람의 attachment 쓰기와 alarm 사건의 attachment 갱신은 T022(PR 4). `npx vitest run` 651개, typecheck·lint 통과.
 - [ ] T022 [US1] `src/worker/room-do.ts`: `Fighter`를 attachment에 쓰기(보낸 사람·맞은 사람), alarm 사건 처리. T016 통과.
 - [ ] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
   보냄(R2), 경직으로 거부되면 버림. 때린 사람 화면은 서버를 기다리지 않고 이펙트를 먼저 보여 주고 `nonce`로 `swing`과 맞춰 보정(FR-032).

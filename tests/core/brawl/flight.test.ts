@@ -35,10 +35,11 @@ describe('simulate (R3, SC-003, SC-004)', () => {
   it('slides a flat launch from the ground with groundFriction: 0% jab about 5 cm, 100% jab about 3.8 m (R12)', () => {
     const near = run(launch([30.5, 1, 12.5], [0.78, 0, 0], 1.3)).end;
     expect(near.kind).toBe('land');
-    expect(near.p[0] - 30.5).toBeCloseTo(0.78 ** 2 / 12, 2);
+    // v²/(2 × 6), give or take one step of travel (0.78 m/s × 1/60 s = 1.3 cm)
+    expect(Math.abs(near.p[0] - 30.5 - 0.78 ** 2 / 12)).toBeLessThan(0.013);
     const far = run(launch([30.5, 1, 12.5], [6.78, 0, 0], 11.3)).end;
     expect(far.kind).toBe('land');
-    expect(far.p[0] - 30.5).toBeCloseTo(6.78 ** 2 / 12, 1);
+    expect(Math.abs(far.p[0] - 30.5 - 6.78 ** 2 / 12)).toBeLessThan(6.78 / 60);
     expect(far.p[1]).toBe(1);
   });
 

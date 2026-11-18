@@ -8,13 +8,15 @@ import { THEMES, type Vec3 } from './themes.ts';
 import { cellOf, inArena, makeArena, sameCell, startPoint } from './brawl/arena.ts';
 import { BrawlSession, type BrawlMessage } from './brawl/brawl-session.ts';
 import { TUNING } from './brawl/tuning.ts';
+import type { Fighter } from './brawl/fighter.ts';
 
 const ARENA = makeArena(TUNING);
 
 export type RoomInfo = Extract<ServerMessage, { t: 'welcome' }>['room'];
 export type Pose = { p: Vec3; r: number; a: 'idle' | 'walk' | 'run' | 'jump' };
 // data-model.md "Participant": the socket attachment. Never holds the device key.
-export type Participant = { peerId: string; nickname: string; avatarId: string; channel: number; pose: Pose; lastMoveAt: number };
+// fighter: set while in the 004 arena (data-model "Fighter", kept in the attachment, R6).
+export type Participant = { peerId: string; nickname: string; avatarId: string; channel: number; pose: Pose; lastMoveAt: number; fighter?: Fighter };
 export type Outbox = { send: { to: string; msg: ServerMessage }[]; close?: { to: string; code: number } };
 type Chat = Extract<ServerMessage, { t: 'chat' }>;
 // What the signature covers besides the room id (websocket.md `chat.sig`).
@@ -68,20 +70,25 @@ export class RoomSession {
     if (msg.t === 'join') return conn.participant ? this.bad(peerId, conn, now) : this.join(peerId, conn, msg, now);
     const me = conn.participant;
     if (!me) return { send: [{ to: peerId, msg: { t: 'error', code: 'not_joined' } }] };
-    if (msg.t === 'move') return this.move(me, conn, msg, now);
-    if (msg.t === 'chat') return this.chat(me, conn, msg, now);
-    msg satisfies BrawlMessage;
-    return { send: [] }; // brawl messages reach BrawlSession.handle from US1 on
+    // Brawl events that fell due since the last message or alarm come first (004 R2).
+    const events = this.brawl(me.channel).runEvents(this.members(me.channel), now);
+    const out =
+      msg.t === 'move'
+        ? this.move(me, conn, msg, now)
+        : msg.t === 'chat'
+          ? await this.chat(me, conn, msg, now)
+          : this.brawl(me.channel).handle(me, msg satisfies BrawlMessage, this.members(me.channel), now);
+    return { ...out, send: [...events.send, ...out.send] };
   }
 
   // The soonest brawl event in any channel, for the DO's one alarm (004 R2).
   nextEventAt(): number | null {
-    const times = [...this.brawls.values()].flatMap((b) => b.nextEventAt() ?? []);
+    const times = [...this.brawls].flatMap(([channel, b]) => b.nextEventAt(this.members(channel)) ?? []);
     return times.length ? Math.min(...times) : null;
   }
 
-  runEvents(): Outbox {
-    return { send: [...this.brawls.values()].flatMap((b) => b.runEvents().send) };
+  runEvents(now: number): Outbox {
+    return { send: [...this.brawls].flatMap(([channel, b]) => b.runEvents(this.members(channel), now).send) };
   }
 
   // The owner's edit (T083), to every channel. respawn: the theme changed, so old poses mean nothing in the new bounds. The
@@ -89,7 +96,7 @@ export class RoomSession {
   update(room: RoomInfo, respawn: boolean, now: number): Outbox {
     this.room = room;
     const joined = this.joined();
-    if (respawn) for (const p of joined) [p.pose, p.lastMoveAt] = [{ p: THEMES[room.roomData.themeId].spawn, r: 0, a: 'idle' }, now];
+    if (respawn) for (const p of joined) [p.pose, p.lastMoveAt, p.fighter] = [{ p: THEMES[room.roomData.themeId].spawn, r: 0, a: 'idle' }, now, undefined];
     return { send: joined.map((p) => ({ to: p.peerId, msg: { t: 'room_updated', room } })) };
   }
 
@@ -124,7 +131,7 @@ export class RoomSession {
       room: this.room,
       peers: peers.map(peerView),
       spawn,
-      arena: this.brawl(me.channel).view(peers.filter((p) => inArena(ARENA, p.pose.p)).map((p) => p.peerId)),
+      arena: this.brawl(me.channel).view(peers),
       at: now,
     };
     return { send: [{ to: peerId, msg: welcome }, ...this.toChannel(me, { t: 'peer_joined', peer: peerView(me) }).send] };
@@ -132,6 +139,12 @@ export class RoomSession {
 
   private move(me: Participant, conn: Conn, msg: Extract<ClientMessage, { t: 'move' }>, now: number): Outbox {
     if (!conn.moves.take(now).ok) return { send: [] };
+    const brawl = this.brawl(me.channel);
+    if (me.fighter && msg.d) me.fighter.inputDir = msg.d;
+    // Flying, in hitstun or knocked out: the server owns the position and only d counts (004 R4).
+    if (brawl.locked(me, now)) return { send: [] };
+    const fell = brawl.fell(me, msg.p[1], this.members(me.channel), now);
+    if (fell) return fell;
     const p = msg.p.map(round) as Vec3;
     const theme = THEMES[this.room.roomData.themeId];
     if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, [theme.bounds, ARENA.bounds])) {
@@ -140,9 +153,15 @@ export class RoomSession {
     me.pose = { p, r: round(msg.r), a: msg.a };
     me.lastMoveAt = now;
     // The entrance and exit cells teleport (004 R5): a correction to me, peer_moved to the others.
-    const fighters = this.joined().filter((o) => o.channel === me.channel && o !== me && inArena(ARENA, o.pose.p)).length;
-    if (!inArena(ARENA, p) && sameCell(p.map(Math.floor), theme.arenaEntrance)) return this.teleport(me, startPoint(ARENA, fighters), now);
-    if (inArena(ARENA, p) && sameCell(cellOf(ARENA, p), ARENA.exit)) return this.teleport(me, theme.spawn, now);
+    const fighters = this.members(me.channel).filter((o) => o !== me && o.fighter).length;
+    if (!inArena(ARENA, p) && sameCell(p.map(Math.floor), theme.arenaEntrance)) {
+      brawl.enter(me, now);
+      return this.teleport(me, startPoint(ARENA, fighters), now);
+    }
+    if (inArena(ARENA, p) && sameCell(cellOf(ARENA, p), ARENA.exit)) {
+      delete me.fighter;
+      return this.teleport(me, theme.spawn, now);
+    }
     return this.toChannel(me, { t: 'peer_moved', peerId: me.peerId, ...me.pose });
   }
 
@@ -154,7 +173,7 @@ export class RoomSession {
 
   private brawl(channel: number): BrawlSession {
     let b = this.brawls.get(channel);
-    if (!b) this.brawls.set(channel, (b = new BrawlSession()));
+    if (!b) this.brawls.set(channel, (b = new BrawlSession(ARENA, TUNING)));
     return b;
   }
 
@@ -176,6 +195,10 @@ export class RoomSession {
     conn.bad = [...conn.bad.filter((at) => now - at < BAD_WINDOW_MS), now];
     const send = [{ to: peerId, msg: { t: 'error', code: 'bad_message' } as const }];
     return conn.bad.length >= BAD_LIMIT ? { send, close: { to: peerId, code: CLOSE.badMessages } } : { send };
+  }
+
+  private members(channel: number): Participant[] {
+    return this.joined().filter((p) => p.channel === channel);
   }
 
   private joined(): Participant[] {
