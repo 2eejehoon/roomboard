@@ -1,0 +1,37 @@
+openapi: 3.1.0
+info:
+  title: roomboard knockback brawl admin API
+  version: 1.0.0
+  description: |
+    001 API(specs/001-realtime-room-board/contracts/openapi.yaml)에 더하는 관리자 경로 하나. 응답 형식과 adminToken 보안,
+    실패 시 요청 횟수 제한은 001 계약을 따른다. 요청 본문이 없고 새로 저장하는 데이터도 없다.
+security: []
+servers:
+  - url: /api
+
+paths:
+  /admin/rooms/{roomId}/arena-reset:
+    parameters:
+      - name: roomId
+        in: path
+        required: true
+        schema: { type: string, pattern: '^[A-Za-z0-9_-]{10}$' }
+    post:
+      summary: 방의 모든 채널 경기장을 기본 경기장으로 되돌린다 (FR-040)
+      description: |
+        방 DO의 resetArenas()를 부른다. 모든 채널의 지은 블록을 지우고, 진행 중인 판을 결과 없이 끝내고(match cancelled),
+        경기장에 있는 사람을 시작 지점에 피해 0%로 다시 세운다. 경기장 모습은 보지 않는다. 신고 상태는 바꾸지 않는다
+        (처리 완료는 001의 /admin/reports/{reportId}/resolve). 사람이 없는 채널은 이미 기본이므로 할 일이 없다.
+      security: [{ adminToken: [] }]
+      responses:
+        '204': { description: 되돌림(사람이 없어 할 일이 없을 때도) }
+        '401': { description: 관리자 토큰 없음·틀림 }
+        '404': { description: 없는 방 }
+        '410': { description: 삭제된 방 }
+        '429': { description: 토큰 실패 요청 횟수 제한 }
+
+components:
+  securitySchemes:
+    adminToken:
+      type: http
+      scheme: bearer

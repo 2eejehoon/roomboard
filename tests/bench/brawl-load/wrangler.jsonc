@@ -1,0 +1,8 @@
+// Prototype for the 004 plan measurement only (research.md R1). Not deployed; run with `npx wrangler dev -c tests/bench/brawl-load/wrangler.jsonc`.
+{
+  "name": "brawl-load-bench",
+  "main": "worker.js",
+  "compatibility_date": "2026-11-01",
+  "durable_objects": { "bindings": [{ "name": "ROOM", "class_name": "BenchRoom" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BenchRoom"] }]
+}
