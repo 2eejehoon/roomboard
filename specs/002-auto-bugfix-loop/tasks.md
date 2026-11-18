@@ -92,7 +92,8 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T025 [US4] `.github/workflows/mistake-tally.yml`: PR 머지·리뷰 댓글 이벤트 → 2회 이상이고 그 분류의 장치 이슈가 없으면 `kind:guardrail`+`agent:run`+`agent:queued` 이슈 → agent-queue가 agent-fix 실행(직접 dispatch는 대기 중 취소될 수 있어 대기열로, #64 리뷰. 집계 실행은 `concurrency`로 하나씩, #59 리뷰: 동시 기록 대응). **실제 실행(B13)**: 머지 뒤 확인
   첫 실제 실행(2026-11-17, #64 머지): mistake-tally가 성공해 `[guardrail] skip-test` #71을 열었으나 **오탐**이었다. #59·#64 리뷰 댓글이 태그 문법을 예시로
   인용한 것을 셌다 → 댓글 끝의 태그만 세게 고침. 또 agent-queue가 넣은 agent-fix 실행이 `claude-code-action`의 봇 실행 거부로 2회 실패해
-  `agent:needs-human`이 됐다 → `allowed_bots`에 `github-actions` 추가. 둘 다 이 수정 PR에서 고치고, 머지 뒤 #71 정리와 doc-garden 수동 실행(B14)을 이어 한다.
+  `agent:needs-human`이 됐다 → `allowed_bots`에 `github-actions` 추가. 둘 다 #72에서 고침(2026-11-18 머지). #71은 운영자 확인 뒤 정리(닫힌 장치 이슈는 그 분류를 멈추므로 그냥 닫지 않음).
+  **남은 확인**: 수정 뒤 진짜 두 번째 기록으로 장치 이슈 → 대기열 → agent-fix 장치 PR까지(B13, 다음에 해당 기록이 생길 때).
 
 ---
 
@@ -103,7 +104,7 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T026 [P] [US6] `tests/scripts/doc-garden-scan.test.ts`: 문서 속 백틱 경로·npm 스크립트가 없으면 보고, 모두 있으면 빈 결과, 길이 상한 근접(90%) 보고
 - [x] T027 [US6] `scripts/doc-garden-scan.mjs`(판례·vendored `speckit-*` 스킬 제외, 경로는 첫 마디가 저장소 루트 폴더인 것만). 현재 main에서 결과 0건
 - [x] T028 [US6] `.claude/skills/doc-gardening/SKILL.md`: 지운 문장마다 이유, 줄 수 증가 이유, 장치로 대체된 지시 삭제
-- [x] T029 [US6] `.github/workflows/doc-garden.yml`: 주 1회 + 수동, 스캔 결과가 비고 새 실수 기록(지난 7일)이 없으면 종료, 아니면 `kind:doc-garden`+`agent:run`+`agent:queued` 이슈 → agent-queue가 agent-fix를 실행해 정리 PR(`kind:doc-garden`). `-doc-garden` 브랜치에서 `.md`만 바꾼 PR은 `test-first`가 건너뜀. **실제 실행(B14)**: 머지 뒤 확인
+- [x] T029 [US6] `.github/workflows/doc-garden.yml`: 주 1회 + 수동, 스캔 결과가 비고 새 실수 기록(지난 7일)이 없으면 종료, 아니면 `kind:doc-garden`+`agent:run`+`agent:queued` 이슈 → agent-queue가 agent-fix를 실행해 정리 PR(`kind:doc-garden`). `-doc-garden` 브랜치에서 `.md`만 바꾼 PR은 `test-first`가 건너뜀. **실제 실행(B14)**: 2026-11-18 수동 실행(run 44237061829) 성공, 스캔 0건·지난 7일 실수 기록 0건이라 "바꿀 것 없음"으로 이슈 없이 끝남(FR-052 확인). 남은 확인: 없는 경로를 심은 문서로 이슈 → 대기열 → 정리 PR까지(운영자가 그런 문서 변경을 머지할 때)
 
 ---
 
