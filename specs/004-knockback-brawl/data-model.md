@@ -12,7 +12,7 @@ spec의 이름 ↔ 코드 키. 값은 spec과 research R12의 초기값이다. �
 |---|---|---|
 | 기술 표(피해·기본 넉백·넉백 성장·각도) | `skills.{jab1, jab2, jab3, smash, throw}.{damage, base, growth, angleDeg}` | spec "맨손 기술" 표. 강펀치 `damage`는 `[12, 22]` |
 | 던지기 위쪽 각도 | `skills.throw.angleDeg` | 45(R12) |
-| 닿는 거리, 다시 쓰기 시간 (FR-012) | `skills.*.reach`, `skills.*.cooldownMs`, `reachSlack` | R12 |
+| 닿는 거리, 다시 쓰기 시간 (FR-012) | `skills.*.reach`, `skills.*.cooldownMs`, `reachSlack` | R12(잽 1.2 m·350 ms, 강펀치 1.4 m·800 ms, 던지기 1.0 m·600 ms, 여유 0.3 m) |
 | 몸무게 | `weight` | 100 |
 | 경직 계수, 경직 상한 | `hitstunMsPerStrength`, `hitstunMaxMs` | 40 ms, 300 ms |
 | 방어 감소율·각도 | `guard.reduction`, `guard.arcDeg` | 0.8, 120 |
@@ -35,6 +35,12 @@ spec의 이름 ↔ 코드 키. 값은 spec과 research R12의 초기값이다. �
 | 블록 요청 제한 | `blockRate` | 초당 4 |
 | 궤적 계산 간격 | `stepMs` | 1000/60 |
 | 땅 미끄럼 감속 | `groundFriction` | 6 m/s²(research R3·R12) |
+| 피해 상한 (FR-002) | `damageMax` | 999 |
+| 연타 단계 수 (FR-007) | `jabSteps` | 3 |
+| 반올림 자리(launch 점·속도와 세기, R3) | `precision.p`, `precision.v` | 2, 3 |
+| 단위 환산(초당 ms, 반 바퀴 각도) | `msPerSec`, `degPerHalfTurn` | 1000, 180 |
+| 경기장 칸 수·칸 (0,0,0)의 월드 좌표 | `arena.size`, `arena.origin` | [24, 12, 24], [20, 0, 0](테마 범위 밖, R5) |
+| 경기장 시작 지점·출구 칸 | `arena.starts`, `arena.exit` | [[4,1,4], [19,1,4], [4,1,19], [19,1,19]], [0,1,12](바닥 윗칸) |
 
 ## 경기장 Arena (`src/core/brawl/arena.ts`)
 

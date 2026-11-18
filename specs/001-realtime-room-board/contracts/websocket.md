@@ -36,7 +36,7 @@ client                                   server (Room DO)
 ### `join`
 
 ```json
-{ "t": "join", "v": 1, "deviceKey": "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b" }
+{ "t": "join", "v": 2, "deviceKey": "6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b" }
 ```
 
 - 연결 후 첫 메시지. 두 번째 `join`은 `bad_message`.
@@ -71,16 +71,20 @@ client                                   server (Room DO)
 ```json
 {
   "t": "welcome",
-  "v": 1,
+  "v": 2,
   "you": { "peerId": "p_8Kx2", "nickname": "느긋한 수달", "avatarId": "char-03" },
   "channel": 2,
   "room": { "id": "aB3dE5fG7h", "title": "작은 카페", "description": "쉬어 가는 방", "roomData": { "version": 1, "themeId": "cafe", "objects": [] } },
   "peers": [
     { "peerId": "p_1aQ9", "nickname": "용감한 고양이", "avatarId": "char-01", "p": [0, 0, 0], "r": 0, "a": "idle" }
   ],
-  "spawn": [0, 0, 2]
+  "spawn": [0, 0, 2],
+  "arena": { "blocks": [], "fighters": [], "match": null },
+  "at": 1763400000000
 }
 ```
+
+- v2 추가 필드(`arena`, `at`)와 난투 메시지는 004 [websocket.md](../../004-knockback-brawl/contracts/websocket.md)에 있다.
 
 - `peers`에는 같은 채널의 다른 참가자만 있다(최대 19명).
 - 이전 채팅 기록은 보내지 않는다(채팅 저장 안 함).

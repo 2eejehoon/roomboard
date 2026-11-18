@@ -47,14 +47,17 @@
   004 클라이언트 예시 `t` = `move, hold, skill, guard, roll, air, block, match_start`, 서버 예시 = `welcome, swing, launch, landed, knocked_out, respawned, block, arena_reset, match`가 모두 파싱되고,
   서버 메시지 종류마다 001 또는 004에 예시가 있다. 경계 검사: `skill.nonce` 32자 초과 거부, `move.d` 길이 > 1 거부, `block.h`는 `-1 | 0 | 1`만, `block.kind`는 `place`일 때만(`dirt | stone`),
   2KB 넘는 메시지 거부(기존 `MAX_MESSAGE_BYTES`), `join.v`가 1이면 `unsupported_version`. 지금 코드에서 실패 확인.
+  - 실패 확인: 001 welcome 예시(v2로 고침)가 `v: literal(1)`에 걸림, 004 예시 `hold` 등 모든 새 `t`가 스키마에 없음, `move.d` 길이 검사 없음(zod가 `d`를 버려 통과). `block` 거부 경우는 `t`가 없어서 통과했으므로 구현 뒤 다시 본다.
 - [ ] T003 [P] `specs/001-realtime-room-board/contracts/websocket.md`: `join`(`"v": 1`)과 `welcome`(`"v": 1`) 예시를 `"v": 2`로, welcome 예시에 v2 필수 필드
   `"arena": { "blocks": [], "fighters": [], "match": null }`와 `"at"`을 더하고 "v2 추가 필드는 004 websocket.md" 한 줄로 링크한다(001 예시가 v2 스키마에서도 통과하도록).
 - [ ] T004 [P] `tests/core/brawl/tuning.test.ts`: `TUNING`의 키가 data-model "조정표"의 키 열과 하나씩 대응하고 값이 초기값과 같다(spec 기술 표, 강펀치 `damage` `[12, 22]`,
   `hitstunMaxMs` 300, `skills.jab1.cooldownMs` 350 등 R12). 잽 다시 쓰기 시간 + `hitstop.minMs` > `hitstunMaxMs`(FR-012, US1-7)를 검사한다. 지금은 파일이 없어 실패.
 - [ ] T005 [P] `tests/core/brawl/arena.test.ts`: 기본 경기장(`size` 24×12×24, 돌 한 겹 바닥, FR-016), 칸 ↔ 월드 좌표(`origin + cell × block.size`), 차이 적용(`changed`의 null = 부서진 기본 블록),
   `inArena(p)`/평화 구역(R5), `starts`·`exit`, 테마마다 `arenaEntrance`가 테마 범위 안이고 경기장 `bounds`가 모든 테마 범위와 겹치지 않음, `koY` = 바닥 − `koDepth`. 실패 확인.
+  - 실패 확인: `src/core/brawl/arena.ts`·`tuning.ts`가 없어 모듈을 찾지 못함(T004·T005 모두).
 - [ ] T006 [P] `tests/core/movement.test.ts`·`tests/core/room-session.test.ts`에 더함: 이동 검사가 테마 범위 또는 경기장 범위 안이면 통과하고 두 영역 사이의 걷기 이동은 거부,
   입구 칸에 들어선 `move` → 나에게 `correction`(경기장 시작 지점), 남에게 `peer_moved`, 출구 칸 → 방 시작 지점(R5). 날아가는 중·경직 중의 출구 칸은 동작하지 않음(FR-014). 실패 확인.
+  - 실패 확인: `validateMove`가 영역 목록을 받지 않아 `TypeError`, room-session은 `arena.ts`가 없어 실패. 날아가는 중·경직 중의 출구 칸은 궤적·경직이 생기는 US1에서 확인한다(T015로 옮김).
 
 ### Implementation
 
