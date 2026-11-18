@@ -1,5 +1,6 @@
 // Room WebSocket client (contracts/websocket.md): join, ping, reconnect with backoff, close codes, move throttle.
 import { CLOSE, PROTOCOL_VERSION, serverMessageSchema } from '../../core/protocol.ts';
+import type { BrawlMessage } from '../../core/brawl/brawl-session.ts';
 import type { Pose } from '../../core/room-session.ts';
 import type { Vec3 } from '../../core/themes.ts';
 import type { RoomStore } from '../state/room-store.ts';
@@ -13,7 +14,9 @@ const round = (n: number) => Math.round(n * 100) / 100;
 
 // roomGone: whether GET /api/rooms/:id now says 404 or 410 (websocket.md, after the close code table).
 type Options = { url: string; deviceKey: string; store: RoomStore; WS?: typeof WebSocket; random?: () => number; roomGone?: () => Promise<boolean> };
-export type RoomSocket = { move(p: Vec3, r: number, a: Pose['a']): void; chat(text: string): void; close(): void };
+// d: the held direction [x, z] (004 move.d, for the throw direction).
+type Dir = [number, number];
+export type RoomSocket = { move(p: Vec3, r: number, a: Pose['a'], d?: Dir): void; chat(text: string): void; brawl(msg: BrawlMessage): void; close(): void };
 
 export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random = Math.random, roomGone }: Options): RoomSocket {
   let ws: WebSocket;
@@ -23,12 +26,12 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
   let retry: ReturnType<typeof setTimeout> | undefined;
   // Last pose sent (or the spawn from welcome), the pose waiting for the throttle, and when the last one went out.
   let sentKey = '';
-  let pending: { p: Vec3; r: number; a: Pose['a'] } | null = null;
+  let pending: { p: Vec3; r: number; a: Pose['a']; d?: Dir } | null = null;
   let lastSentAt = -Infinity;
   let flush: ReturnType<typeof setTimeout> | undefined;
   let nonce = 0;
 
-  const poseKey = (p: Vec3, r: number, a: string) => JSON.stringify([p, r, a]);
+  const poseKey = (p: Vec3, r: number, a: string, d?: Dir) => JSON.stringify([p, r, a, d]);
 
   function connect() {
     let welcomed = false;
@@ -68,25 +71,29 @@ export function openRoomSocket({ url, deviceKey, store, WS = WebSocket, random =
   function send() {
     flush = undefined;
     if (!pending) return;
-    const { p, r, a } = pending;
+    const { p, r, a, d } = pending;
     pending = null;
     lastSentAt = Date.now();
-    sentKey = poseKey(p, r, a);
-    ws.send(JSON.stringify({ t: 'move', p, r, a }));
+    sentKey = poseKey(p, r, a, d);
+    ws.send(JSON.stringify({ t: 'move', p, r, a, d }));
   }
 
   connect();
   return {
-    move(p, r, a) {
+    move(p, r, a, d) {
       if (store.getState().connection !== 'open') return;
-      const pose = { p: p.map(round) as Vec3, r: round(r), a };
+      // d stays unrounded: rounding [0.707, 0.707] up would make it longer than 1, which the server rejects.
+      const pose = { p: p.map(round) as Vec3, r: round(r), a, ...(d && { d }) };
       store.moveSelf(pose.p, pose.r, a);
-      if (poseKey(pose.p, pose.r, a) === sentKey) {
+      if (poseKey(pose.p, pose.r, a, pose.d) === sentKey) {
         pending = null;
         return;
       }
       pending = pose;
       flush ??= setTimeout(send, Math.max(0, lastSentAt + MOVE_INTERVAL_MS - Date.now()));
+    },
+    brawl(msg) {
+      if (store.getState().connection === 'open') ws.send(JSON.stringify(msg));
     },
     chat(text) {
       if (store.getState().connection === 'open') ws.send(JSON.stringify({ t: 'chat', text, nonce: `c-${++nonce}` }));

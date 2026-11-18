@@ -33,8 +33,9 @@ export function RoomPage({ id }: { id: string }) {
   const [store] = useState(() => new RoomStore());
   const state = useSyncExternalStore(store.subscribe, store.getState);
   const socket = useRef<RoomSocket | null>(null);
-  const move = useCallback<RoomSocket['move']>((p, r, a) => socket.current?.move(p, r, a), []);
+  const move = useCallback<RoomSocket['move']>((p, r, a, d) => socket.current?.move(p, r, a, d), []);
   const chat = useCallback((text: string) => socket.current?.chat(text), []);
+  const brawl = useCallback<RoomSocket['brawl']>((msg) => socket.current?.brawl(msg), []);
   const [webgl] = useState(hasWebGL);
   const [view, setView] = useState<View>(() => initialView(readView(), webgl));
   useEffect(() => {
@@ -91,7 +92,7 @@ export function RoomPage({ id }: { id: string }) {
           }}
         >
           <Suspense fallback={<Loading />}>
-            <Scene store={store} move={move} />
+            <Scene store={store} move={move} brawl={brawl} />
           </Suspense>
         </SceneBoundary>
       ) : (

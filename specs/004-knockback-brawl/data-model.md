@@ -123,6 +123,7 @@ LOOKS {
   shake: { strengthFrom, amplitude }                         // 화면 흔들림(FR-023)
   sfx: { hit, smash, wall, ko }                              // CC0 파일 경로
   flight: { catchUpMs }                                      // 늦게 받은 궤적을 지금 위치에서 따라잡는 시간(spec Edge Cases)
+  swing: { color, size, durationMs }                         // 내 화면이 서버를 기다리지 않고 먼저 보이는 기술 이펙트(FR-032)
 }
 ```
 

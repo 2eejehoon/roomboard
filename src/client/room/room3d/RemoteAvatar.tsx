@@ -6,6 +6,7 @@ import { MathUtils, Mesh, Vector3, type Group, type Material, type MeshStandardM
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AVATAR_SKINS } from '../../../core/identity.ts';
 import type { Pose } from '../../../core/room-session.ts';
+import type { Vec3 } from '../../../core/themes.ts';
 import type { Peer } from '../../state/room-store.ts';
 
 const CLIPS: Record<Pose['a'], string> = { idle: 'Idle', walk: 'Walk', run: 'Run', jump: 'Jump' };
@@ -46,7 +47,17 @@ export function Avatar({ avatarId, a }: { avatarId: string; a: Pose['a'] }) {
   return <primitive object={scene} scale={AVATAR_SCALE} />;
 }
 
-export function RemoteAvatar({ peer }: { peer: Peer }) {
+// 004: the % over a fighter in the arena (US2 colours it).
+export function DamageLabel({ damage }: { damage: number }) {
+  return (
+    <Html position={[0, 2.3, 0]} center>
+      <span style={{ whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.5)', color: 'white', fontWeight: 700 }}>{damage}%</span>
+    </Html>
+  );
+}
+
+// damage: null outside the arena. fly: the replayed knockback position while flying (004 R3), which wins over the poses.
+export function RemoteAvatar({ peer, damage, fly }: { peer: Peer; damage: number | null; fly: () => Vec3 | null }) {
   const group = useRef<Group>(null);
   const from = useRef({ p: new Vector3(...peer.p), r: peer.r, at: 0 });
   const to = useRef({ p: new Vector3(...peer.p), r: peer.r });
@@ -66,6 +77,12 @@ export function RemoteAvatar({ peer }: { peer: Peer }) {
   useFrame(() => {
     const g = group.current;
     if (!g) return;
+    const flying = fly();
+    if (flying) {
+      g.position.set(...flying);
+      from.current = { p: g.position.clone(), r: g.rotation.y, at: performance.now() };
+      return;
+    }
     const k = Math.min(1, (performance.now() - from.current.at) / MOVE_INTERVAL_MS);
     g.position.lerpVectors(from.current.p, to.current.p, k);
     const turn = MathUtils.euclideanModulo(to.current.r - from.current.r + Math.PI, Math.PI * 2) - Math.PI; // shortest way round
@@ -78,6 +95,7 @@ export function RemoteAvatar({ peer }: { peer: Peer }) {
       <Html position={[0, 1.9, 0]} center>
         <span style={{ whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.5)', color: 'white' }}>{peer.nickname}</span>
       </Html>
+      {damage !== null && <DamageLabel damage={damage} />}
     </group>
   );
 }
