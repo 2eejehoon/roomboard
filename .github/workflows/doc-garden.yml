@@ -34,7 +34,7 @@ jobs:
           # New mistake records in the last week (US6 scenario 3): links only, no comment text.
           since=$(date -u -d '7 days ago' +%Y-%m-%dT%H:%M:%SZ)
           prs=$(gh api --paginate "repos/$GH_REPO/pulls?state=closed&per_page=100" --jq ".[] | select(.merged_at > \"$since\") | select(any(.labels[]; .name | startswith(\"cause:\"))) | \"- PR #\(.number): \([.labels[].name | select(startswith(\"cause:\"))] | join(\", \"))\"")
-          comments=$(gh api --paginate "repos/$GH_REPO/pulls/comments?since=$since&per_page=100" --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR" or .user.login == "claude[bot]") | select(.body | test("\\[mistake:[a-z0-9-]+\\]")) | "- 리뷰 댓글 \(.html_url): \([.body | scan("\\[mistake:[a-z0-9-]+\\]")] | unique | join(", "))"')
+          comments=$(gh api --paginate "repos/$GH_REPO/pulls/comments?since=$since&per_page=100" --jq '.[] | select(.author_association == "OWNER" or .author_association == "MEMBER" or .author_association == "COLLABORATOR" or .user.login == "claude[bot]") | select(.body | test("(^|[^`])\\[mistake:[a-z0-9-]+\\]\\s*$")) | "- 리뷰 댓글 \(.html_url): \(.body | capture("\\[mistake:(?<id>[a-z0-9-]+)\\]\\s*$").id)"')
           if [ -z "$scan$prs$comments" ]; then echo "바꿀 것 없음"; exit 0; fi
           body=$(printf '에이전트용 문서 정리(002 US6). 사전 검사 결과:\n\n```\n%s\n```\n\n지난 7일 실수 기록:\n\n%s\n%s\n' "${scan:-없음}" "${prs:-}" "${comments:-}")
           gh issue create --title "[doc-garden] $(date -u +%F)" --label kind:doc-garden,agent:run,agent:queued --body "$body"

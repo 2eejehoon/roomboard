@@ -73,11 +73,21 @@ describe('tallyMistakes', () => {
 });
 
 describe('mistakeTags', () => {
-  it('reads each [mistake:<id>] tag once', () => {
-    expect(mistakeTags('차단: 테스트를 건너뜀 [mistake:skip-test]. 또 [mistake:skip-test], [mistake:pii-in-logs]')).toEqual(['skip-test', 'pii-in-logs']);
+  // Only the tag that ends a comment counts (pr-review skill): a review that quotes the syntax as an example must not
+  // count. The first real run opened #71 from two such quotes on PR #59 and #64.
+  it('reads the tag that ends the comment', () => {
+    expect(mistakeTags('차단: 테스트를 건너뜀. [mistake:skip-test]')).toEqual(['skip-test']);
+    expect(mistakeTags('차단: 로그에 기기 키 [mistake:pii-in-logs]\n')).toEqual(['pii-in-logs']);
+  });
+
+  it('ignores a tag quoted inside the text', () => {
+    expect(mistakeTags('리뷰 하나에 `[mistake:skip-test]` 댓글이 두 개 있으면 두 실행 모두 3을 센다.')).toEqual([]);
+    expect(mistakeTags('[mistake:skip-test] 태그는 끝에 붙인다고 적었다')).toEqual([]);
   });
 
   it('ignores malformed tags', () => {
-    expect(mistakeTags('[mistake:] [mistake:Bad Id] [mistake: skip-test] mistake:skip-test')).toEqual([]);
+    expect(mistakeTags('설명 [mistake:Bad Id]')).toEqual([]);
+    expect(mistakeTags('설명 [mistake:]')).toEqual([]);
+    expect(mistakeTags('설명 `[mistake:skip-test]`')).toEqual([]);
   });
 });

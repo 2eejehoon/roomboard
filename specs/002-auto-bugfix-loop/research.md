@@ -122,7 +122,7 @@
 
 - 실수 분류 목록: `.github/mistake-categories.yml`(id, 설명). 처음 목록은 001 헌법·plan의 경계 규칙에서 뽑는다(예:
   `core-imports-renderer`, `hardcoded-ui-string`, `pii-in-logs`, `test-hook-in-prod`, `skip-test`).
-- 버그 수정 PR: 라벨 `cause:<id>`. 리뷰 지적: 리뷰 댓글에 `[mistake:<id>]` 태그.
+- 버그 수정 PR: 라벨 `cause:<id>`. 리뷰 지적: 리뷰 댓글 **끝**에 `[mistake:<id>]` 태그(본문 중간·백틱 안의 태그는 예시 인용이라 세지 않음, 판례 2026-11-18-mistake-tag-at-end).
 - `mistake-tally.yml`(PR 머지, 리뷰 댓글 이벤트): REST 목록(닫힌 PR, 리뷰 댓글)으로 분류별 횟수를 세고(검색은 막 머지된 PR이
   색인에 늦게 들어가 쓰지 않음), 2 이상이고 그 분류의 장치 이슈(열린 것·닫힌 것)가 없으면 `kind:guardrail` + `agent:run` 이슈를 `agent:queued`로
   열어 agent-queue가 agent-fix를 실행하게 한다(GITHUB_TOKEN으로 만든 이슈는 `labeled` 이벤트를 내지 않고, 직접 실행은 대기 중 취소될 수 있음). 같은 분류의 열린 장치 이슈가 있으면 새 기록일 때만 댓글, 닫힌 이슈가 있으면 아무것도 안 함.
