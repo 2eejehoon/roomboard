@@ -21,7 +21,18 @@ const chat = (text: string): Extract<ServerMessage, { t: 'chat' }> => ({ t: 'cha
 
 describe('RoomStore', () => {
   it('starts connecting with nothing known', () => {
-    expect(new RoomStore().getState()).toEqual({ room: null, you: null, channel: null, peers: [], chat: [], chatLimited: null, notices: [], connection: 'connecting', closeCode: null });
+    expect(new RoomStore().getState()).toEqual({
+      room: null,
+      you: null,
+      channel: null,
+      peers: [],
+      chat: [],
+      chatLimited: null,
+      notices: [],
+      connection: 'connecting',
+      closeCode: null,
+      brawl: { offset: null, fighters: {}, blocks: [], readyAt: 0 },
+    });
   });
 
   it('welcome sets me at the spawn, the channel, the room and the peers, and marks the connection open', () => {
