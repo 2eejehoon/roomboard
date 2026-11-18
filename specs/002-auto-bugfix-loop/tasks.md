@@ -153,7 +153,8 @@ description: "Task list for 002-auto-bugfix-loop"
 
 ## Phase 8: Polish
 
-- [ ] T043 [P] `tests/worker/privacy-audit-bugs.test.ts`: 버그 테이블·가짜 GitHub 이슈 본문에 개인정보 형식 0건(SC-003)
+- [x] T043 [P] `tests/worker/privacy-audit-bugs.test.ts`: 버그 테이블·가짜 GitHub 이슈 본문에 개인정보 형식 0건(SC-003)
+  한 일: 클라이언트 리포트(3회, gated)·서버 오류·Cron 생성·갱신·사용자 신고·관리자 이슈화 뒤 D1 버그 테이블과 GitHub로 보낸 모든 본문 검사, 신고 원문 표식이 GitHub에 없음. 누출 0건(가림을 끄면 실패하는 것 확인). 패턴은 `rooms-helpers.ts`의 `PII`로 공유
 - [ ] T044 README에 운영 설정(브랜치 Ruleset, Secrets, 라벨 동기화)과 판례 링크
 
 ## Dependencies
