@@ -145,9 +145,9 @@ description: "Task list for 002-auto-bugfix-loop"
 **Independent Test**: quickstart B12.
 
 - [x] T039 [P] [US3] `tests/worker/user-bug-reports.test.ts`: 접수 201(가림 적용 저장), Turnstile 실패 403, 한도 429, 관리자 목록·이슈화(요약만 공개, `source:user-report`)·버리기(즉시 삭제), 30일 Cron 삭제
-- [ ] T040 [P] [US3] `tests/e2e/bug-report.spec.ts`: 3D·2D 메뉴의 버그 신고 → 접수 안내, 관리자 탭에서 이슈화
+- [x] T040 [P] [US3] `tests/e2e/bug-report.spec.ts`: 3D·2D 메뉴의 버그 신고 → 접수 안내, 관리자 탭에서 이슈화
 - [x] T041 [US3] `src/worker/bug-reports.ts`에 사용자 신고·관리자 경로(contracts/openapi.yaml)
-- [ ] T042 [US3] `src/client/bug/BugReportDialog.tsx`(3D·2D 공용 메뉴), `src/client/admin/BugReportsTab.tsx`
+- [x] T042 [US3] `src/client/bug/BugReportDialog.tsx`(3D·2D 공용 메뉴), `src/client/admin/BugReportsTab.tsx`
 
 ---
 

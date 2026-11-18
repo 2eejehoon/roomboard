@@ -54,6 +54,8 @@ describe('RoomHeader view switch (T056)', () => {
     const state = store().getState();
     expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="3d" onSwitch={() => {}} />)).toMatch(within('button', '2D로 보기'));
     expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="2d" onSwitch={() => {}} />)).toMatch(within('button', '3D로 보기'));
-    expect(renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="2d" />)).not.toContain('<button');
+    const noWebGL = renderToStaticMarkup(<RoomHeader title="시드 방" state={state} view="2d" />);
+    expect(noWebGL).not.toMatch(within('button', '로 보기'));
+    expect(noWebGL, 'the bug report stays (FR-004)').toMatch(within('button', '버그 신고'));
   });
 });

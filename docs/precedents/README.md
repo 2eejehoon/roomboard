@@ -56,6 +56,7 @@
 | [2026-11-17-github-sync](2026-11-17-github-sync.md) | GitHub 동기화: 목록 한 번으로 닫힘·상한·토큰 만료, 늦은 gated 라벨, 토큰 알림은 만료일로 한 번 | 유효 |
 | [2026-11-17-client-collector](2026-11-17-client-collector.md) | 클라이언트 오류 수집기: 탭당 분당 10건, Error가 아닌 값은 버림, 화면 종류 매핑 | 유효 |
 | [2026-11-17-user-bug-reports](2026-11-17-user-bug-reports.md) | 사용자 버그 신고: 식별자만 가림, 신고 한도 공유, 30일 삭제는 5분 Cron | 유효 |
+| [2026-11-17-bug-report-dialog](2026-11-17-bug-report-dialog.md) | 버그 신고 화면: 방 머리 영역 버튼, 최근 지문은 클라이언트가 계산, 이슈화 E2E는 응답을 대신함 | 유효 |
 | [2026-11-18-mistake-tag-at-end](2026-11-18-mistake-tag-at-end.md) | 리뷰 실수 태그는 댓글 끝의 것만 센다, 대기열 실행은 봇 허용 | 유효 |
 
 ## 판례 쓰는 법
