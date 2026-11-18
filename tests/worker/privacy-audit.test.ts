@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { app } from '../../src/worker/index.ts';
-import { deviceKey, joinRoom } from './rooms-helpers.ts';
+import { deviceKey, joinRoom, PII as PATTERNS } from './rooms-helpers.ts';
 
 // T093, quickstart Q14 (constitution II): after every API that writes D1, no table holds an email, phone number, IP or device key.
 const SITEVERIFY = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -27,13 +27,6 @@ const call = (method: string, path: string, body?: unknown, ip = IPV4, e: Env = 
     e,
   );
 
-const PATTERNS = {
-  email: /[\w.+-]+@[\w-]+\.[\w.-]+/,
-  phone: /(\+?82[- ]?|0)1[016-9][- ]?\d{3,4}[- ]?\d{4}/,
-  ipv4: /\b\d{1,3}(\.\d{1,3}){3}\b/,
-  ipv6: /\b[0-9a-f]{1,4}(:[0-9a-f]{0,4}){2,7}\b/i,
-  uuid: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
-};
 
 it('each pattern catches the kind of value it is for', () => {
   const samples = { email: 'a.b@example.com', phone: '010-1234-5678', ipv4: IPV4, ipv6: IPV6, uuid: deviceKey(11) };
