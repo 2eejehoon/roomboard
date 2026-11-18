@@ -15,11 +15,13 @@ const output = (/** @type {boolean} */ run) => appendFileSync(process.env.GITHUB
 
 /**
  * JSON from the production site, or undefined (the SPA fallback answers a missing file with index.html and 200).
+ * An outage throws instead: the step fails and the issue keeps its labels, so a real issue is not dropped (PR #79 review).
  * @param {string} path
  * @returns {Promise<any>}
  */
 async function getJson(path) {
   const res = await fetch(`${origin}${path}`, { signal: AbortSignal.timeout(30_000) });
+  if (res.status >= 500) throw new Error(`${path}: ${res.status}`);
   const text = await res.text();
   if (!res.ok || text.length > MAX_BYTES) return undefined;
   try {
@@ -52,7 +54,7 @@ const frames = clientFrames(body ?? '');
 if (!frames) {
   output(true);
 } else {
-  const text = frames.length ? await resolve(frames).catch((err) => console.error('resolve failed:', err.message)) : undefined;
+  const text = frames.length ? await resolve(frames) : undefined;
   if (text) {
     mkdirSync('.agent', { recursive: true });
     writeFileSync('.agent/stack.md', `${text}\n`);

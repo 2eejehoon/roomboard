@@ -12,7 +12,7 @@ const CHUNK = 'index-CJU4p3Il.js';
 // Generated line 0 col 0 → src/client/bug/collector.ts line 69 col 0 (0-based).
 const MAP = { version: 3, sources: ['../../../src/client/bug/collector.ts'], names: [], mappings: 'AAqEA' };
 const served: Record<string, { type: string; body: string }> = {
-  '/manifest.json': { type: 'application/json', body: JSON.stringify({ version: '202611180000-1a2b3c4', chunks: [CHUNK, 'Scene-DC_5v1GI.js'] }) },
+  '/manifest.json': { type: 'application/json', body: JSON.stringify({ version: '202611180000-1a2b3c4', chunks: [CHUNK, 'Scene-DC_5v1GI.js', 'Down-00000000.js'] }) },
   [`/assets/${CHUNK}.map`]: { type: 'application/json', body: JSON.stringify(MAP) },
 };
 let server: Server;
@@ -20,6 +20,7 @@ let origin: string;
 beforeAll(async () => {
   // Like the production assets binding (single-page-application): any other path is index.html with 200.
   server = createServer((req, res) => {
+    if (req.url === '/assets/Down-00000000.js.map') return res.writeHead(503).end(); // production briefly down
     const hit = served[req.url ?? ''] ?? { type: 'text/html', body: '<!doctype html>' };
     res.writeHead(200, { 'content-type': hit.type }).end(hit.body);
   });
@@ -76,4 +77,12 @@ it.each([
   expect(r.gh).toContain('issue comment 9 --body 소스 위치 해석 실패');
   expect(r.gh).toContain('issue edit 9 --remove-label agent:queued');
   expect(r.stack).toBe('');
+});
+
+it('a production outage (5xx, timeout, network) fails the step and leaves the issue as it was, queue label included', async () => {
+  const r = await run(issue('client', [frame(CHUNK), frame('Down-00000000.js')]));
+  expect(r.code).not.toBe(0);
+  expect(r.out).toBe('');
+  expect(r.gh).not.toContain('comment');
+  expect(r.gh).not.toContain('edit');
 });
