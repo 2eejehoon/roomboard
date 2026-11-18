@@ -66,13 +66,13 @@ Cell = [x, y, z]             // 정수 칸 좌표
 | stunUntil | 경직 끝 시각. 이 전에는 기술·방어·구르기·공중 동작 거부(방어 누름은 낙법 판정용으로 기록) |
 | invulnUntil | 구르기 무적 끝 시각 |
 | cooldownUntil | 기술별 다시 쓸 수 있는 시각(때린 사람의 타격 정지 끝 + 다시 쓰기 시간, FR-012) |
-| pendingJab | 다시 쓰기 시간 중에 받은 잽 누름(시각). 다시 쓰기 시간 끝에 alarm 사건으로 나가며, 그때 경직·flight·넉아웃·평화 구역을 다시 검사해 안 되면 버린다(research R2) |
+| pendingJab | 다시 쓰기 시간 중에 받은 잽 누름(시각). 다시 쓰기 시간 끝에 alarm 사건으로 나가며, 그때 경직·넉아웃·평화 구역을 다시 검사해 안 되면 버린다(research R2) |
 | jabStep, jabAt | 잽 연타 단계(1~3)와 마지막 잽 시각 |
 | holdAt | 강펀치 모으기 시작 시각(`hold` 수신), 없으면 null |
 | guarding, guardPressedAt | 방어 누르는 중인지, 마지막 누른 시각(낙법) |
 | inputDir | 마지막 `move.d`(방향 틀기·던지기 방향) |
 | airJumps, airRecovers | 남은 공중 점프·복귀기. 착지 때 다시 참 |
-| flight | 지금 궤적 `Launch` 또는 null. null이 아니면 서버가 위치의 주인 |
+| flight | 지금 궤적 `Launch` 또는 null. null이 아니면 서버가 위치의 주인. 경직이 풀렸으면 날아가는 중에도 기술을 쓴다(구르기만 땅에서) |
 | knockedOutAt | 넉아웃 시각, 재시작 전까지. 탈락이면 `eliminated: true` |
 
 - 상태 전이: `서 있음` →(맞음)→ `타격 정지` →(정지 끝)→ `날아감(flight)` →(착지)→ `서 있음`(경직 남으면 경직) /
