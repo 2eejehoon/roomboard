@@ -97,3 +97,20 @@ test('a report another tab already handled (404) reloads the list instead of off
   await expect(row).toHaveCount(0);
   await expect(admin.getByRole('alert')).toHaveCount(0);
 });
+
+test('a server error (500) on discard keeps the retry, and the retry sends it again (PR #73 review)', async ({ browser }) => {
+  const admin = await withoutWebGL(await newPage(browser));
+  const item = { id: 999_002, text: '서버 오류 신고', context: { view: '2d' }, createdAt: 1, expiresAt: 2 };
+  let deletes = 0;
+  await admin.route('**/api/admin/bug-reports', (route) => route.fulfill({ json: { items: deletes < 2 ? [item] : [] } }));
+  await admin.route('**/api/admin/bug-reports/999002', (route) => (deletes++ === 0 ? route.fulfill({ status: 500, json: { code: 'internal' } }) : route.fulfill({ status: 204 })));
+  await admin.goto('/admin');
+  await admin.getByLabel(ko['admin.token']).fill(ADMIN_TOKEN);
+  await admin.getByRole('button', { name: ko['admin.enter'] }).click();
+  await admin.getByRole('tab', { name: ko['admin.bugs'] }).click();
+  const row = admin.getByRole('listitem').filter({ hasText: item.text });
+  await row.getByRole('button', { name: ko['admin.bugs.discard'] }).click();
+  await admin.getByRole('alert').getByRole('button', { name: ko['common.retry'] }).click();
+  await expect(row).toHaveCount(0);
+  expect(deletes).toBe(2);
+});
