@@ -21,7 +21,7 @@ paths:
       description: |
         방 DO의 resetArenas()를 부른다. 모든 채널의 지은 블록을 지우고, 진행 중인 판을 결과 없이 끝내고(match cancelled),
         경기장에 있는 사람을 시작 지점에 피해 0%로 다시 세운다. 경기장 모습은 보지 않는다. 신고 상태는 바꾸지 않는다
-        (처리 완료는 001의 /admin/reports/{reportId}/resolve). 사람이 없는 채널은 이미 기본이므로 할 일이 없다.
+        (처리 완료는 001의 /admin/reports/{reportId}/resolve). 사람이 없는 채널의 남은 키도 함께 지운다(보통은 이미 지워져 있다, research R6).
       security: [{ adminToken: [] }]
       responses:
         '204': { description: 되돌림(사람이 없어 할 일이 없을 때도) }
