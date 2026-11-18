@@ -119,6 +119,7 @@
 
 ### Implementation
 
+  - 실패 확인: `tests/client/room2d-brawl.test.tsx` 4개 모두 실패(2D에 경기장 길·옆 그림·버튼·글 기록이 없음). E2E도 2D "경기장으로 가기" 버튼이 없어 실패한다(CI에서 확인).
 - [X] T018 [P] [US1] `src/core/brawl/knockback.ts`: 피해·세기·경직·타격 정지·방어·`launchVector(angleDeg, facing, s, tuning)`(서버만 sin/cos, 반올림, R3). T012 통과.
   - 결과: T012 통과. 방향 틀기는 US5(T052). 넉백 세기는 반올림하지 않고 `launch.s`로 보낼 때 3자리로 반올림한다.
 - [X] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
