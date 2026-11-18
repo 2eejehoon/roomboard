@@ -68,3 +68,12 @@ export async function joinRoom(roomId: string, n: number) {
   if (welcome.t !== 'welcome') throw new Error(`expected welcome, got ${welcome.t}`);
   return { ...c, welcome };
 }
+
+// Personal-data formats the privacy audits look for (constitution II, SC-003).
+export const PII = {
+  email: /[\w.+-]+@[\w-]+\.[\w.-]+/,
+  phone: /(\+?82[- ]?|0)1[016-9][- ]?\d{3,4}[- ]?\d{4}/,
+  ipv4: /\b\d{1,3}(\.\d{1,3}){3}\b/,
+  ipv6: /\b[0-9a-f]{1,4}(:[0-9a-f]{0,4}){2,7}\b/i,
+  uuid: /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i,
+};

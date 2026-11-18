@@ -138,6 +138,10 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T037 [US1] `src/client/bug/collector.ts`: `onerror`·`unhandledrejection`·React 오류 경계, 클라이언트 `redact`, 분당 전송 제한
   한 일: 수집기, `main.tsx`의 `installCollector`·`onCaughtError`, RoomPage가 화면 종류를 알림. 정한 것(research R4, 판례 2026-11-17-client-collector): 분당 10건, `Error`가 아닌 값은 버림, view 매핑, 스택 파서는 core로 옮겨 Worker와 같이 씀.
 - [ ] T038 [US1] `.github/workflows/agent-fix.yml`에 client 이슈용 소스맵 해석 사전 단계(`scripts/resolve-stack.mjs`, LLM 호출 전)
+  PR 나누기: (a) 자동 머지: `src/core/resolve-stack.ts`(이슈 본문에서 client 스택 읽기, 청크 이름은 `[A-Za-z0-9_-]+\.js`만, 모든 프레임이 `src/`로 해석될 때만 결과)와 테스트.
+  (b) 운영자 머지: `vite.config.ts`(client만 `sourcemap: 'hidden'`, `sourcemapExcludeSources`로 원문 없이. `check:bundle` 통과 확인), `scripts/resolve-stack.mjs`
+  (운영 `https://roomboard.2eejehoon.workers.dev`의 `/manifest.json`·`/assets/<청크>.map`, 조회는 Node 내장 `module.SourceMap`), `agent-fix.yml`(게이트 뒤·시도 라벨 전,
+  실패면 "소스 위치 해석 실패" 댓글·`agent:queued` 제거·에이전트 미실행), `merge-gate.mjs` HUMAN에 `resolve-stack.ts`.
 
 ---
 
@@ -154,7 +158,8 @@ description: "Task list for 002-auto-bugfix-loop"
 
 ## Phase 8: Polish
 
-- [ ] T043 [P] `tests/worker/privacy-audit-bugs.test.ts`: 버그 테이블·가짜 GitHub 이슈 본문에 개인정보 형식 0건(SC-003)
+- [x] T043 [P] `tests/worker/privacy-audit-bugs.test.ts`: 버그 테이블·가짜 GitHub 이슈 본문에 개인정보 형식 0건(SC-003)
+  한 일: 클라이언트 리포트(3회, gated)·서버 오류·Cron 생성·갱신·사용자 신고·관리자 이슈화 뒤 D1 버그 테이블과 GitHub로 보낸 모든 본문 검사, 신고 원문 표식이 GitHub에 없음. 누출 0건(가림을 끄면 실패하는 것 확인). 패턴은 `rooms-helpers.ts`의 `PII`로 공유
 - [x] T044 README에 운영 설정(브랜치 Ruleset, Secrets, 라벨 동기화)과 판례 링크. quickstart의 없는 `npm run labels:sync`를 `labels-sync` 수동 실행으로 고침
 
 ## Dependencies
