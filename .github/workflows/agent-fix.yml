@@ -75,6 +75,8 @@ jobs:
         uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # agent-queue dispatches with GITHUB_TOKEN; without this the action refuses every queued run (#71, first real run).
+          allowed_bots: github-actions,github-actions[bot]
           branch_prefix: agent/
           prompt: |
             Repository: ${{ github.repository }}. Work on issue #${{ steps.gate.outputs.issue }}.

@@ -27,6 +27,8 @@ export function tallyMistakes({
     .map((id): TallyAction => (issues[id] ? { id, action: 'comment', issue: issues[id].number } : { id, action: 'open' }));
 }
 
+// Only a tag that ends the comment counts (pr-review skill): a review that quotes the syntax mid-text must not count.
 export function mistakeTags(text: string): string[] {
-  return [...new Set([...text.matchAll(/\[mistake:([a-z0-9-]+)\]/g)].map((m) => m[1]))];
+  const id = /(?:^|[^`])\[mistake:([a-z0-9-]+)\]\s*$/.exec(text)?.[1];
+  return id ? [id] : [];
 }

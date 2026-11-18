@@ -90,6 +90,9 @@ description: "Task list for 002-auto-bugfix-loop"
 - [x] T023 [US4] `src/core/mistake-tally.ts`, `scripts/mistake-tally.mjs`(GitHub API 목록으로 이벤트 수집, 검색은 색인 지연이 있어 쓰지 않음). 리뷰 태그는 쓰기 권한자·`claude[bot]` 것만. 테스트 `tests/scripts/mistake-tally.test.ts`(가짜 gh). `yaml` 의존성 없이 정해진 형식을 정규식으로 읽음
 - [x] T024 [US4] `.claude/skills/guardrail/SKILL.md`: 구조 > 타입 > 린트 > 테스트 > 문서, 원인 커밋에서 실패 출력 첨부, 대체된 문서 문장 삭제. agent-fix가 `kind:` 라벨로 스킬을 고르고 PR에 `cause:` 대신 `kind:` 라벨(`scripts/agent-gate.mjs`), pr-review 스킬은 차단 지적에 `[mistake:<id>]`
 - [x] T025 [US4] `.github/workflows/mistake-tally.yml`: PR 머지·리뷰 댓글 이벤트 → 2회 이상이고 그 분류의 장치 이슈가 없으면 `kind:guardrail`+`agent:run`+`agent:queued` 이슈 → agent-queue가 agent-fix 실행(직접 dispatch는 대기 중 취소될 수 있어 대기열로, #64 리뷰. 집계 실행은 `concurrency`로 하나씩, #59 리뷰: 동시 기록 대응). **실제 실행(B13)**: 머지 뒤 확인
+  첫 실제 실행(2026-11-17, #64 머지): mistake-tally가 성공해 `[guardrail] skip-test` #71을 열었으나 **오탐**이었다. #59·#64 리뷰 댓글이 태그 문법을 예시로
+  인용한 것을 셌다 → 댓글 끝의 태그만 세게 고침. 또 agent-queue가 넣은 agent-fix 실행이 `claude-code-action`의 봇 실행 거부로 2회 실패해
+  `agent:needs-human`이 됐다 → `allowed_bots`에 `github-actions` 추가. 둘 다 이 수정 PR에서 고치고, 머지 뒤 #71 정리와 doc-garden 수동 실행(B14)을 이어 한다.
 
 ---
 
