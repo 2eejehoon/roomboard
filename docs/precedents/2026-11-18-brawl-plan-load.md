@@ -3,7 +3,7 @@
 - 날짜: 2026-11-18
 - 대상: specs/004-knockback-brawl/spec.md SC-006(열린 질문 해소)·FR-037, plan.md, research.md R1·R2·R3·R6·R11
 - 출처: 004 plan PR(`/speckit-plan`), 측정 `tests/bench/brawl-load`
-- 대체한 판례: 없음
+- 대체한 판례: 2026-11-18-knockback-brawl-spec(FR-037 문구: "저장하지 않는다"를 "영구 저장 없음, 사람이 있는 동안만"으로. 결정은 같음)
 
 ## 결정
 

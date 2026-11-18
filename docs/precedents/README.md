@@ -58,7 +58,7 @@
 | [2026-11-17-user-bug-reports](2026-11-17-user-bug-reports.md) | 사용자 버그 신고: 식별자만 가림, 신고 한도 공유, 30일 삭제는 5분 Cron | 유효 |
 | [2026-11-17-bug-report-dialog](2026-11-17-bug-report-dialog.md) | 버그 신고 화면: 방 머리 영역 버튼, 최근 지문은 클라이언트가 계산, 이슈화 E2E는 응답을 대신함 | 유효 |
 | [2026-11-18-mistake-tag-at-end](2026-11-18-mistake-tag-at-end.md) | 리뷰 실수 태그는 댓글 끝의 것만 센다, 대기열 실행은 봇 허용 | 유효 |
-| [2026-11-18-knockback-brawl-spec](2026-11-18-knockback-brawl-spec.md) | 004는 넉백 난투 스펙: 방 옆 경기장, 경기장 저장 안 함, 목숨제, 2D는 옆에서 본 그림 | 유효 |
+| [2026-11-18-knockback-brawl-spec](2026-11-18-knockback-brawl-spec.md) | 004는 넉백 난투 스펙: 방 옆 경기장, 경기장 저장 안 함, 목숨제, 2D는 옆에서 본 그림 | 일부 대체됨(FR-037 문구) |
 | [2026-11-18-brawl-plan-load](2026-11-18-brawl-plan-load.md) | 004 plan: 한 판 상한 20명(측정), 사건 방식 서버, 같은 궤적 함수, 잠들기 대비 DO 저장소 | 유효 |
 
 ## 판례 쓰는 법
