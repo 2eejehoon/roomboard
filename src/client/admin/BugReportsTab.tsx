@@ -46,9 +46,9 @@ export function BugReportsTab({ call }: { call: AdminCall }) {
     const res = await call(path, method, body);
     busy.current = false;
     if (!res) return;
-    // Only an unreached server or a GitHub failure (502) can go through on a resend. Anything else (404: another tab or the
-    // 30-day Cron already handled it) reloads the list, so the stale row goes (PR #70 review).
-    if (!(res instanceof Response) && (res.status === undefined || res.status === 502)) return setRetry(() => () => void act(path, method, body));
+    // 404: another tab or the 30-day Cron already handled it, so reload and the stale row goes (PR #70 review). Any other
+    // failure keeps the retry (PR #73 review).
+    if (!(res instanceof Response) && res.status !== 404) return setRetry(() => () => void act(path, method, body));
     if (res instanceof Response && method === 'POST') setIssued(((await res.json()) as { issueNumber: number }).issueNumber);
     setAttempt((n) => n + 1);
   };
