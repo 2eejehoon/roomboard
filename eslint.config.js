@@ -7,6 +7,7 @@ import tseslint from 'typescript-eslint';
 const CORE = 'src/core is pure room-state logic (constitution IV): move this to src/client or src/worker and pass data in.';
 const I18N = "Use t('key') from src/client/i18n instead of hard-coded UI text (constitution: i18n).";
 const KOREAN = '/[\\u3131-\\u318E\\uAC00-\\uD7A3]/';
+const TUNING = '수치는 TUNING(src/core/brawl/tuning.ts)에 항목으로 두고 tuning.<키>로 읽으세요(FR-030, research R7).';
 
 export default tseslint.config(
   { ignores: ['node_modules', 'dist', '.wrangler', 'worker-configuration.d.ts', 'test-results', 'playwright-report'] },
@@ -21,6 +22,14 @@ export default tseslint.config(
         { patterns: [{ group: ['react', 'react-*', 'three', '@react-three/*', 'ecctrl', 'ecctrl/*', 'hono', 'hono/*', 'cloudflare:*'], message: CORE }] },
       ],
       'no-restricted-globals': ['error', ...['window', 'document', 'navigator', 'localStorage', 'sessionStorage', 'location', 'fetch'].map((name) => ({ name, message: CORE }))],
+    },
+  },
+  {
+    // Brawl numbers live in one tuning table (004 R7, SC-005); only 0, 1, 2 (and -1 as unary minus) are allowed here.
+    files: ['src/core/brawl/**'],
+    ignores: ['src/core/brawl/tuning.ts'],
+    rules: {
+      'no-restricted-syntax': ['error', { selector: 'Literal[raw=/^[.0-9]/]:not([raw=/^[012]$/])', message: TUNING }],
     },
   },
   {
