@@ -31,7 +31,8 @@ const clients = await Promise.all(
       const m = JSON.parse(data);
       if (m.t === 'you') c.peerId = m.peerId;
       if (m.t === 'knocked_out' || m.t === 'landed' || m.t === 'correction') {
-        if (m.peerId === undefined || m.peerId === c.peerId) c.p = m.p;
+        // Walk on from where the server put us, or the next move fails the speed check forever.
+        if (m.peerId === undefined || m.peerId === c.peerId) [c.p, c.home] = [m.p, [m.p[0], m.p[2]]];
       }
       const s = (m.t === 'skill' || m.t === 'skill_result') && sent.get(m.id);
       if (!s) return;
