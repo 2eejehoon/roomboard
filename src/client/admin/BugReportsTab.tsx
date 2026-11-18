@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LOCALE, t } from '../i18n/t.ts';
 import { Loading, NetworkError } from '../Status.tsx';
 
-type Fail = { kind: 'network' };
+type Fail = { kind: 'network'; status?: number };
 export type AdminCall = (path: string, method?: string, body?: unknown) => Promise<Response | Fail | null>;
 type Context = { view?: string; themeId?: string; connection?: string; appVersion?: string; browser?: string; recentFingerprints?: string[] };
 type BugReport = { id: number; text: string; context: Context; createdAt: number; expiresAt: number };
@@ -45,8 +45,11 @@ export function BugReportsTab({ call }: { call: AdminCall }) {
     setIssued(null);
     const res = await call(path, method, body);
     busy.current = false;
-    if (!(res instanceof Response)) return res && setRetry(() => () => void act(path, method, body));
-    if (method === 'POST') setIssued(((await res.json()) as { issueNumber: number }).issueNumber);
+    if (!res) return;
+    // Only an unreached server or a GitHub failure (502) can go through on a resend. Anything else (404: another tab or the
+    // 30-day Cron already handled it) reloads the list, so the stale row goes (PR #70 review).
+    if (!(res instanceof Response) && (res.status === undefined || res.status === 502)) return setRetry(() => () => void act(path, method, body));
+    if (res instanceof Response && method === 'POST') setIssued(((await res.json()) as { issueNumber: number }).issueNumber);
     setAttempt((n) => n + 1);
   };
 

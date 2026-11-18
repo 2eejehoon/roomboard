@@ -27,7 +27,7 @@ type Report = {
   createdAt: number;
   reportCount: number;
 };
-type Fail = { kind: 'network' };
+type Fail = { kind: 'network'; status?: number };
 type Load = { kind: 'loading' } | Fail | { kind: 'ok'; items: Report[]; nextCursor: string | null };
 
 // sessionStorage can throw (blocked storage); then the token lives as long as the page.
@@ -129,7 +129,7 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
           if (res.ok || res.status === 410) return res;
           if (res.status === 401) return (onUnauthorized(), null);
           if (res.status === 429) return (onUnauthorized(((await res.json().catch(() => ({}))) as { retryAfterMs?: number }).retryAfterMs ?? 60_000), null);
-          return { kind: 'network' } as const;
+          return { kind: 'network', status: res.status } as const;
         },
         () => ({ kind: 'network' }) as const,
       ),
