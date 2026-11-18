@@ -132,6 +132,7 @@
   - 결과: T016 통과. 메시지·alarm 결과가 이름을 부르는 사람(`swing.hits`, `landed`·`knocked_out`·`respawned`)의 attachment를 다시 쓴다.
 - [ ] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
   보냄(R2), 경직으로 거부되면 버림. 때린 사람 화면은 서버를 기다리지 않고 이펙트를 먼저 보여 주고 `nonce`로 `swing`과 맞춰 보정(FR-032).
+  - 실패 확인: `src/client/brawl/input.ts`가 없어 모듈을 찾지 못함(`tests/client/brawl-input.test.ts`).
 - [ ] T024 [US1] `src/client/room/room3d/`: 경기장 섬(기본 블록, instanced mesh + Rapier 고정 콜라이더), 입구·출구·경계 표시(FR-014, 색은 `LOOKS.arena`), 날아가는 아바타를 store 궤적으로 그림,
   머리 위 % 숫자, `TouchControls.tsx`에 기술·방어·구르기 버튼(44×44px 이상, FR-035).
 - [ ] T025 [US1] `src/client/brawl/looks.ts`: `LOOKS`의 `blocks`·`arena` 항목(US2가 나머지를 채움). 화면 코드는 색·모델 경로를 `LOOKS`로만 읽는다.
