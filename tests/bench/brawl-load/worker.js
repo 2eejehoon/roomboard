@@ -89,6 +89,8 @@ export class BenchRoom extends DurableObject {
     const msg = parsed.data;
     const now = Date.now();
     this.due(now);
+    // room-do.ts onMessage() rewrites the sender's attachment on every message; the brawl adds fighter state to it.
+    ws.serializeAttachment(this.attachment(me));
     if (msg.t === 'move') {
       if (now < me.flyUntil) return; // the server owns the pose while flying
       const dist = Math.hypot(msg.p[0] - me.p[0], msg.p[1] - me.p[1], msg.p[2] - me.p[2]);
@@ -96,6 +98,7 @@ export class BenchRoom extends DurableObject {
       me.p = msg.p; me.r = msg.r; me.lastMoveAt = now;
       return this.deliver(this.others(me).map((o) => [o, { t: 'peer_moved', peerId: me.peerId, p: me.p, r: me.r, a: msg.a }]));
     }
+    await this.persist(now);
     if (msg.t === 'skill') return this.skill(me, msg, now);
   }
 
@@ -118,6 +121,7 @@ export class BenchRoom extends DurableObject {
       o.flyUntil = end.t;
       o.end = end;
       next = Math.min(next, end.t);
+      o.ws.serializeAttachment(this.attachment(o)); // research R6: fighter state lives in the attachment
       hits.push({ peerId: o.peerId, dmg: o.dmg, hitstop, segs, end: end.kind });
     }
     const out = this.others(me).map((o) => [o, { t: 'skill', id: msg.id, peerId: me.peerId, k: msg.k, hits }]);
@@ -142,6 +146,18 @@ export class BenchRoom extends DurableObject {
 
   async alarm() {
     this.due(Date.now());
+  }
+
+  attachment(o) {
+    return { peerId: o.peerId, ch: o.ch, p: o.p, r: o.r, fighter: { damage: o.dmg, cool: o.cool, flyUntil: o.flyUntil, end: o.end ?? null } };
+  }
+
+  // research R6: arena:<channel> is written at most every 2 s (blocks) and at once for match events; here every 2 s per channel.
+  async persist(now) {
+    if (now - (this.persistedAt ?? 0) < 2000) return;
+    this.persistedAt = now;
+    const chans = new Set([...this.peers.values()].map((o) => o.ch));
+    for (const ch of chans) await this.ctx.storage.put(`arena:${ch}`, { blocks: [...this.grid.subarray(0, 2048)], match: { stocks: [...this.peers.values()].filter((o) => o.ch === ch).map((o) => [o.peerId, 3]) } });
   }
 
   // As room-do.ts deliver(): one stringify and one send per recipient.
