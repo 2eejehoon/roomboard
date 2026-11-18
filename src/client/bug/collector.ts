@@ -2,7 +2,7 @@
 // that misses the schema or 4KB without saying so, so this side redacts, cuts and fits before sending.
 import type { z } from 'zod';
 import type { clientErrorReport } from '../../core/api-schemas.ts';
-import { fileName, parseStack } from '../../core/fingerprint.ts';
+import { fileName, fingerprint, parseStack } from '../../core/fingerprint.ts';
 import { RateBucket } from '../../core/rate-bucket.ts';
 import { redact } from '../../core/redact.ts';
 import type { View } from '../device.ts';
@@ -43,6 +43,12 @@ export const setRoomView = (view: View | null) => {
   roomView = view;
 };
 
+let recent: string[] = [];
+/** US3: fingerprints of the last 5 distinct reports sent, newest first, for the user's bug report context. The Worker computes the
+ * same one for frames in the deployed build: it keeps those file names and redacts nothing a clipped report still has. */
+export const recentFingerprints = () => recent;
+const sha256 = (text: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+
 const bucket = new RateBucket({ capacity: 10, windowMs: 60_000 }); // per tab, same count as the Worker's per-IP limit
 
 export function reportError(err: unknown, now = Date.now()): void {
@@ -50,7 +56,9 @@ export function reportError(err: unknown, now = Date.now()): void {
   if (!(err instanceof Error) || !bucket.take(now).ok) return;
   try {
     const view = location.pathname === '/admin' ? 'admin' : (roomView ?? 'board');
-    const body = JSON.stringify(toReport(err, view, navigator.userAgent));
+    const report = toReport(err, view, navigator.userAgent);
+    const body = JSON.stringify(report);
+    fingerprint(report.errorName, report.frames, sha256).then((fp) => void (recent = [fp, ...recent.filter((f) => f !== fp)].slice(0, 5)), () => {});
     // A failed send must not become another unhandled rejection.
     fetch('/api/bug-reports', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true }).catch(() => {});
   } catch {
