@@ -41,11 +41,13 @@ npx playwright test tests/e2e/us*-brawl*.spec.ts
 ```bash
 npx wrangler dev -c tests/bench/brawl-load/wrangler.jsonc --port 8787 --ip 127.0.0.1 &
 for n in 2 4 8 12 20; do node tests/bench/brawl-load/clients.mjs $n 20; done
+for n in 12 20; do SPREAD=1 node tests/bench/brawl-load/clients.mjs $n 20; done   # 가장 무거운 배치
 ```
 
 - 끝나면 `rm -rf tests/bench/brawl-load/.wrangler`(wrangler가 만든 번들, 린트가 읽는다).
 - 합격: N=20에서 마지막 상대 도착 p95 ≤ 50ms, p99 ≤ 100ms, 클라이언트당 ≤ 50KB/s.
-- 구현 뒤에는 같은 시나리오를 실제 서버와 PR 미리보기 배포에 대해 다시 잰다(tasks에서 정한다).
+- 구현 뒤에는 같은 시나리오를 실제 서버와 PR 미리보기 배포에 대해 다시 잰다. SC-002는 Playwright 모바일 페이지 1개 + 가짜 클라이언트 19명으로
+  입력 → 이펙트 0.1초를 잰다(둘 다 tasks에서 정한다).
 
 ## 5. 사람이 보는 확인
 

@@ -9,7 +9,7 @@
 방 옆에 블록 섬 경기장을 두고, 맨손 기술로 서로를 날려 떨어뜨리는 놀이를 001의 방 DO 위에 더한다. 판정은 방 DO 하나가 하고
 (FR-031), 넉백은 시작점·속도·세기만 보내 서버와 모든 화면이 같은 순수 함수로 궤적을 계산한다(research R3). 서버는 tick 없이
 메시지를 받을 때 판정하고, 궤적의 다음 사건 시각에 alarm을 건다(R2). 가짜 클라이언트 측정(R1)에서 20명이 한 채널에서 계속
-기술을 써도 서버가 더하는 지연 p95 약 30ms라 한 판의 상한은 채널 정원과 같은 20명이다. 모든 수치는 `TUNING` 한 곳, 보이는 모습은
+기술을 써도(가장 무거운 배치) 서버가 더하는 지연 p95 약 40ms라 한 판의 상한은 채널 정원과 같은 20명이다. 모든 수치는 `TUNING` 한 곳, 보이는 모습은
 `LOOKS` 한 곳에서 읽는다(R7).
 
 ## Technical Context
@@ -27,7 +27,7 @@
 
 **Project Type**: web (Vite SPA + Cloudflare Worker)
 
-**Performance Goals**: SC-002(입력 → 내 화면 이펙트 0.1초, 미리 보이기로), 서버 몫 지연 p95 ≤ 50ms·p99 ≤ 100ms(N=20, R1), 클라이언트당 내려받기 ≤ 50KB/s
+**Performance Goals**: SC-002(입력 → 내 화면 이펙트 0.1초, 미리 보이기로, 20명 방의 휴대폰에서 따로 잼), 서버 몫 지연 p95 ≤ 50ms·p99 ≤ 100ms(N=20, R1), 클라이언트당 내려받기 ≤ 50KB/s
 
 **Constraints**: 001 SC-001(4G 10초) 유지(SC-007), 경기장 그림은 CC0·첫 로딩 에셋 상한 안, 메시지 2KB(클라이언트 → 서버), i18n 키, 2D 대체 화면
 
@@ -48,7 +48,7 @@
 | VII. 에이전트 안전 경계 | 해당 없음 | 워크플로 변경 없음. 린트 설정을 바꾸는 구현 PR은 운영자 머지(merge-gate) |
 | 제품 제약 | 통과 | 스택 변경 없음. 경기장은 사용자 콘텐츠라 방 신고 + 관리자 되돌리기 + 블록 요청 제한(FR-040, R9·R10). 욕설 필터는 블록에 맞지 않아 두지 않음(spec 판례) |
 
-Phase 1 뒤 다시 봄: 위반 없음. DO 저장소 사용은 FR-037의 "저장하지 않는다"(채널이 비면 사라짐)를 잠들기에도 지키기 위한 것이다(R6).
+Phase 1 뒤 다시 봄: 위반 없음. DO 저장소는 채널이 비면 지우는 잠들기 대비 메모리다(FR-037을 이 PR에서 그렇게 고침, R6).
 
 ## Project Structure
 
@@ -75,7 +75,7 @@ src/core/brawl/arena.ts      # 기본 경기장, 칸 차이, 앞 칸 규칙, 입
 src/core/brawl/fighter.ts    # 기술·방어·구르기·공중 동작 허용과 상태 (FR-007~012, 029, 034)
 src/core/brawl/match.ts      # 떨어뜨리기 시작·탈락·순위 (FR-025~027)
 src/core/brawl/brawl-session.ts  # 채널 하나의 난투: 메시지 → Outbox, 사건 시각 목록
-src/core/protocol.ts         # v2 메시지 (contracts/websocket.md)
+src/core/protocol.ts         # v2 메시지 (contracts/websocket.md). 001 websocket.md의 welcome 예시(v: 1)도 같은 PR에서 고친다
 src/core/room-session.ts     # 난투 메시지를 채널의 BrawlSession으로, move에 입구·출구·날아가는 중 처리
 src/core/movement.ts         # 테마 범위 또는 경기장 범위
 src/core/themes.ts           # 테마마다 경기장 입구 칸
@@ -91,7 +91,7 @@ public/assets/               # CC0 블록·효과음(있으면), CREDITS.md
 tests/core/brawl/            # 공식·궤적·경기장·Fighter·판 단위 테스트
 tests/worker/brawl*.test.ts  # 방 DO 난투·되돌리기
 tests/e2e/us*-brawl*.spec.ts # 브라우저 2~3개
-tests/bench/brawl-load/      # 부하 측정(R1)
+tests/bench/brawl-load/      # 부하 측정(R1). 구현 뒤 실제 서버용 시나리오와 모바일 SC-002 측정을 더한다
 ```
 
 **Structure Decision**: 001 구조를 그대로 쓴다. 난투 규칙은 `src/core/brawl/`에 모으고, `RoomSession`이 채널마다 `BrawlSession`을 갖는다.

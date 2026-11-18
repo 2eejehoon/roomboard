@@ -1,7 +1,7 @@
 # Data Model: 넉백 난투
 
 새 D1 테이블·컬럼은 없다(FR-037). 상태는 세 곳에만 있다: **코드 상수**(조정표, 기본 경기장, 모습 목록),
-**방 DO 메모리 + 소켓 attachment**(경기 참가자 상태), **DO 저장소 `arena:<채널>`**(지은 블록과 진행 중인 판, 채널이 비면 지움, research R6).
+**방 DO 메모리 + 소켓 attachment**(경기 참가자 상태), **DO 저장소 `arena:<채널>`**(지은 블록과 진행 중인 판, 채널이 비면 지움, 블록은 2초에 한 번 씀, research R6).
 개인정보는 없다. 참가자는 001처럼 `peerId`와 랜덤 닉네임으로만 보인다.
 
 ## 조정표 `TUNING` (`src/core/brawl/tuning.ts`, FR-030)
@@ -11,6 +11,7 @@ spec의 이름 ↔ 코드 키. 값은 spec과 research R12의 초기값이다. �
 | spec 이름 | 키 | 초기값 |
 |---|---|---|
 | 기술 표(피해·기본 넉백·넉백 성장·각도) | `skills.{jab1, jab2, jab3, smash, throw}.{damage, base, growth, angleDeg}` | spec "맨손 기술" 표. 강펀치 `damage`는 `[12, 22]` |
+| 던지기 위쪽 각도 | `skills.throw.angleDeg` | 45(R12) |
 | 닿는 거리, 다시 쓰기 시간 (FR-012) | `skills.*.reach`, `skills.*.cooldownMs`, `reachSlack` | R12 |
 | 몸무게 | `weight` | 100 |
 | 경직 계수 | `hitstunPerStrength` | 0.04 s |
