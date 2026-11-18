@@ -96,6 +96,8 @@ export class BenchRoom extends DurableObject {
     ws.serializeAttachment(this.attachment(me));
     if (msg.t === 'move') {
       if (now < me.flyUntil) return; // the server owns the pose while flying
+      // The first move places the client (a stand-in for welcome's spawn); later ones are speed-checked.
+      if (!me.placed) [me.placed, me.p, me.lastMoveAt] = [true, msg.p, now];
       const dist = Math.hypot(msg.p[0] - me.p[0], msg.p[1] - me.p[1], msg.p[2] - me.p[2]);
       if (dist > (8 * Math.max(0, now - me.lastMoveAt)) / 1000 + 0.5) return this.deliver([[me, { t: 'correction', p: me.p, r: me.r }]]);
       me.p = msg.p; me.r = msg.r; me.lastMoveAt = now;

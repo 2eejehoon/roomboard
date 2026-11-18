@@ -72,7 +72,7 @@ Cell = [x, y, z]             // 정수 칸 좌표
 | guarding, guardPressedAt | 방어 누르는 중인지, 마지막 누른 시각(낙법) |
 | inputDir | 마지막 `move.d`(방향 틀기·던지기 방향) |
 | airJumps, airRecovers | 남은 공중 점프·복귀기. 착지 때 다시 참 |
-| flight | 지금 궤적 `Launch` 또는 null. null이 아니면 서버가 위치의 주인. 경직이 풀렸으면 날아가는 중에도 기술·구르기를 쓴다. 구르기는 궤적을 그 자리에서 끝낸다(research R2) |
+| flight | 지금 궤적 `Launch` 또는 null. null이 아니면 서버가 위치의 주인. 경직이 풀렸으면 날아가는 중에도 기술·구르기를 쓴다. 날아가는 중의 구르기는 무적만 주고 궤적은 이어진다(research R2) |
 | knockedOutAt | 넉아웃 시각, 재시작 전까지. 탈락이면 `eliminated: true` |
 
 - 상태 전이: `서 있음` →(맞음)→ `타격 정지` →(정지 끝)→ `날아감(flight)`(공중, 또는 0°로 땅에서 시작하면 윗면 미끄러짐) →(내려앉음·미끄러짐 멈춤 = 착지)→ `서 있음`(경직 남으면 경직) /
