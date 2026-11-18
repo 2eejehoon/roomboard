@@ -155,7 +155,7 @@ description: "Task list for 002-auto-bugfix-loop"
 ## Phase 8: Polish
 
 - [ ] T043 [P] `tests/worker/privacy-audit-bugs.test.ts`: 버그 테이블·가짜 GitHub 이슈 본문에 개인정보 형식 0건(SC-003)
-- [ ] T044 README에 운영 설정(브랜치 Ruleset, Secrets, 라벨 동기화)과 판례 링크
+- [x] T044 README에 운영 설정(브랜치 Ruleset, Secrets, 라벨 동기화)과 판례 링크. quickstart의 없는 `npm run labels:sync`를 `labels-sync` 수동 실행으로 고침
 
 ## Dependencies
 
