@@ -1,7 +1,7 @@
 # 004는 넉백 난투 스펙: 방 옆 경기장, 경기장 저장 안 함, 목숨제, 2D는 옆에서 본 그림
 
 - 날짜: 2026-11-18
-- 대상: specs/004-knockback-brawl/spec.md FR-006·FR-013·FR-014·FR-015a·FR-016·FR-017·FR-018·FR-020·FR-024·FR-025·FR-025a·FR-026·FR-027·FR-028·FR-029·FR-030a·FR-032·FR-033·FR-037·FR-040, SC-006
+- 대상: specs/004-knockback-brawl/spec.md FR-003·FR-006·FR-010·FR-013·FR-014·FR-015a·FR-016·FR-017·FR-018·FR-019·FR-020·FR-024·FR-025·FR-025a·FR-026·FR-027·FR-028·FR-029·FR-030a·FR-032·FR-033·FR-034·FR-037·FR-040, SC-006
 - 출처: 운영자와 합의한 설계 입력(2026-11-18, 세션 대화), `/speckit-clarify` 질문 4개
 - 대체한 판례: 2026-11-12-enhancement-spec(004 범위)
 
