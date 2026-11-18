@@ -13,7 +13,7 @@ spec의 이름 ↔ 코드 키. 값은 spec과 research R12의 초기값이다. �
 | 기술 표(피해·기본 넉백·넉백 성장·각도) | `skills.{jab1, jab2, jab3, smash, throw}.{damage, base, growth, angleDeg}` | spec "맨손 기술" 표. 강펀치 `damage`는 `[12, 22]` |
 | 던지기 위쪽 각도 | `skills.throw.angleDeg` | 45(R12) |
 | 닿는 거리, 다시 쓰기 시간 (FR-012) | `skills.*.reach`, `skills.*.cooldownMs`, `reachSlack` | R12(잽 1.2 m·350 ms, 강펀치 1.4 m·800 ms, 던지기 1.0 m·600 ms, 여유 0.3 m) |
-| 몸무게 | `weight` | 100 |
+| 몸무게, 몸무게 기준(FR-002의 100) | `weight`, `weightBase` | 100, 100 |
 | 경직 계수, 경직 상한 | `hitstunMsPerStrength`, `hitstunMaxMs` | 40 ms, 300 ms |
 | 방어 감소율·각도 | `guard.reduction`, `guard.arcDeg` | 0.8, 120 |
 | 구르기 시간·기력 | `roll.invulnMs`, `roll.stamina` | 300, 15 |
@@ -72,7 +72,7 @@ Cell = [x, y, z]             // 정수 칸 좌표
 | stamina | 0~max, `staminaAt` 시각부터 초당 회복을 계산(저장은 값과 시각만) |
 | stunUntil | 경직 끝 시각. 이 전에는 기술·방어·구르기·공중 동작 거부(방어 누름은 낙법 판정용으로 기록) |
 | invulnUntil | 구르기 무적 끝 시각 |
-| cooldownUntil | 기술별 다시 쓸 수 있는 시각 = 타격 시각 + 때린 사람의 타격 정지(맞은 사람들 중 최댓값, 헛스윙이면 0) + 다시 쓰기 시간(FR-012). `swing.readyAt`으로 보낸다 |
+| cooldownUntil | 다음 기술을 쓸 수 있는 시각(기술 셋이 함께 씀) = 타격 시각 + 때린 사람의 타격 정지(맞은 사람들 중 최댓값, 헛스윙이면 0) + 다시 쓰기 시간(FR-012). `swing.readyAt`으로 보낸다 |
 | jabStep, jabAt | 잽 연타 단계(1~3)와 마지막 잽 시각 |
 | holdAt | 강펀치 모으기 시작 시각(`hold` 수신), 없으면 null |
 | guarding, guardPressedAt | 방어 누르는 중인지, 마지막 누른 시각(낙법) |
@@ -84,6 +84,8 @@ Cell = [x, y, z]             // 정수 칸 좌표
 - 상태 전이: `서 있음` →(맞음)→ `타격 정지` →(정지 끝)→ `날아감(flight)`(공중, 또는 0°로 땅에서 시작하면 윗면 미끄러짐) →(내려앉음·미끄러짐 멈춤 = 착지)→ `서 있음`(경직 남으면 경직) /
   →(벽)→ 튕김·뚫림이면 새 `flight`, 낙법이면 `서 있음`(경직 끝) / →(koY 아래)→ `넉아웃` →(respawnMs)→ `서 있음` 또는 `탈락`.
 - 경기장 밖(평화 구역)에 있으면 fighter는 공격·피격 대상이 아니다(FR-013).
+- 맞는 사람: 닿는 거리 + `reachSlack` 안이고 때린 사람이 보는 방향의 앞쪽 반(보는 방향 `[sin r, 0, cos r]`과의 내적 ≥ 0)에 있는 사람. 잽·강펀치는 모두, 던지기는 가장 가까운 한 명.
+  정면 방어는 맞는 사람이 보는 방향에서 때린 사람 쪽까지의 각도가 `guard.arcDeg`의 절반 이하일 때다.
 
 ## 넉백 Launch (`src/core/brawl/flight.ts`)
 
@@ -94,8 +96,9 @@ FlightEnd { kind: 'land' | 'wall' | 'ko', t: number, p: Vec3, cell?: Cell }
 
 - `t`는 타격 시각 + 타격 정지(FR-020). `v` = 방향 단위 벡터(방향 틀기 반영) × s × speedPerStrength, 소수 3자리로 반올림(research R3).
 - `s`는 그 궤적의 시작 세기. 뚫림 기준·벽 추가 피해·반발은 이 값으로(FR-019). 튕김의 새 `s` = s × wall.bounce.
-- 계산 순서(FR-002·FR-010): 방어 중 정면이면 피해 × (1 − 0.8) → damage에 더함(상한 999) → s = base + damage × growth × (100/weight)
-  → 방어면 s × (1 − 0.8). 경직(ms, 타격 시각부터) = max(타격 정지, min(hitstunMaxMs, s × hitstunMsPerStrength)). 타격 정지 = 마무리면 maxMs, 아니면 min(maxMs, minMs + s × msPerStrength).
+- 계산 순서(FR-002·FR-010): 방어 중 정면이면 피해 × (1 − 0.8) → damage에 더함(상한 999) → s = base + damage × growth × (weightBase/weight)
+  → 방어면 s × (1 − 0.8). s는 더한 값 그대로 쓰고, 저장하는 damage는 정수로 반올림한다(0%에서 방어한 잽: 0.6%로 s = 0.212, 저장은 1%).
+  타격 정지·경직은 ms 정수로 반올림한다. 경직(ms, 타격 시각부터) = max(타격 정지, min(hitstunMaxMs, s × hitstunMsPerStrength)). 타격 정지 = 마무리면 maxMs, 아니면 min(maxMs, minMs + s × msPerStrength).
 
 ## 판 Match (`src/core/brawl/match.ts`, 저장소 `arena:<채널>`의 `match`)
 
