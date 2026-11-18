@@ -64,7 +64,7 @@ export function BugReportDialog({ context, onClose }: { context: Pick<Context, '
         <Stack gap={4}>
           {result?.kind === 'rateLimited' && <RateLimited retryAfterMs={result.retryAfterMs} />}
           {result?.kind === 'turnstile' && <p role="alert">{t('create.turnstileFailed')}</p>}
-          {result?.kind === 'network' && <NetworkError onRetry={() => setResult(null)} />}
+          {result?.kind === 'network' && <NetworkError onRetry={() => (setResult(null), setWidget((n) => n + 1))} />}
           <TextArea
             label={t('bug.text')}
             description={`${t('bug.note')} · ${t('create.remaining', { n: 1000 - text.length })}`}

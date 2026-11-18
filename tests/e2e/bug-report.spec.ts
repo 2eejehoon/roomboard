@@ -68,3 +68,16 @@ test('the 3D room has the same bug report, sending view 3d; a limit answer says 
   await expect(dialog.getByRole('alert')).toBeVisible();
   expect(context).toMatchObject({ view: '3d', themeId: expect.any(String), connection: 'open' });
 });
+
+test('a Turnstile script that failed to load loads again on retry (PR #70 review)', async ({ browser }) => {
+  const page = await withoutWebGL(await newPage(browser));
+  await page.route('https://challenges.cloudflare.com/**', (route) => route.abort());
+  await enter(page);
+  await page.getByRole('button', { name: ko['bug.open'] }).click();
+  const dialog = page.getByRole('dialog', { name: ko['bug.open'] });
+  await expect(dialog.getByRole('alert')).toBeVisible();
+  await page.unroute('https://challenges.cloudflare.com/**');
+  await dialog.getByRole('button', { name: ko['common.retry'] }).click();
+  await dialog.getByRole('textbox', { name: ko['bug.text'] }).fill('다시 시도');
+  await expect(dialog.getByRole('button', { name: ko['report.send'] })).toBeEnabled({ timeout: 15_000 });
+});
