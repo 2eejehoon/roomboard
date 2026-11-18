@@ -35,3 +35,17 @@ npm run check:docs
 | `TURNSTILE_SITEKEY` | 미리보기 빌드의 `VITE_TURNSTILE_SITEKEY` |
 | `CLAUDE_CODE_OAUTH_TOKEN` | 수정 에이전트·PR 리뷰(`agent-fix.yml`, `pr-review.yml`) |
 | `AGENT_PR_TOKEN` | 수정 에이전트가 PR을 여는 토큰(판례 2026-11-06-agent-pr-token) |
+| `ISSUES_TOKEN` (Environment `production`) | 오류 자동 이슈용 fine-grained PAT(이 저장소, Issues 읽기·쓰기). Worker 안 이름은 `GITHUB_ISSUES_TOKEN`(GitHub가 `GITHUB_` 접두어 비밀값 이름을 거부함). 만료 30일 전에 `[ops]` 이슈가 열린다 |
+
+## 운영 설정 (자동 버그 수정 루프)
+
+자세한 값과 거는 순서는 [002 quickstart](specs/002-auto-bugfix-loop/quickstart.md) "사용자가 한 번 설정할 것"에 있다.
+
+- **브랜치 Ruleset** 두 개(Settings → Rules → Rulesets)
+  - 기본 브랜치: PR 필수(승인 0명), 필수 검사 `ci`·`test-first`·`doc-checks`·`ai-review`·`merge-gate`, force push·삭제 차단, 우회는 Repository admin.
+    Settings → General에서 "Allow auto-merge"를 켠다. `merge-gate`가 실패하는 PR(워크플로·스크립트·설정 등 허용 경로 밖)은 운영자가 머지한다.
+  - 세션 브랜치(`refs/heads/**`, 기본 브랜치·`agent/**` 제외): 갱신·생성·삭제 제한, 우회는 Repository admin. 수정 에이전트는 `agent/**`에만 push한다.
+- **Secrets**: 위 표.
+- **라벨 동기화**: `.github/labels.json`을 바꾸면 Actions에서 `labels-sync`를 수동 실행(Run workflow)한다.
+
+결정의 경위는 [판례 목록](docs/precedents/README.md)에 있다.
