@@ -130,12 +130,16 @@
     맞은 사람의 attachment 쓰기와 alarm 사건의 attachment 갱신은 T022(PR 4). `npx vitest run` 651개, typecheck·lint 통과.
 - [X] T022 [US1] `src/worker/room-do.ts`: `Fighter`를 attachment에 쓰기(보낸 사람·맞은 사람), alarm 사건 처리. T016 통과.
   - 결과: T016 통과. 메시지·alarm 결과가 이름을 부르는 사람(`swing.hits`, `landed`·`knocked_out`·`respawned`)의 attachment를 다시 쓴다.
-- [ ] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
+- [X] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
   보냄(R2), 경직으로 거부되면 버림. 때린 사람 화면은 서버를 기다리지 않고 이펙트를 먼저 보여 주고 `nonce`로 `swing`과 맞춰 보정(FR-032).
   - 실패 확인: `src/client/brawl/input.ts`가 없어 모듈을 찾지 못함(`tests/client/brawl-input.test.ts`).
-- [ ] T024 [US1] `src/client/room/room3d/`: 경기장 섬(기본 블록, instanced mesh + Rapier 고정 콜라이더), 입구·출구·경계 표시(FR-014, 색은 `LOOKS.arena`), 날아가는 아바타를 store 궤적으로 그림,
+  - 결과: 테스트 통과. 키는 J 잽·K 강펀치(누름/뗌)·L 던지기·I 방어·U 구르기, 휴대폰은 같은 id의 버튼. `move.d`는 몸이 움직이는 방향(반올림하지 않음, 길이 1 검사).
+- [X] T024 [US1] `src/client/room/room3d/`: 경기장 섬(기본 블록, instanced mesh + Rapier 고정 콜라이더), 입구·출구·경계 표시(FR-014, 색은 `LOOKS.arena`), 날아가는 아바타를 store 궤적으로 그림,
   머리 위 % 숫자, `TouchControls.tsx`에 기술·방어·구르기 버튼(44×44px 이상, FR-035).
-- [ ] T025 [US1] `src/client/brawl/looks.ts`: `LOOKS`의 `blocks`·`arena` 항목(US2가 나머지를 채움). 화면 코드는 색·모델 경로를 `LOOKS`로만 읽는다.
+  - 결과: `Arena.tsx`(블록 instanced mesh + 블록마다 고정 콜라이더, 출구·가장자리 표시), 방의 입구 칸 표시, 날아가는 나·남을 `flightPosition`으로 그림, 머리 위 %, 경기장에서만 기술 버튼(56px).
+    확인: 로컬 Playwright(데스크톱)로 두 브라우저가 입구로 들어가 J 키 잽 → 상대 % 3, 경기장 화면 캡처. us1-move의 T046 라벨 검사는 이 컨테이너의 소프트웨어 렌더링에서 main 그대로도 실패해 CI로 본다.
+- [X] T025 [US1] `src/client/brawl/looks.ts`: `LOOKS`의 `blocks`·`arena` 항목(US2가 나머지를 채움). 화면 코드는 색·모델 경로를 `LOOKS`로만 읽는다.
+  - 결과: `blocks`·`arena`와 `flight.catchUpMs`·`swing`(내 화면 먼저 보이는 이펙트, data-model에 먼저 더함). 나머지는 US2.
 - [ ] T026 [US1] `src/client/room/room2d/Room2D.tsx`(+ 새 컴포넌트 파일): 옆 그림 SVG(블록 칸, 참가자 점, 궤적 선, 내 깊이 줄은 진하게·다른 줄은 흐리게 + 깊이 차이 숫자),
   앞·뒤 깊이 줄 버튼, 보는 방향 좌·우·앞·뒤(`r` = 0, ±π/2, π), 기술·방어·구르기 버튼, `aria-live` 글 기록(누가 누구를 쳤는지, %, 넉아웃)(FR-033, R8). 문구는 i18n. T017 통과, a11y.spec 통과.
 

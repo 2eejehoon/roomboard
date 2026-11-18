@@ -119,4 +119,9 @@ export const ko = {
   'room3d.loading': '3D 불러오는 중 {n}%',
   'room3d.joystick': '이동',
   'room3d.jump': '점프',
+  'brawl.jab': '잽',
+  'brawl.smash': '강펀치',
+  'brawl.throw': '던지기',
+  'brawl.guard': '방어',
+  'brawl.roll': '구르기',
 } as const;
