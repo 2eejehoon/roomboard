@@ -14,7 +14,7 @@ spec의 이름 ↔ 코드 키. 값은 spec과 research R12의 초기값이다. �
 | 던지기 위쪽 각도 | `skills.throw.angleDeg` | 45(R12) |
 | 닿는 거리, 다시 쓰기 시간 (FR-012) | `skills.*.reach`, `skills.*.cooldownMs`, `reachSlack` | R12 |
 | 몸무게 | `weight` | 100 |
-| 경직 계수 | `hitstunPerStrength` | 0.04 s |
+| 경직 계수, 경직 상한 | `hitstunPerStrength`, `hitstunMaxMs` | 0.04 s, 300 |
 | 방어 감소율·각도 | `guard.reduction`, `guard.arcDeg` | 0.8, 120 |
 | 구르기 시간·기력 | `roll.invulnMs`, `roll.stamina` | 300, 15 |
 | 기력 최대·회복 | `stamina.max`, `stamina.perSec` | 100, 10 |
@@ -88,7 +88,7 @@ FlightEnd { kind: 'land' | 'wall' | 'ko', t: number, p: Vec3, cell?: Cell }
 - `t`는 타격 시각 + 타격 정지(FR-020). `v` = 방향 단위 벡터(방향 틀기 반영) × s × speedPerStrength, 소수 3자리로 반올림(research R3).
 - `s`는 그 궤적의 시작 세기. 뚫림 기준·벽 추가 피해·반발은 이 값으로(FR-019). 튕김의 새 `s` = s × wall.bounce.
 - 계산 순서(FR-002·FR-010): 방어 중 정면이면 피해 × (1 − 0.8) → damage에 더함(상한 999) → s = base + damage × growth × (100/weight)
-  → 방어면 s × (1 − 0.8). 경직 = s × hitstunPerStrength. 타격 정지 = 마무리면 maxMs, 아니면 min(maxMs, minMs + s × msPerStrength).
+  → 방어면 s × (1 − 0.8). 경직 = min(hitstunMaxMs, s × hitstunPerStrength). 타격 정지 = 마무리면 maxMs, 아니면 min(maxMs, minMs + s × msPerStrength).
 
 ## 판 Match (`src/core/brawl/match.ts`, 저장소 `arena:<채널>`의 `match`)
 

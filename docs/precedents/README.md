@@ -60,6 +60,7 @@
 | [2026-11-18-mistake-tag-at-end](2026-11-18-mistake-tag-at-end.md) | 리뷰 실수 태그는 댓글 끝의 것만 센다, 대기열 실행은 봇 허용 | 유효 |
 | [2026-11-18-knockback-brawl-spec](2026-11-18-knockback-brawl-spec.md) | 004는 넉백 난투 스펙: 방 옆 경기장, 경기장 저장 안 함, 목숨제, 2D는 옆에서 본 그림 | 유효 |
 | [2026-11-18-brawl-plan-load](2026-11-18-brawl-plan-load.md) | 004 plan: 한 판 상한 20명(측정), 사건 방식 서버, 같은 궤적 함수, 잠들기 대비 DO 저장소 | 유효 |
+| [2026-11-18-hitstun-cap](2026-11-18-hitstun-cap.md) | 004 경직 상한 0.3초: 빠른 타격감, 맞는 중에도 반격 | 유효 |
 
 ## 판례 쓰는 법
 
