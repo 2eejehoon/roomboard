@@ -96,13 +96,15 @@
 ### `swing`
 
 ```json
-{ "t": "swing", "peerId": "p_1aQ9", "k": "jab", "step": 1, "nonce": "s7", "at": 1763400000120,
+{ "t": "swing", "peerId": "p_1aQ9", "k": "jab", "step": 1, "nonce": "s7", "at": 1763400000120, "hitstopMs": 35, "readyAt": 1763400000505,
   "hits": [{ "peerId": "p_7bX2", "damage": 3, "guarded": false, "hitstopMs": 35,
     "launch": { "t": 1763400000155, "p": [31.5, 1, 2.25], "v": [0.78, 0, 0], "s": 1.3, "cause": "hit" } }] }
 ```
 
 - 기술 하나의 판정 결과를 채널 전원에게(때린 사람 포함). `nonce`는 때린 사람에게 보내는 것에만 있다. 빈 `hits`는 헛스윙.
 - `launch.t`는 타격 시각 + 타격 정지. 화면은 `launch`만으로 궤적을 계산한다(FR-032).
+- `hitstopMs`(위쪽): 때린 사람의 타격 정지 = 맞은 사람들 `hitstopMs`의 최댓값, 헛스윙이면 0. `readyAt` = `at` + `hitstopMs` + 다시 쓰기 시간
+  (서버 시각). 화면은 들고 있던 잽을 어림한 서버 시계로 `readyAt`이 지난 뒤 보낸다(research R2).
 
 ### `launch`
 

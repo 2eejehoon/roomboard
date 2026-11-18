@@ -150,6 +150,9 @@ export class BenchRoom extends DurableObject {
   async alarm() {
     this.alarms = (this.alarms ?? 0) + 1;
     this.due(Date.now());
+    // research R2: re-arm for the next pending event so it fires without waiting for a message.
+    const next = Math.min(...[...this.peers.values()].map((o) => o.end?.t ?? Infinity));
+    if (next < Infinity) await this.ctx.storage.setAlarm(next);
   }
 
   attachment(o) {

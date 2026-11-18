@@ -66,7 +66,7 @@ Cell = [x, y, z]             // 정수 칸 좌표
 | stamina | 0~max, `staminaAt` 시각부터 초당 회복을 계산(저장은 값과 시각만) |
 | stunUntil | 경직 끝 시각. 이 전에는 기술·방어·구르기·공중 동작 거부(방어 누름은 낙법 판정용으로 기록) |
 | invulnUntil | 구르기 무적 끝 시각 |
-| cooldownUntil | 기술별 다시 쓸 수 있는 시각(때린 사람의 타격 정지 끝 + 다시 쓰기 시간, FR-012) |
+| cooldownUntil | 기술별 다시 쓸 수 있는 시각 = 타격 시각 + 때린 사람의 타격 정지(맞은 사람들 중 최댓값, 헛스윙이면 0) + 다시 쓰기 시간(FR-012). `swing.readyAt`으로 보낸다 |
 | jabStep, jabAt | 잽 연타 단계(1~3)와 마지막 잽 시각 |
 | holdAt | 강펀치 모으기 시작 시각(`hold` 수신), 없으면 null |
 | guarding, guardPressedAt | 방어 누르는 중인지, 마지막 누른 시각(낙법) |
