@@ -81,3 +81,19 @@ test('a Turnstile script that failed to load loads again on retry (PR #70 review
   await dialog.getByRole('textbox', { name: ko['bug.text'] }).fill('다시 시도');
   await expect(dialog.getByRole('button', { name: ko['report.send'] })).toBeEnabled({ timeout: 15_000 });
 });
+
+test('a report another tab already handled (404) reloads the list instead of offering a retry (PR #70 review)', async ({ browser }) => {
+  const admin = await withoutWebGL(await newPage(browser));
+  const item = { id: 999_001, text: '이미 처리된 신고', context: { view: '2d' }, createdAt: 1, expiresAt: 2 };
+  let handled = false; // another tab handled it: the delete answers 404, and the list no longer has it
+  await admin.route('**/api/admin/bug-reports', (route) => route.fulfill({ json: { items: handled ? [] : [item] } }));
+  await admin.route('**/api/admin/bug-reports/999001', (route) => ((handled = true), route.fulfill({ status: 404, json: { code: 'not_found' } })));
+  await admin.goto('/admin');
+  await admin.getByLabel(ko['admin.token']).fill(ADMIN_TOKEN);
+  await admin.getByRole('button', { name: ko['admin.enter'] }).click();
+  await admin.getByRole('tab', { name: ko['admin.bugs'] }).click();
+  const row = admin.getByRole('listitem').filter({ hasText: item.text });
+  await row.getByRole('button', { name: ko['admin.bugs.discard'] }).click();
+  await expect(row).toHaveCount(0);
+  await expect(admin.getByRole('alert')).toHaveCount(0);
+});
