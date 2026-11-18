@@ -122,6 +122,7 @@ LOOKS {
   damageText: { font, colors: { white, yellow, red } }       // 색 바뀌는 기준은 TUNING.damageColor
   shake: { strengthFrom, amplitude }                         // 화면 흔들림(FR-023)
   sfx: { hit, smash, wall, ko }                              // CC0 파일 경로
+  flight: { catchUpMs }                                      // 늦게 받은 궤적을 지금 위치에서 따라잡는 시간(spec Edge Cases)
 }
 ```
 

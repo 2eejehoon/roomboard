@@ -74,6 +74,7 @@
     `npx vitest run` 614개 통과(`room-do`·`online-count` 포함), `npm run typecheck`·`npx eslint .` 통과.
 - [ ] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
   늦게 받은 궤적은 지금 위치로 짧게 보간(Edge Cases). `src/client/test-hooks.ts`에 난투 상태 읽기(피해 %, 위치, 블록 차이, 판)를 더한다(개발 빌드 전용).
+  - 실패 확인: `src/client/brawl/looks.ts`·`store.ts`가 없어 모듈을 찾지 못함. 늦게 받은 궤적을 따라잡는 시간은 `LOOKS.flight.catchUpMs`로 data-model에 먼저 더함.
 
 **Checkpoint**: 기존 E2E(us1~us7·a11y·perf) 통과, v1 클라이언트는 4002를 받는다.
 
