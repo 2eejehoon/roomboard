@@ -114,11 +114,12 @@
   alarm이 착지·넉아웃·재시작을 메시지 없이 제때 보냄, 피해·기력이 attachment에 있어 DO를 다시 만들어도 남음(R6). 실패 확인.
   - 실패 확인: 3개 중 1개 실패. 맞은 사람의 attachment를 쓰지 않아 DO를 다시 만들면 b의 피해 3%가 사라짐. 평화 구역·쿨다운 무시·alarm 착지는 PR 3 코드로 이미 통과.
     다른 채널(FR-018)은 core `members(channel)`로 나뉘어 worker에서 21명을 띄우지 않는다.
-- [ ] T017 [P] [US1] `tests/e2e/us1-brawl.spec.ts`(브라우저 2개, US1 시나리오 1·3·4): 둘이 입구로 경기장에 들어가 잽 → 상대 % 3, 반복해 넉아웃 → 3초 뒤 0%로 다시 섬(테스트 훅으로 읽음),
+- [X] T017 [P] [US1] `tests/e2e/us1-brawl.spec.ts`(브라우저 2개, US1 시나리오 1·3·4): 둘이 입구로 경기장에 들어가 잽 → 상대 % 3, 반복해 넉아웃 → 3초 뒤 0%로 다시 섬(테스트 훅으로 읽음),
   평화 구역에서 기술 버튼이 막힘, 한쪽이 2D 화면(옆 그림·버튼·글 기록)이어도 같다(FR-033). 실패 확인.
 
 ### Implementation
 
+  - 실패 확인: `tests/client/room2d-brawl.test.tsx` 4개 모두 실패(2D에 경기장 길·옆 그림·버튼·글 기록이 없음). E2E도 2D "경기장으로 가기" 버튼이 없어 실패한다(CI에서 확인).
 - [X] T018 [P] [US1] `src/core/brawl/knockback.ts`: 피해·세기·경직·타격 정지·방어·`launchVector(angleDeg, facing, s, tuning)`(서버만 sin/cos, 반올림, R3). T012 통과.
   - 결과: T012 통과. 방향 틀기는 US5(T052). 넉백 세기는 반올림하지 않고 `launch.s`로 보낼 때 3자리로 반올림한다.
 - [X] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
@@ -140,8 +141,10 @@
     확인: 로컬 Playwright(데스크톱)로 두 브라우저가 입구로 들어가 J 키 잽 → 상대 % 3, 경기장 화면 캡처. us1-move의 T046 라벨 검사는 이 컨테이너의 소프트웨어 렌더링에서 main 그대로도 실패해 CI로 본다.
 - [X] T025 [US1] `src/client/brawl/looks.ts`: `LOOKS`의 `blocks`·`arena` 항목(US2가 나머지를 채움). 화면 코드는 색·모델 경로를 `LOOKS`로만 읽는다.
   - 결과: `blocks`·`arena`와 `flight.catchUpMs`·`swing`(내 화면 먼저 보이는 이펙트, data-model에 먼저 더함). 나머지는 US2.
-- [ ] T026 [US1] `src/client/room/room2d/Room2D.tsx`(+ 새 컴포넌트 파일): 옆 그림 SVG(블록 칸, 참가자 점, 궤적 선, 내 깊이 줄은 진하게·다른 줄은 흐리게 + 깊이 차이 숫자),
+- [X] T026 [US1] `src/client/room/room2d/Room2D.tsx`(+ 새 컴포넌트 파일): 옆 그림 SVG(블록 칸, 참가자 점, 궤적 선, 내 깊이 줄은 진하게·다른 줄은 흐리게 + 깊이 차이 숫자),
   앞·뒤 깊이 줄 버튼, 보는 방향 좌·우·앞·뒤(`r` = 0, ±π/2, π), 기술·방어·구르기 버튼, `aria-live` 글 기록(누가 누구를 쳤는지, %, 넉아웃)(FR-033, R8). 문구는 i18n. T017 통과, a11y.spec 통과.
+  - 결과: `ArenaSide.tsx`(옆 그림·이동·줄·기술 버튼, 강펀치·방어는 누름/뗌, 키보드도), 평화 구역에서는 "경기장으로 가기"만, 참가자 목록에 경기장 사람의 %, `aria-live` 글 기록(`brawl.log`).
+    확인: `room2d-brawl.test.tsx` 통과, 로컬 Playwright `us1-brawl.spec.ts`·`a11y.spec.ts` 데스크톱·모바일 통과.
 
 **Checkpoint**: US1만으로 놀이가 된다. 이 단계에서 미리보기를 띄워 운영자가 휴대폰으로 볼 수 있다.
 
@@ -213,6 +216,8 @@
 - [ ] T044 [P] [US4] `tests/core/brawl/match.test.ts`(FR-025~027): 시작은 경기장에 2명 이상·요청자가 경기장에 있고 판이 없을 때만, 그 순간 경기장 사람이 players(피해 0%), 넉아웃마다 `stocks − 1`,
   0이면 탈락(`out` 순서 번호, 같은 서버 판정의 동시 탈락은 같은 번호), 출구로 나감·연결 끊김 = 탈락, 진행 중 비참가자 입구 차단, 남은 사람 ≤ 1이면 끝, `endsAt`(5분)이면 목숨 많은 순 → 피해 낮은 순 → 같은 순위,
   탈락자는 그 아래 `out` 역순, 모두 함께 탈락하면 공동 1위, 끝나면 피해 0%.
+  - (PR #87 리뷰) 경기장 사람은 섬 밖 공중에서 koY까지 자유롭게 떨어질 수 있어, 조작된 클라이언트가 섬 옆 공중(경기장 상자 밖, koY 위)에 머물면 맞지도 넉아웃되지도 않는다(R4 shortcut).
+    목숨이 걸리는 이 판에서 "상자 밖에 일정 시간 넘게 머물면 넉아웃" 같은 서버 규칙을 스펙·조정표부터 정하고 테스트한다.
 - [ ] T045 [P] [US4] `tests/worker/brawl-match.test.ts`: 판 시작·탈락·끝을 `arena:<채널>`의 `match`에 바로 씀, DO를 다시 만들어도 판이 이어짐, 제한 시간 alarm으로 끝남, 결과를 보낸 뒤 `match` 삭제(FR-027),
   관리자 되돌리기 중 판이 있으면 `match {state: "cancelled"}`가 `arena_reset`보다 먼저(T036의 판 부분). 실패 확인.
 - [ ] T046 [P] [US4] `tests/e2e/us4-brawl-match.spec.ts`(브라우저 3개, US4-1·2): 판 시작 → 세 화면에 같은 시작 신호, 넉아웃을 만들어 끝까지 → 세 화면에 같은 순위, 피해 0%. 평화 구역에서는 시작 버튼이 막힘. 실패 확인.
