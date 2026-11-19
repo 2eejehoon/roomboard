@@ -121,18 +121,15 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
 // a release anywhere, a touch cancel or any other loss fires it once.
 export const capture = (e: React.PointerEvent<HTMLElement>) => e.currentTarget.setPointerCapture(e.pointerId);
 
+// Lines for the room's one live region (Room2D), next to the join and leave notices: a second region would compete with it.
 export function BrawlLog({ brawl, name }: { brawl: BrawlState; name: (peerId: string) => string }) {
-  return (
-    <div aria-live="polite">
-      {brawl.log.map((e) => (
-        <p key={e.id}>
-          {e.kind === 'hit'
-            ? t('brawl.log.hit', { by: name(e.by!), target: name(e.peerId), damage: e.damage! })
-            : t(e.kind === 'ko' ? 'brawl.log.ko' : 'brawl.log.respawn', { name: name(e.peerId) })}
-        </p>
-      ))}
-    </div>
-  );
+  return brawl.log.map((e) => (
+    <p key={`brawl-${e.id}`}>
+      {e.kind === 'hit'
+        ? t('brawl.log.hit', { by: name(e.by!), target: name(e.peerId), damage: e.damage! })
+        : t(e.kind === 'ko' ? 'brawl.log.ko' : 'brawl.log.respawn', { name: name(e.peerId) })}
+    </p>
+  ));
 }
 
 // One cell along x or z, or null when a block fills it. Off the edge (no block under) the client falls, which the server reads

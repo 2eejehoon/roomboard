@@ -50,11 +50,11 @@ export function Room2D({ room, state, move, brawl }: Props) {
         ))}
       </List>
       {move && brawl && state.you && (fighting ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} onClick={() => enter(move)} />)}
-      <BrawlLog brawl={state.brawl} name={name} />
       <div aria-live="polite">
         {state.notices.map((n) => (
           <p key={n.id}>{t(n.kind === 'joined' ? 'room2d.joined' : 'room2d.left', { nickname: n.nickname })}</p>
         ))}
+        <BrawlLog brawl={state.brawl} name={name} />
       </div>
     </Stack>
   );
