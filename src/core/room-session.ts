@@ -11,6 +11,8 @@ import { TUNING } from './brawl/tuning.ts';
 import type { Fighter } from './brawl/fighter.ts';
 
 const ARENA = makeArena(TUNING);
+// 004 R4: a fighter may walk off the island and fall anywhere until koY (then fell() knocks them out); speed is still checked.
+const FALL = { min: [-Infinity, ARENA.koY, -Infinity] as Vec3, max: [Infinity, ARENA.bounds.max[1], Infinity] as Vec3 };
 
 export type RoomInfo = Extract<ServerMessage, { t: 'welcome' }>['room'];
 export type Pose = { p: Vec3; r: number; a: 'idle' | 'walk' | 'run' | 'jump' };
@@ -147,7 +149,11 @@ export class RoomSession {
     if (fell) return fell;
     const p = msg.p.map(round) as Vec3;
     const theme = THEMES[this.room.roomData.themeId];
-    if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, [theme.bounds, ARENA.bounds])) {
+    // A fighter falls freely, but never into the room: that way is only the exit (R5).
+    const intoRoom = !!me.fighter && validateMove({ p, at: now }, p, now, [theme.bounds]);
+    // A fighter's fall is not walking: the speed check counts only the sideways and upward part (free fall passes 8 m/s, R4).
+    const from: Vec3 = me.fighter && p[1] < me.pose.p[1] ? [me.pose.p[0], p[1], me.pose.p[2]] : me.pose.p;
+    if (intoRoom || !validateMove({ p: from, at: me.lastMoveAt }, p, now, me.fighter ? [FALL] : [theme.bounds, ARENA.bounds])) {
       return { send: [{ to: me.peerId, msg: { t: 'correction', p: me.pose.p, r: me.pose.r } }] };
     }
     me.pose = { p, r: round(msg.r), a: msg.a };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { nextSend, onStorePose } from '../../src/client/room/send-rule.ts';
+import { feetY, nextSend, onStorePose } from '../../src/client/room/send-rule.ts';
+import { THEMES } from '../../src/core/themes.ts';
 
 // When the 3D scene sends my pose and with which anim (T045). null = send nothing this frame.
 describe('nextSend', () => {
@@ -30,5 +31,18 @@ describe('onStorePose', () => {
 
   it('moves the body when the store pose is far away, like a reconnect at the spawn', () => {
     expect(onStorePose([5, 0, -5], [0, 0, 4])).toBe('snap');
+  });
+});
+
+// 004 R4 (PR #87 review): the room floor clamps my height at 0, but off the arena island I fall, so the server can see me drop
+// below koY. Off the island I am outside the arena box too, so the clamp keys on the room's bounds, not the arena's.
+describe('feetY', () => {
+  const room = THEMES.cafe.bounds;
+  it('clamps at 0 inside the room', () => {
+    expect(feetY(-0.02, [1, -0.02, 2], room)).toBe(0);
+  });
+  it('does not clamp off the arena edge, which is outside both the room and the arena box', () => {
+    expect(feetY(-3, [19.5, -3, 4.5], room)).toBe(-3);
+    expect(feetY(0.5, [30, 0.5, 4.5], room)).toBe(0.5);
   });
 });

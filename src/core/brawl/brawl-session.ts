@@ -3,7 +3,7 @@
 import type { ClientMessage, ServerMessage } from '../protocol.ts';
 import type { Outbox, Participant } from '../room-session.ts';
 import type { Vec3 } from '../themes.ts';
-import { buildGrid, startPoint, type Arena, type Cell, type Changes, type Grid } from './arena.ts';
+import { buildGrid, inArena, startPoint, type Arena, type Cell, type Changes, type Grid } from './arena.ts';
 import { canAct, commitSkill, facesFront, holdSmash, inReach, isGuarding, newFighter, setGuard, takeHit, tryRoll, trySkill, type Fighter } from './fighter.ts';
 import { positionAt, simulate, type Flight, type Launch } from './flight.ts';
 import { facingDir, launchVector, resolveHit, roundTo } from './knockback.ts';
@@ -129,11 +129,14 @@ export class BrawlSession {
     const used = trySkill(me.fighter, k, now, t);
     if (!used) return none;
     const from = this.position(me, now);
+    // The peace zone (FR-013) is everywhere outside the arena box, whatever state a fighter carries.
+    if (!inArena(this.arena, from)) return none;
     const facing = facingDir(me.pose.r);
     const targets = members
       .filter(armed)
       .filter((o) => o !== me && o.fighter.knockedOutAt === null && now >= o.fighter.invulnUntil)
       .map((o) => ({ o, at: this.position(o, now) }))
+      .filter(({ at }) => inArena(this.arena, at))
       .filter(({ at }) => inReach(from, me.pose.r, at, t.skills[used.id].reach, t))
       .sort((a, b) => dist(from, a.at) - dist(from, b.at))
       .slice(0, k === 'throw' ? 1 : undefined);

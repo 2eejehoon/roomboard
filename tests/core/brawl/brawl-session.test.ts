@@ -109,6 +109,42 @@ describe('BrawlSession: knock-out and respawn (FR-005, FR-006)', () => {
     expect(s.participant('b')?.pose.p).toEqual(startPoint(arena, 1));
   });
 
+  it('walking off the side of the island falls freely (no correction) until koY, then knocks out (PR #87 review)', async () => {
+    const s = await duel([20.5, 1, 4.5]);
+    expect((await send(s, 'a', { t: 'move', p: [19.6, 0.5, 4.5], r: 0, a: 'jump' }, 20_100)).send.map((m) => m.msg.t)).not.toContain('correction');
+    expect((await send(s, 'a', { t: 'move', p: [19.4, -4, 4.5], r: 0, a: 'jump' }, 21_000)).send.map((m) => m.msg.t)).not.toContain('correction');
+    const out = await send(s, 'a', { t: 'move', p: [19.3, arena.koY - 0.5, 4.5], r: 0, a: 'jump' }, 21_800);
+    expect(msgs(out, 'b', 'knocked_out')[0]).toMatchObject({ peerId: 'a' });
+  });
+
+  it('a real free fall off the edge (9.81 m/s², a move every 200 ms) is never corrected and ends in a knock-out (PR #87 review)', async () => {
+    const s = await duel([20.5, 1, 4.5]);
+    const seen: string[] = [];
+    for (let i = 1; i <= 10; i++) {
+      const t = i * 0.2;
+      const out = await send(s, 'a', { t: 'move', p: [19.5, 1 - 0.5 * 9.81 * t * t, 4.5], r: 0, a: 'jump' }, 20_000 + i * 200);
+      seen.push(...out.send.filter((m) => m.to === 'a').map((m) => m.msg.t));
+      if (seen.includes('knocked_out')) break;
+    }
+    expect(seen).not.toContain('correction');
+    expect(seen).toContain('knocked_out');
+  });
+
+  it('a fighter cannot walk from the arena into the room: the room is reached only through the exit (R5, PR #87 review)', async () => {
+    const s = await duel([20.5, 1, 4.5]);
+    await send(s, 'a', { t: 'move', p: [12, 0, 4.5], r: 0, a: 'walk' }, 22_000);
+    const out = await send(s, 'a', { t: 'move', p: [5.5, 0, 4], r: 0, a: 'walk' }, 24_000);
+    expect(msgs(out, 'a', 'correction')).toHaveLength(1);
+    expect(s.participant('a')?.fighter).toBeDefined();
+  });
+
+  it('nobody outside the arena box is hit or hits (FR-013), even with a fighter state', async () => {
+    const s = await duel();
+    s.participant('b')!.pose.p = [12, 0, 4.5];
+    s.participant('a')!.pose.p = [11, 0, 4.5];
+    expect((await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000)).send).toEqual([]);
+  });
+
   it('walking off the edge knocks out by the height the client sends (R4 shortcut)', async () => {
     const s = await duel();
     const out = await send(s, 'b', { t: 'move', p: [31.5, arena.koY - 0.5, 4.5], r: 0, a: 'jump' }, 21_000);
