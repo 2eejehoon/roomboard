@@ -51,6 +51,14 @@ describe('Room2D brawl (FR-033)', () => {
     for (const label of ['왼쪽', '오른쪽', '앞 줄', '뒤 줄', '잽', '강펀치', '던지기', '방어', '구르기']) expect(t).toContain(label);
   });
 
+  it('a knocked-out fighter below the island keeps the arena view, not the way in (PR #88 review)', () => {
+    const s = store([43.5, -10, 4.5]);
+    s.apply({ t: 'knocked_out', peerId: 'me', respawnAt: 3300, stocks: null, out: false, at: 300 }, 400);
+    const html = text(render(s));
+    expect(html).not.toContain('경기장으로 가기');
+    expect(html).toContain('잽');
+  });
+
   it('logs hits and knock-outs with names and % in the live region', () => {
     const s = store([30.5, 1, 4.5]);
     s.apply({
