@@ -56,7 +56,8 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
     case 'welcome':
       return {
         ...initialBrawl,
-        offset,
+        // A fresh estimate per connection, so a reconnect fixes a local clock that stepped forward.
+        offset: received - msg.at,
         blocks: msg.arena.blocks,
         fighters: Object.fromEntries(msg.arena.fighters.map((f) => [f.peerId, { ...blank, damage: f.damage, launch: f.launch }])),
       };

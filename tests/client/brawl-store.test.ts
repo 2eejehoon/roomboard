@@ -50,6 +50,14 @@ describe('brawl store (R3)', () => {
     expect(serverNow(s.getState().brawl, 30_000)).toBe(29_950);
   });
 
+  it('starts the estimate over on welcome, so a reconnect fixes a local clock that jumped forward (PR #86 review)', () => {
+    const s = store();
+    s.apply(swing(20_000), 20_050);
+    expect(s.getState().brawl.offset).toBe(50);
+    s.apply(welcome(30_000), 30_200);
+    expect(s.getState().brawl.offset).toBe(200);
+  });
+
   it('takes the fighters from welcome and updates damage, launch and my readyAt from swing', () => {
     const s = store();
     expect(s.getState().brawl.fighters.b).toMatchObject({ damage: 7, launch: null });
