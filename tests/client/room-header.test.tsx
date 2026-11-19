@@ -44,6 +44,46 @@ describe('RoomHeader (screens.md S3 공통 영역)', () => {
   });
 });
 
+describe('RoomHeader: the match (US4, T049, FR-025~027)', () => {
+  const send = () => {};
+  // Me and p0 in the arena (x 20~44), p1 in the peace zone.
+  function arena() {
+    const s = stateWith(2);
+    s.apply({ t: 'correction', p: [31.5, 1, 4.5], r: 0 });
+    s.apply({ t: 'peer_moved', peerId: 'p0', p: [33.5, 1, 4.5], r: 0, a: 'idle' });
+    return s;
+  }
+  const html = (s: RoomStore) => renderToStaticMarkup(<RoomHeader title="시드 방" state={s.getState()} brawl={send} />);
+
+  it('offers the start only in the arena with two or more there', () => {
+    expect(html(arena())).toMatch(within('button', '판 시작'));
+    expect(html(stateWith(2))).not.toContain('판 시작');
+    const alone = stateWith(0);
+    alone.apply({ t: 'correction', p: [31.5, 1, 4.5], r: 0 });
+    expect(html(alone)).not.toContain('판 시작');
+  });
+
+  it('while running shows the time left and everyone\'s stocks, and no start', () => {
+    const s = arena();
+    s.apply({ t: 'match', state: 'running', endsAt: 300_000, players: [{ peerId: 'me', stocks: 3 }, { peerId: 'p0', stocks: 2 }], at: 0 }, 0);
+    const words = text(html(s));
+    expect(words).not.toContain('판 시작');
+    expect(words).toMatch(/남은 시간 \d:\d\d/);
+    expect(words).toContain('느긋한 수달 목숨 3');
+    expect(words).toContain('p0 목숨 2');
+  });
+
+  it('after the end shows the ranks, a gone player by a fallback name', () => {
+    const s = arena();
+    s.apply({ t: 'match', state: 'running', endsAt: 300_000, players: [{ peerId: 'me', stocks: 3 }, { peerId: 'p0', stocks: 3 }], at: 0 }, 0);
+    s.apply({ t: 'match', state: 'ended', ranks: [{ peerId: 'me', rank: 1 }, { peerId: 'gone', rank: 2 }], at: 1000 }, 1000);
+    const words = text(html(s));
+    expect(words).toContain('판 결과');
+    expect(words).toContain('1위 느긋한 수달');
+    expect(words).toContain('2위 나간 사람');
+  });
+});
+
 describe('ClosedNotice (websocket.md 닫힘 코드 표)', () => {
   const html = (code: number) => renderToStaticMarkup(<ClosedNotice code={code} />);
 

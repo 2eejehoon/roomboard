@@ -73,9 +73,12 @@ export class RoomStore {
       case 'landed':
       case 'respawned':
         return this.place(msg.peerId, msg.p);
+      case 'knocked_out':
+        // Out of the match: the server moved them to the room spawn without a move message (FR-026).
+        return msg.out && s.room ? this.place(msg.peerId, THEMES[s.room.roomData.themeId].spawn) : this.set({});
       case 'swing':
       case 'launch':
-      case 'knocked_out':
+      case 'match':
         return this.set({});
       // room_deleted: the 4001 close that follows ends the connection (room-socket.ts).
     }

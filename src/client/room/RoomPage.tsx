@@ -19,7 +19,11 @@ import { Loading, NetworkError } from '../Status.tsx';
 import { installTestHooks } from '../test-hooks.ts';
 import { ChatPanel } from './ChatPanel.tsx';
 import { ReportDialog } from './ReportDialog.tsx';
+import { fighting } from './room2d/ArenaSide.tsx';
 import { Room2D } from './room2d/Room2D.tsx';
+import type { BrawlMessage } from '../../core/brawl/brawl-session.ts';
+import { serverNow } from '../brawl/store.ts';
+import { TUNING } from '../../core/brawl/tuning.ts';
 import { hasWebGL, initialView } from './webgl.ts';
 
 const Scene = lazy(() => import('./room3d/Scene.tsx'));
@@ -83,7 +87,7 @@ export function RoomPage({ id }: { id: string }) {
   const room = state.room ?? load.room;
   return (
     <>
-      <RoomHeader id={id} title={room.title} state={state} view={view} onSwitch={webgl ? switchView : undefined} />
+      <RoomHeader id={id} title={room.title} state={state} view={view} onSwitch={webgl ? switchView : undefined} brawl={brawl} />
       {view === '3d' ? (
         <SceneBoundary
           onError={() => {
@@ -146,8 +150,9 @@ export function Notice({ text, reload = false }: { text: string; reload?: boolea
   );
 }
 
-// onSwitch is absent without WebGL: there is no 3D to switch to.
-export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
+// onSwitch is absent without WebGL: there is no 3D to switch to. brawl is absent before joining (the US2 2D fallback).
+type HeaderProps = { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void; brawl?: (msg: BrawlMessage) => void };
+export function RoomHeader({ id, title, state, view, onSwitch, brawl }: HeaderProps) {
   const [reporting, setReporting] = useState(false);
   const [bugging, setBugging] = useState(false);
   const [shake, setShake] = useState(readShake);
@@ -185,8 +190,39 @@ export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; 
         {view && <Button label={t('bug.open')} variant="secondary" onClick={() => setBugging(true)} />}
         {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}
       </Stack>
+      {brawl && <MatchBar state={state} brawl={brawl} />}
       {id && reporting && <ReportDialog target={{ type: 'room', roomId: id }} onClose={() => setReporting(false)} />}
       {view && bugging && <BugReportDialog context={{ view, themeId: state.room?.roomData.themeId, connection: state.connection }} onClose={() => setBugging(false)} />}
     </Stack>
+  );
+}
+
+// 004 US4 (FR-025~027), in the header so the 3D and 2D views both show it: the start from the arena, then the time left and
+// everyone's stocks, then the last ranks until the next start. The 2D live log reads the start and the end aloud (BrawlLog).
+function MatchBar({ state, brawl }: { state: RoomState; brawl: (msg: BrawlMessage) => void }) {
+  const { match, result } = state.brawl;
+  const [now, setNow] = useState(Date.now);
+  const running = !!match;
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+  const people = state.you ? [state.you, ...state.peers] : state.peers;
+  const name = (peerId: string) => people.find((p) => p.peerId === peerId)?.nickname || t('match.gone');
+  if (match) {
+    // now is up to a second old (the last tick, or the mount before a start), so a start shows the full limit, not more.
+    const ms = Math.min(TUNING.match.limitMs, match.endsAt - serverNow(state.brawl, now));
+    const left = Math.max(0, Math.ceil(ms / 1000));
+    const time = t('match.time', { m: Math.floor(left / 60), s: String(left % 60).padStart(2, '0') });
+    return <Text as="p">{[time, ...match.players.map((p) => t('match.stocks', { name: name(p.peerId), n: p.stocks }))].join(' · ')}</Text>;
+  }
+  // The server starts a match only from the arena with two or more there (FR-025).
+  const canStart = !!state.you && fighting(state.brawl, state.you) && people.filter((p) => fighting(state.brawl, p)).length >= 2;
+  return (
+    <>
+      {result && <Text as="p">{`${t('match.result')}: ${result.map((r) => t('match.rank', { rank: r.rank, name: name(r.peerId) })).join(', ')}`}</Text>}
+      {canStart && <Button label={t('match.start')} onClick={() => brawl({ t: 'match_start' })} />}
+    </>
   );
 }

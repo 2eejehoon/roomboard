@@ -22,12 +22,20 @@ export type BrawlState = {
   log: LogEntry[];
   // Local time the last hit strong enough to shake arrived (FR-023).
   shakeAt: number;
+  // US4: the running match, and the last one's ranks until the next starts (FR-027).
+  match: Pick<Running, 'endsAt' | 'players'> | null;
+  result: Extract<ServerMessage, { t: 'match'; state: 'ended' }>['ranks'] | null;
 };
-export type LogEntry = { id: number; kind: 'hit' | 'ko' | 'respawn'; peerId: string; by?: string; damage?: number };
+type Running = Extract<ServerMessage, { t: 'match'; state: 'running' }>;
+type Entry =
+  | { kind: 'hit' | 'ko' | 'respawn'; peerId: string; by?: string; damage?: number }
+  | { kind: 'start' | 'cancel' }
+  | { kind: 'end'; ranks: NonNullable<BrawlState['result']> };
+export type LogEntry = { id: number } & Entry;
 
-export const initialBrawl: BrawlState = { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [], shakeAt: -Infinity };
+export const initialBrawl: BrawlState = { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [], shakeAt: -Infinity, match: null, result: null };
 const LOG_SIZE = 5;
-const logged = (s: BrawlState, ...entries: Omit<LogEntry, 'id'>[]): LogEntry[] => {
+const logged = (s: BrawlState, ...entries: Entry[]): LogEntry[] => {
   let id = s.log.at(-1)?.id ?? 0;
   return [...s.log, ...entries.map((e) => ({ ...e, id: ++id }))].slice(-LOG_SIZE);
 };
@@ -72,12 +80,14 @@ export function shakeOffset(s: BrawlState, local: number, on: boolean): number {
 
 // pose: where each peer is drawn now (the store's pose, or its flight), for the catch-up start.
 export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, pose: (peerId: string) => Vec3 | undefined, me: string | undefined): BrawlState {
+  const without = (peerId: string) => Object.fromEntries(Object.entries(s.fighters).filter(([id]) => id !== peerId));
   // Someone who leaves mid-flight gets no landed or knocked_out, so their trail and flight go with them (PR #90 review).
-  if (msg.t === 'peer_left') return msg.peerId in s.fighters ? { ...s, fighters: Object.fromEntries(Object.entries(s.fighters).filter(([id]) => id !== msg.peerId)) } : s;
+  if (msg.t === 'peer_left') return msg.peerId in s.fighters ? { ...s, fighters: without(msg.peerId) } : s;
   if (!('at' in msg)) return s;
   const offset = Math.min(s.offset ?? Infinity, received - msg.at);
   const next = { ...s, offset };
   const set = (peerId: string, patch: Partial<FighterView>) => ({ ...next.fighters, [peerId]: { ...(next.fighters[peerId] ?? blank), ...patch } });
+  const atZero = (ids: string[]) => ({ ...next.fighters, ...Object.fromEntries(ids.flatMap((id) => (next.fighters[id] ? [[id, { ...next.fighters[id], damage: 0 }]] : []))) });
   const launched = (peerId: string, launch: Launch) => {
     const late = serverNow(next, received) > launch.t;
     return { launch, from: late ? (flightPosition(s, peerId, received) ?? pose(peerId) ?? null) : null, fromAt: received };
@@ -90,6 +100,7 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
         offset: received - msg.at,
         blocks: msg.arena.blocks,
         fighters: Object.fromEntries(msg.arena.fighters.map((f) => [f.peerId, { ...blank, damage: f.damage, launch: f.launch }])),
+        match: msg.arena.match?.state === 'running' ? { endsAt: msg.arena.match.endsAt, players: msg.arena.match.players } : null,
       };
     case 'swing': {
       let fighters = msg.hits.length ? set(msg.peerId, { stopUntil: msg.at + msg.hitstopMs }) : next.fighters;
@@ -111,8 +122,18 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
       return { ...next, blocks: [] };
     case 'landed':
       return { ...next, fighters: set(msg.peerId, { launch: null, from: null }) };
-    case 'knocked_out':
-      return { ...next, fighters: set(msg.peerId, { launch: null, from: null, knockedOut: true }), log: logged(next, { kind: 'ko', peerId: msg.peerId }) };
+    case 'knocked_out': {
+      const match = next.match && msg.stocks !== null ? { ...next.match, players: next.match.players.map((p) => (p.peerId === msg.peerId ? { ...p, stocks: msg.stocks! } : p)) } : next.match;
+      // Out of the match (FR-026): no respawn follows, the server already moved them to the room spawn (RoomStore places them).
+      const fighters = msg.out ? without(msg.peerId) : set(msg.peerId, { launch: null, from: null, knockedOut: true });
+      return { ...next, fighters, match, log: logged(next, { kind: 'ko', peerId: msg.peerId }) };
+    }
+    case 'match':
+      if (msg.state === 'cancelled') return { ...next, match: null, log: logged(next, { kind: 'cancel' }) };
+      if (msg.state === 'ended') return { ...next, match: null, result: msg.ranks, fighters: atZero(msg.ranks.map((r) => r.peerId)), log: logged(next, { kind: 'end', ranks: msg.ranks }) };
+      // running again during a match: someone left by the exit or a disconnect, only the stocks change.
+      if (next.match) return { ...next, match: { endsAt: msg.endsAt, players: msg.players } };
+      return { ...next, match: { endsAt: msg.endsAt, players: msg.players }, result: null, fighters: atZero(msg.players.map((p) => p.peerId)), log: logged(next, { kind: 'start' }) };
     case 'respawned':
       return { ...next, fighters: set(msg.peerId, blank), log: logged(next, { kind: 'respawn', peerId: msg.peerId }) };
     default:

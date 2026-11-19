@@ -31,7 +31,7 @@ describe('RoomStore', () => {
       notices: [],
       connection: 'connecting',
       closeCode: null,
-      brawl: { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [], shakeAt: -Infinity },
+      brawl: { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [], shakeAt: -Infinity, match: null, result: null },
     });
   });
 

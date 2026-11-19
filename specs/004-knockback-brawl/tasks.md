@@ -258,7 +258,10 @@
 - [X] T045 [P] [US4] `tests/worker/brawl-match.test.ts`: 판 시작·탈락·끝을 `arena:<채널>`의 `match`에 바로 씀, DO를 다시 만들어도 판이 이어짐, 제한 시간 alarm으로 끝남, 결과를 보낸 뒤 `match` 삭제(FR-027),
   관리자 되돌리기 중 판이 있으면 `match {state: "cancelled"}`가 `arena_reset`보다 먼저(T036의 판 부분). 실패 확인.
   - 실패 확인: `match` 메시지가 오지 않아 3개 모두 시간 초과. 제한 시간은 저장된 `endsAt`을 지금으로 바꾸고 DO를 다시 만든 뒤 alarm을 돌려 본다.
-- [ ] T046 [P] [US4] `tests/e2e/us4-brawl-match.spec.ts`(브라우저 3개, US4-1·2): 판 시작 → 세 화면에 같은 시작 신호, 넉아웃을 만들어 끝까지 → 세 화면에 같은 순위, 피해 0%. 평화 구역에서는 시작 버튼이 막힘. 실패 확인.
+- [X] T046 [P] [US4] `tests/e2e/us4-brawl-match.spec.ts`(브라우저 3개, US4-1·2): 판 시작 → 세 화면에 같은 시작 신호, 넉아웃을 만들어 끝까지 → 세 화면에 같은 순위, 피해 0%. 평화 구역에서는 시작 버튼이 막힘. 실패 확인.
+  - 실패 확인: 판 시작 버튼·`match.start` 문구가 없어 평화 구역 검사부터 실패. 화면 상태 단위 테스트(`brawl-store`·`room-header`)도 먼저 써 8개 실패(`match`·`result` 없음, 넉아웃이 목숨을 줄이지 않음, 탈락자가 경기장에 남음).
+    새로 만든 방에서(판 중 입구가 닫혀 다른 E2E 방을 막지 않게) 3D 1개·2D 2개. 이긴 사람(a)을 판 중에 잽 3%로 만들어 끝의 0%가 의미 있게 하고, c는 koY 아래로 세 번 떨어져 탈락(목숨 2가 a 화면 머리 줄에 보임, 방 시작 지점으로),
+    b는 출구 칸으로 나가 탈락 → 세 화면 순위 a 1·b 2·c 3, a 0%. 같은 move를 두 번 보내면 소켓이 버리므로 떨어지는 깊이를 매번 바꾼다. 로컬 데스크톱·모바일 통과.
 
 ### Implementation
 
@@ -269,7 +272,10 @@
     출구·끊김(`RoomSession.leave(peerId, now)`)은 `match running`(그 사람 stocks 0) 뒤 필요하면 `ended`. 입구는 판 중 닫힘(`open`). 방 테마 변경은 `cancelled`(data-model).
     (PR #95 리뷰) `outsideAt`은 받아들인 move로만 바꾸고(`walked`) 맞으면 지운다. 거부된 move로 시각을 켜고 끄던 것을 테스트 먼저 실패 확인.
     저장 값은 `{ blocks, match? }` 하나를 블록 2초 묶음과 판 변경 즉시 쓰기가 같이 쓰고(`saveArenas`), 둘 다 없으면 지운다. 확인: `npx vitest run` 741개, typecheck·lint 통과.
-- [ ] T049 [US4] `src/client/`: 판 시작 버튼(경기장에서만), 남은 목숨·남은 시간, 결과 순위 화면(3D·2D, 글 기록에도), 문구 i18n. T046 통과.
+- [X] T049 [US4] `src/client/`: 판 시작 버튼(경기장에서만), 남은 목숨·남은 시간, 결과 순위 화면(3D·2D, 글 기록에도), 문구 i18n. T046 통과.
+  - 결과: store `brawl.match`(running의 `endsAt`·`players`)와 `brawl.result`(끝난 판 순위, 다음 시작까지). 시작은 참가자 0%, 판 중 running(출구·끊김)은 목숨만, `knocked_out.stocks`로 목숨,
+    `out`이면 fighter를 지우고 방 시작 지점에 둠(RoomStore), `ended`는 순위·참가자 0%, `cancelled`는 결과 없음. 머리 줄(3D·2D 공통)에 시작 버튼(경기장 안·2명 이상), 남은 시간·목숨, 결과 순위(나간 사람은 "나간 사람").
+    2D 글 기록에 시작·끝(순위)·취소 줄. 판 중 2D "경기장으로 가기"는 막음. 확인: `npx vitest run` 통과, us1·us2·us3·us4·a11y 로컬 데스크톱·모바일 통과.
 
 ---
 
