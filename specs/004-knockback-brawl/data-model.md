@@ -118,13 +118,14 @@ Match { state: 'running', startedAt, endsAt, players: { peerId, stocks, out?: nu
 LOOKS {
   blocks: { dirt: { model | color }, stone: { model | color } }
   arena: { boundary: color, exit: color, entrance: color }   // 평화 구역 경계 표시(FR-014)
-  trail: { width, length, color }                            // 꼬리(FR-021)
-  damageText: { font, colors: { white, yellow, red } }       // 색 바뀌는 기준은 TUNING.damageColor
-  shake: { strengthFrom, amplitude }                         // 화면 흔들림(FR-023)
-  sfx: { hit, smash, wall, ko }                              // CC0 파일 경로
+  trail: { width, color }                                    // 꼬리(FR-021): 궤적 점을 시작부터 지금까지 잇는 선(width는 px). 모든 화면이 같은 점을 그린다(FR-024)
+  damageText: { background, colors: { white, yellow, red } } // 색 바뀌는 기준은 TUNING.damageColor. background는 숫자 밑 어두운 바탕(하늘이 밝아도 읽히게)
+  shake: { strengthFrom, amplitude, durationMs }             // 화면 흔들림(FR-023): 넉백 세기 strengthFrom 이상인 타격, 카메라를 amplitude m까지 durationMs 동안
   flight: { catchUpMs }                                      // 늦게 받은 궤적을 지금 위치에서 따라잡는 시간(spec Edge Cases)
   swing: { color, size, durationMs }                         // 내 화면이 서버를 기다리지 않고 먼저 보이는 기술 이펙트(FR-032)
 }
 ```
 
 - 화면 흔들림 끄기는 기기 localStorage `roomboard.shake = "off"`(FR-023). 개인정보 아님.
+- 때린 사람의 타격 정지(FR-020): 화면은 `swing.at + swing.hitstopMs`(서버 시각)까지 때린 사람을 멈춰 그린다. 맞은 사람은 `launch.t`까지 `launch.p`에 멈춘다.
+- 효과음은 US2에서 넣지 않는다(T032 에셋 없음). 운영자 판정(T060)에서 필요하다고 하면 CC0 파일과 `sfx` 항목을 그때 더한다.

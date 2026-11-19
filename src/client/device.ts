@@ -43,3 +43,7 @@ export function readView(store: Store = local()): View | null {
 }
 
 export const saveView = (view: View, store: Store = local()): void => write(store, 'rb.view', view);
+
+// 004 FR-023: shaking is on unless this device saved "off".
+export const readShake = (store: Store = local()): boolean => read(store, 'roomboard.shake') !== 'off';
+export const saveShake = (on: boolean, store: Store = local()): void => write(store, 'roomboard.shake', on ? 'on' : 'off');

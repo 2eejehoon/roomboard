@@ -10,7 +10,7 @@ import { CLOSE } from '../../core/protocol.ts';
 import { navigate } from '../App.tsx';
 import { BugReportDialog } from '../bug/BugReportDialog.tsx';
 import { setRoomView } from '../bug/collector.ts';
-import { deviceKey, readView, saveView, type View } from '../device.ts';
+import { deviceKey, readShake, readView, saveShake, saveView, type View } from '../device.ts';
 import { t } from '../i18n/t.ts';
 import { openRoomSocket, type RoomSocket } from '../net/room-socket.ts';
 import { RoomStore, type RoomState } from '../state/room-store.ts';
@@ -150,6 +150,7 @@ export function Notice({ text, reload = false }: { text: string; reload?: boolea
 export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; title: string; state: RoomState; view?: View; onSwitch?: () => void }) {
   const [reporting, setReporting] = useState(false);
   const [bugging, setBugging] = useState(false);
+  const [shake, setShake] = useState(readShake);
   return (
     // 003 FR-006: its own light surface, the same as the chat's, so it reads over a dark 3D sky too.
     <Stack as="header" gap={2} padding={4} style={{ background: 'rgb(255 255 255 / 0.85)' }}>
@@ -169,6 +170,17 @@ export function RoomHeader({ id, title, state, view, onSwitch }: { id?: string; 
         )}
         {state.you && <Text as="p">{t('room.you', { nickname: state.you.nickname })}</Text>}
         {onSwitch && <Button label={t(view === '3d' ? 'room.view2d' : 'room.view3d')} variant="secondary" onClick={onSwitch} />}
+        {/* 004 FR-023: only the 3D view shakes; the choice stays on this device. */}
+        {view === '3d' && (
+          <Button
+            label={t(shake ? 'brawl.shakeOff' : 'brawl.shakeOn')}
+            variant="secondary"
+            onClick={() => {
+              saveShake(!shake);
+              setShake(!shake);
+            }}
+          />
+        )}
         {id && <Button label={t('report.room')} variant="secondary" onClick={() => setReporting(true)} />}
         {view && <Button label={t('bug.open')} variant="secondary" onClick={() => setBugging(true)} />}
         {id && <Link href={`/rooms/${id}/edit`}>{t('room.edit')}</Link>}

@@ -134,4 +134,6 @@ export const ko = {
   'brawl.log.hit': '{by} 님이 {target} 님을 쳤어요 ({damage}%)',
   'brawl.log.ko': '{name} 님이 떨어졌어요',
   'brawl.log.respawn': '{name} 님이 다시 섰어요',
+  'brawl.shakeOff': '화면 흔들림 끄기',
+  'brawl.shakeOn': '화면 흔들림 켜기',
 } as const;

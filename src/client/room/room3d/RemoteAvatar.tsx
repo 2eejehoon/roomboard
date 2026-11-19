@@ -1,12 +1,18 @@
 // T046: other participants' avatars (Quaternius characters by avatarId), interpolated between their last two poses, nickname overhead.
-import { Html, useAnimations, useGLTF } from '@react-three/drei';
+import { Html, Line, useAnimations, useGLTF } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { Line2 } from 'three-stdlib';
 import { MathUtils, Mesh, Vector3, type Group, type Material, type MeshStandardMaterial, type Object3D } from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { AVATAR_SKINS } from '../../../core/identity.ts';
 import type { Pose } from '../../../core/room-session.ts';
+import { damageColor } from '../../../core/brawl/feel.ts';
+import type { Launch } from '../../../core/brawl/flight.ts';
+import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Vec3 } from '../../../core/themes.ts';
+import { LOOKS } from '../../brawl/looks.ts';
+import { flightOf } from '../../brawl/store.ts';
 import type { Peer } from '../../state/room-store.ts';
 
 const CLIPS: Record<Pose['a'], string> = { idle: 'Idle', walk: 'Walk', run: 'Run', jump: 'Jump' };
@@ -47,17 +53,30 @@ export function Avatar({ avatarId, a }: { avatarId: string; a: Pose['a'] }) {
   return <primitive object={scene} scale={AVATAR_SCALE} />;
 }
 
-// 004: the % over a fighter in the arena (US2 colours it).
+// 004: the % over a fighter in the arena, white → yellow → red (FR-022).
 export function DamageLabel({ damage }: { damage: number }) {
+  const color = LOOKS.damageText.colors[damageColor(damage, TUNING)];
   return (
     <Html position={[0, 2.3, 0]} center>
-      <span style={{ whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: 4, background: 'rgba(0,0,0,0.5)', color: 'white', fontWeight: 700 }}>{damage}%</span>
+      <span style={{ whiteSpace: 'nowrap', padding: '2px 6px', borderRadius: 4, background: LOOKS.damageText.background, color, fontWeight: 700 }}>{damage}%</span>
     </Html>
   );
 }
 
+// 004 FR-021: the flight's own points from the start up to now, so every screen draws the same trail (FR-024). World space: put it
+// outside the avatar's group. at: the step index now, read per frame (not React state, so Scene does not re-render).
+export function Trail({ launch, at }: { launch: Launch; at: () => number }) {
+  const line = useRef<Line2>(null);
+  const points = flightOf(launch).points;
+  useFrame(() => {
+    if (line.current) line.current.geometry.instanceCount = Math.max(0, Math.min(points.length - 1, at()));
+  });
+  return <Line ref={line} points={points} color={LOOKS.trail.color} lineWidth={LOOKS.trail.width} />;
+}
+
 // damage: null outside the arena. fly: the replayed knockback position while flying (004 R3), which wins over the poses.
-export function RemoteAvatar({ peer, damage, fly }: { peer: Peer; damage: number | null; fly: () => Vec3 | null }) {
+// stopped: the attacker's hitstop (FR-020), when the avatar holds where it is.
+export function RemoteAvatar({ peer, damage, fly, stopped }: { peer: Peer; damage: number | null; fly: () => Vec3 | null; stopped: () => boolean }) {
   const group = useRef<Group>(null);
   const from = useRef({ p: new Vector3(...peer.p), r: peer.r, at: 0 });
   const to = useRef({ p: new Vector3(...peer.p), r: peer.r });
@@ -78,6 +97,10 @@ export function RemoteAvatar({ peer, damage, fly }: { peer: Peer; damage: number
     const g = group.current;
     if (!g) return;
     const flying = fly();
+    if (stopped()) {
+      from.current = { p: g.position.clone(), r: g.rotation.y, at: performance.now() };
+      return;
+    }
     if (flying) {
       g.position.set(...flying);
       from.current = { p: g.position.clone(), r: g.rotation.y, at: performance.now() };

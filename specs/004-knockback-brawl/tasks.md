@@ -158,21 +158,29 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T027 [P] [US2] `tests/core/brawl/feel.test.ts`: `damageColor(damage, tuning)` → 0~49 white, 50~99 yellow, 100~ red(FR-022, 기준은 `TUNING.damageColor`),
+- [X] T027 [P] [US2] `tests/core/brawl/feel.test.ts`: `damageColor(damage, tuning)` → 0~49 white, 50~99 yellow, 100~ red(FR-022, 기준은 `TUNING.damageColor`),
   타격 정지 구간에 때린 사람·맞은 사람이 멈춤(US2-1 약 0.03초, US2-2 마무리 0.15초를 `swing.hitstopMs`로 확인).
-- [ ] T028 [P] [US2] `tests/client/shake.test.ts`: 흔들림 설정은 localStorage `roomboard.shake = "off"`로 기기에 남고, 꺼져 있으면 강한 타격에도 흔들지 않음(타격 정지·꼬리는 남음, US2-5). 접근이 막힌 localStorage에서도 오류 없음.
-- [ ] T029 [P] [US2] `tests/e2e/us2-brawl-feel.spec.ts`(브라우저 2개): 잽을 맞힌 뒤 테스트 훅으로 두 화면의 타격 정지 시간·꼬리 표시 여부·숫자 색이 같음(FR-024), 흔들림 끄기 버튼 뒤 새로고침해도 꺼져 있음.
+  - 실패 확인: `src/core/brawl/feel.ts`가 없어 모듈을 찾지 못함. 잽 1타는 공식대로 35ms(30 + 1.3 × 4), 잽 3타 150ms, 맞은 사람은 `launch.t`까지 `launch.p`.
+- [X] T028 [P] [US2] `tests/client/device.test.ts`(기존 localStorage 테스트 옆)·`tests/client/brawl-store.test.ts`: 흔들림 설정은 localStorage `roomboard.shake = "off"`로 기기에 남고, 꺼져 있으면 강한 타격에도 흔들지 않음(타격 정지·꼬리는 남음, US2-5). 접근이 막힌 localStorage에서도 오류 없음.
+  - 실패 확인: `readShake`·`saveShake`·`stopped`·`feel`·`shakeOffset`이 없어 5개 실패(`is not a function`). 흔들림은 `(세기, 켜짐)`만 보고, 멈춤·꼬리는 설정을 읽지 않는다.
+- [X] T029 [P] [US2] `tests/e2e/us2-brawl-feel.spec.ts`(브라우저 2개): 잽을 맞힌 뒤 테스트 훅으로 두 화면의 타격 정지 시간·꼬리 표시 여부·숫자 색이 같음(FR-024), 흔들림 끄기 버튼 뒤 새로고침해도 꺼져 있음.
   - (PR #88 리뷰에서 넘김) 2D 방어 버튼을 누른 채 버튼 밖에서 떼면 방어가 끝나는지 E2E(그 뒤 정면 잽이 줄지 않음). 강펀치 경로는 us1-brawl이 확인한다.
+  - 실패 확인: E2E는 구현과 함께 썼다(훅 `feel`·흔들림 버튼이 main에 없어 첫 테스트는 main에서 실패). 방어 테스트는 `onLostPointerCapture`를 비우면 3% 대신 1%로 실패함을 확인.
+    잽은 0%에서 약 5cm만 미끄러져 꼬리를 읽기 전에 끝나므로 0.3초 모은 강펀치(15%, 세기 24)로 본다. 로컬 데스크톱·모바일 통과.
 
 ### Implementation
 
-- [ ] T030 [US2] `src/core/brawl/feel.ts`(`damageColor`) + `src/client/brawl/looks.ts`의 `trail`·`damageText`·`shake`·`sfx`. T027 통과.
-- [ ] T031 [US2] `src/client/room/room3d/`: 타격 정지 동안 두 아바타 멈춤, 꼬리(`LOOKS.trail`), 숫자 색, 화면 흔들림(설정 존중), 효과음. 2D는 글 기록과 숫자 색으로 같은 정보(FR-033). T028·T029 통과.
+- [X] T030 [US2] `src/core/brawl/feel.ts`(`damageColor`) + `src/client/brawl/looks.ts`의 `trail`·`damageText`·`shake`·`sfx`. T027 통과.
+- [X] T031 [US2] `src/client/room/room3d/`: 타격 정지 동안 두 아바타 멈춤, 꼬리(`LOOKS.trail`), 숫자 색, 화면 흔들림(설정 존중), 효과음. 2D는 글 기록과 숫자 색으로 같은 정보(FR-033). T028·T029 통과.
   - (PR #88 리뷰에서 넘김) 2D: 동·서쪽 가장자리 밖으로 떨어지거나 넉아웃된 사람(나 포함)도 옆 그림·참가자 목록에서 "싸우는 중"으로 보이게(Room2D의 판정을 같이 쓰고 점을 viewBox 안으로).
     "경기장으로 가기" 걷기 타이머: 기다리는 동안 버튼을 끄고 unmount 때 지운다.
   - 참고(#88): us1-move T046이 #87 뒤 main CI에서 가끔 실패해 Arena를 `memo`로 감쌌다. 3D에 무거운 것을 더하면 Scene 리렌더에 딸려 가지 않게 한다.
-- [ ] T032 [P] [US2] 효과음·그림이 필요하면 CC0만 `public/assets/`에 두고 `public/assets/CREDITS.md`·`scripts/assets.sha256`에 출처를 적는다(FR-038, 판례 2026-11-07-assets-quaternius).
+  - 결과: 때린 사람은 `swing.at + hitstopMs`, 맞은 사람은 `launch.t`까지 멈춤(store `stopUntil`, `stopped()`). 꼬리는 drei `Line`에 궤적 점을 넣고 프레임마다 `instanceCount`만 바꿈(모든 화면 같은 점).
+    흔들림은 세기 `LOOKS.shake.strengthFrom`(20) 이상, 머리 영역 "화면 흔들림 끄기/켜기" 버튼(3D에서만). 2D는 옆 그림 점 위에 색 있는 %. 넘긴 2D 항목: `fighting()` 하나를 옆 그림·목록·조작이 같이 쓰고 점은 viewBox 안으로,
+    걷기 타이머 동안 버튼을 끄고 unmount 때 지움. 테스트 훅 `feel(peerId)`. 확인: `npx vitest run` 통과, us1-brawl·us2-brawl-feel·us2-fallback·a11y 로컬 데스크톱·모바일 통과, `check:bundle` 통과.
+- [X] T032 [P] [US2] 효과음·그림이 필요하면 CC0만 `public/assets/`에 두고 `public/assets/CREDITS.md`·`scripts/assets.sha256`에 출처를 적는다(FR-038, 판례 2026-11-07-assets-quaternius).
   `scripts/`를 바꾸면 운영자 머지다. 첫 3D 에셋 상한 3MB(perf.spec)와 `check:bundle`을 넘지 않는다. 필요 없으면 이 항목에 "에셋 없음"이라 적고 닫는다.
+  - 에셋 없음. 효과음은 spec의 FR·US2 시나리오에 없고(FR-030a는 모습을 둘 곳만 정함) 넣으면 `scripts/assets.sha256`을 바꿔 운영자 머지가 된다. data-model LOOKS에서 `sfx`를 빼고 T060 판정에서 필요하면 더한다고 적었다.
 
 ---
 

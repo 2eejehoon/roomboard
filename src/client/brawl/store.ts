@@ -2,13 +2,15 @@
 // RoomStore applies the messages; screens ask flightPosition() every frame. The screen never judges (FR-031).
 import { buildGrid, makeArena } from '../../core/brawl/arena.ts';
 import { positionAt, simulate, type Flight, type Launch } from '../../core/brawl/flight.ts';
+import { damageColor } from '../../core/brawl/feel.ts';
 import { TUNING } from '../../core/brawl/tuning.ts';
 import type { ServerMessage } from '../../core/protocol.ts';
 import type { Vec3 } from '../../core/themes.ts';
 import { LOOKS } from './looks.ts';
 
 // from/fromAt: where the fighter was drawn when the launch arrived, so a late one is caught up, not jumped to.
-export type FighterView = { damage: number; launch: Launch | null; from: Vec3 | null; fromAt: number; knockedOut: boolean };
+// stopUntil: the hitstop's end in server time (FR-020): the attacker's at + hitstopMs, a target's launch.t.
+export type FighterView = { damage: number; launch: Launch | null; from: Vec3 | null; fromAt: number; knockedOut: boolean; stopUntil: number };
 export type BrawlState = {
   // min(received − at): the server clock read late, never early (R2).
   offset: number | null;
@@ -18,10 +20,12 @@ export type BrawlState = {
   readyAt: number;
   // The last few hits and knock-outs, for the 2D live log (FR-033).
   log: LogEntry[];
+  // Local time the last hit strong enough to shake arrived (FR-023).
+  shakeAt: number;
 };
 export type LogEntry = { id: number; kind: 'hit' | 'ko' | 'respawn'; peerId: string; by?: string; damage?: number };
 
-export const initialBrawl: BrawlState = { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [] };
+export const initialBrawl: BrawlState = { offset: null, fighters: {}, blocks: [], readyAt: 0, log: [], shakeAt: -Infinity };
 const LOG_SIZE = 5;
 const logged = (s: BrawlState, ...entries: Omit<LogEntry, 'id'>[]): LogEntry[] => {
   let id = s.log.at(-1)?.id ?? 0;
@@ -48,7 +52,21 @@ export function flightPosition(s: BrawlState, peerId: string, local: number): Ve
   return k >= 1 || !f.from ? on : (on.map((v, i) => f.from![i] + (v - f.from![i]) * k) as Vec3);
 }
 
-const blank: FighterView = { damage: 0, launch: null, from: null, fromAt: 0, knockedOut: false };
+const blank: FighterView = { damage: 0, launch: null, from: null, fromAt: 0, knockedOut: false, stopUntil: 0 };
+
+// The looks every screen derives alike from server values (FR-024); the E2E hook compares them across screens.
+export function feel(s: BrawlState, peerId: string) {
+  const f = s.fighters[peerId] ?? blank;
+  return { stopUntil: f.stopUntil, trail: !!f.launch, color: damageColor(f.damage, TUNING) };
+}
+
+export const stopped = (s: BrawlState, peerId: string, local: number) => serverNow(s, local) < (s.fighters[peerId]?.stopUntil ?? 0);
+
+// How far the camera shakes now: the amplitude fading to 0 over durationMs, 0 when the device turned shaking off.
+export function shakeOffset(s: BrawlState, local: number, on: boolean): number {
+  const k = 1 - (local - s.shakeAt) / LOOKS.shake.durationMs;
+  return on && k > 0 && k <= 1 ? LOOKS.shake.amplitude * k : 0;
+}
 
 // pose: where each peer is drawn now (the store's pose, or its flight), for the catch-up start.
 export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, pose: (peerId: string) => Vec3 | undefined, me: string | undefined): BrawlState {
@@ -70,10 +88,12 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
         fighters: Object.fromEntries(msg.arena.fighters.map((f) => [f.peerId, { ...blank, damage: f.damage, launch: f.launch }])),
       };
     case 'swing': {
-      let fighters = next.fighters;
-      for (const h of msg.hits) fighters = { ...fighters, [h.peerId]: { ...(fighters[h.peerId] ?? blank), damage: h.damage, ...launched(h.peerId, h.launch) } };
+      let fighters = msg.hits.length ? set(msg.peerId, { stopUntil: msg.at + msg.hitstopMs }) : next.fighters;
+      for (const h of msg.hits)
+        fighters = { ...fighters, [h.peerId]: { ...(fighters[h.peerId] ?? blank), damage: h.damage, stopUntil: h.launch.t, ...launched(h.peerId, h.launch) } };
       const log = logged(next, ...msg.hits.map((h) => ({ kind: 'hit' as const, peerId: h.peerId, by: msg.peerId, damage: h.damage })));
-      return { ...next, fighters, log, readyAt: msg.peerId === me && msg.k === 'jab' ? msg.readyAt : s.readyAt };
+      const shakeAt = msg.hits.some((h) => h.launch.s >= LOOKS.shake.strengthFrom) ? received : s.shakeAt;
+      return { ...next, fighters, log, shakeAt, readyAt: msg.peerId === me && msg.k === 'jab' ? msg.readyAt : s.readyAt };
     }
     case 'launch':
       return { ...next, fighters: set(msg.peerId, launched(msg.peerId, msg.launch)) };
