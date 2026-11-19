@@ -1,6 +1,6 @@
 // One DO per room (research R6): Hibernation WebSockets in, RoomSession decides, results out.
 import { DurableObject } from 'cloudflare:workers';
-import { CLOSE } from '../core/protocol.ts';
+import { CLOSE, type ServerMessage } from '../core/protocol.ts';
 import { RoomSession, type ChatFields, type Outbox, type Participant, type RoomInfo } from '../core/room-session.ts';
 import { recordServerError } from './bug-reports.ts';
 import { signChat } from './chat-sign.ts';
@@ -11,6 +11,11 @@ import { filter, requireRoom } from './rooms.ts';
 type Attachment = { peerId: string; connectedAt: number; participant: Participant | null };
 const JOIN_TIMEOUT_MS = 5000;
 const ONLINE_DEBOUNCE_MS = 2000;
+// 004 R6: a channel's blocks are written at most every 2 s; while any arena:* key exists a cleanup alarm stays within 10 min.
+const ARENA_WRITE_MS = 2000;
+const ARENA_CLEANUP_MS = 10 * 60_000;
+const ARENA = 'arena:';
+type ArenaRecord = { blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks'] };
 const att = (ws: WebSocket) => ws.deserializeAttachment() as Attachment;
 
 export class RoomDurableObject extends DurableObject<Env> {
@@ -19,6 +24,8 @@ export class RoomDurableObject extends DurableObject<Env> {
   private loading?: Promise<RoomSession | null>;
   // The online_count last written (null after a wake). Brawl events share the alarm, so it writes D1 only on a change.
   private onlineWritten: number | null = null;
+  // When the changed blocks are due to be written (memory only: a wake may lose the last 2 s, R6).
+  private arenaDue: number | null = null;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -58,6 +65,19 @@ export class RoomDurableObject extends DurableObject<Env> {
       const participant = session.participant(att(ws).peerId);
       if (participant) ws.serializeAttachment({ ...att(ws), participant } satisfies Attachment);
     }
+  }
+
+  // RPC for the admin's arena reset (FR-040, R10): every channel back to the default, every arena:* key gone.
+  async resetArenas(): Promise<void> {
+    const session = await this.session();
+    if (!session) return;
+    const now = Date.now();
+    const out = session.resetArenas(now);
+    session.takeDirtyArenas();
+    this.saveTouched(session, out);
+    await this.deliver(out);
+    await this.ctx.storage.delete([...(await this.ctx.storage.list({ prefix: ARENA })).keys()]);
+    await this.scheduleEvents(session);
   }
 
   // RPC after D1 marks the room deleted (T083). Straight to the sockets: after a wake session() would read the 410 and know
@@ -110,7 +130,34 @@ export class RoomDurableObject extends DurableObject<Env> {
     this.saveTouched(session, out);
     await this.deliver(out);
     if (!wasJoined && participant) await this.schedule(now + ONLINE_DEBOUNCE_MS);
+    await this.arenaChanged(session, now);
     await this.scheduleEvents(session);
+  }
+
+  private async arenaChanged(session: RoomSession, now: number): Promise<void> {
+    if (!session.dirty || this.arenaDue !== null) return;
+    this.arenaDue = now + ARENA_WRITE_MS;
+    await this.schedule(this.arenaDue);
+  }
+
+  // R6: writes the changed channels (an empty diff deletes the key) and drops the keys of channels nobody is in. Returns the
+  // cleanup alarm time while any key is left.
+  private async keepArenas(session: RoomSession | null, now: number): Promise<number> {
+    // Due with no session (a deleted room, D1 down): nothing to write, and a past due time would ring the alarm forever (PR #91 review).
+    if (this.arenaDue !== null && this.arenaDue <= now) {
+      this.arenaDue = null;
+      for (const { channel, blocks } of session?.takeDirtyArenas() ?? []) {
+        if (blocks.length) await this.ctx.storage.put(`${ARENA}${channel}`, { blocks } satisfies ArenaRecord);
+        else await this.ctx.storage.delete(`${ARENA}${channel}`);
+      }
+    }
+    // From the attachments, not the session: a session that failed to load (D1 down) must not read as an empty room (PR #91 review).
+    const occupied = new Set([...this.sockets.values()].flatMap((ws) => att(ws).participant?.channel ?? []));
+    const keys = [...(await this.ctx.storage.list({ prefix: ARENA })).keys()];
+    const empty = keys.filter((k) => !occupied.has(Number(k.slice(ARENA.length))));
+    await this.ctx.storage.delete(empty);
+    const due = this.arenaDue ?? Infinity;
+    return keys.length > empty.length ? Math.min(due, now + ARENA_CLEANUP_MS) : due;
   }
 
   // Closes sockets that missed the join deadline, runs due brawl events (004 R2) and writes online_count; one alarm serves
@@ -123,8 +170,10 @@ export class RoomDurableObject extends DurableObject<Env> {
       const out = session.runEvents(now);
       this.saveTouched(session, out);
       await this.deliver(out);
+      await this.arenaChanged(session, now);
       next = Math.min(next, session.nextEventAt() ?? Infinity);
     }
+    next = Math.min(next, await this.keepArenas(session, now));
     for (const ws of [...this.sockets.values()]) {
       const { participant, connectedAt } = att(ws);
       if (participant) continue;
@@ -142,8 +191,8 @@ export class RoomDurableObject extends DurableObject<Env> {
   // Built from D1 and the attachments on first use after a wake; not cached while the row is missing, because US3 calls
   // this DO (password hash) before inserting the row.
   private session(): Promise<RoomSession | null> {
-    this.loading ??= requireRoom(this.env.DB, this.ctx.id.name!).then(
-      ({ id, title, description, roomData }) => {
+    this.loading ??= requireRoom(this.env.DB, this.ctx.id.name!)
+      .then(async ({ id, title, description, roomData }) => {
         const sign = (c: ChatFields) => signChat(this.env.SERVER_SECRET, id, c);
         const session = new RoomSession({ id, title, description, roomData }, { filter, sign });
         for (const ws of this.sockets.values()) {
@@ -151,13 +200,20 @@ export class RoomDurableObject extends DurableObject<Env> {
           if (participant) session.restore(participant);
           else session.connect(peerId);
         }
+        // R6: the built blocks of channels someone is in; a key for an empty channel is dropped.
+        const occupied = session.occupied();
+        for (const [key, value] of await this.ctx.storage.list<ArenaRecord>({ prefix: ARENA })) {
+          const channel = Number(key.slice(ARENA.length));
+          if (occupied.has(channel)) session.restoreArena(channel, value.blocks);
+          else await this.ctx.storage.delete(key);
+        }
         return session;
-      },
-      () => {
+      })
+      // Also a throw while reading the stored arenas: the next use tries again (PR #91 review).
+      .catch(() => {
         this.loading = undefined;
         return null;
-      },
-    );
+      });
     return this.loading;
   }
 
@@ -199,6 +255,9 @@ export class RoomDurableObject extends DurableObject<Env> {
     const wasJoined = session.participant(peerId) !== null;
     await this.deliver(session.leave(peerId));
     if (wasJoined) await this.schedule(Date.now() + ONLINE_DEBOUNCE_MS);
+    // FR-018: the last one out takes the channel's arena with them.
+    const channel = session.participant(peerId)?.channel ?? participant?.channel;
+    if (channel !== undefined && !session.occupied().has(channel)) await this.ctx.storage.delete(`${ARENA}${channel}`);
   }
 
   private async scheduleEvents(session: RoomSession): Promise<void> {

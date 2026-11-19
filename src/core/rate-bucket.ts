@@ -1,9 +1,13 @@
+import { TUNING } from './brawl/tuning.ts';
+
 // Per-participant token buckets in the room DO (research R9). Time is passed in so the logic stays pure.
 export type RateRule = { capacity: number; windowMs: number };
 export type TakeResult = { ok: true } | { ok: false; retryAfterMs: number };
 
 export const CHAT_RATE: RateRule = { capacity: 5, windowMs: 10_000 };
 export const MOVE_RATE: RateRule = { capacity: 10, windowMs: 1000 };
+// 004 R9: blocks per participant, from the tuning table (TUNING.blockRate per second).
+export const BLOCK_RATE: RateRule = { capacity: TUNING.blockRate, windowMs: TUNING.msPerSec };
 
 // Token bucket kept as one "theoretical arrival time" (GCRA): integer ms, no fractional tokens to round.
 export class RateBucket {

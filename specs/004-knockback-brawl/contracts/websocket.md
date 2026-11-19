@@ -116,6 +116,8 @@
 
 - 새 궤적의 시작: 벽 튕김·뚫림(`cause: "wall"`, `wall.result` = `bounce` | `break`), 공중 점프·복귀기(`air`·`recover`),
   경로의 블록이 바뀜(`block`). 뚫림이면 그 칸의 블록도 없어진다(`block` 메시지를 따로 보내지 않는다).
+- `wall.damage`: 벽에 부딪힌 뒤의 누적 피해 %(정수, `swing.hits[].damage`처럼). 튕김이면 추가 피해가 더해지고 뚫림은 그대로다. `wall.cell`은 부딪힌 블록 칸.
+- `block` 원인의 `launch`는 지금 위치·속도에서 바뀐 블록으로 다시 계산한 궤적이다(`t`는 그 시각, `s`는 처음 궤적의 세기 그대로).
 
 ### `landed`
 

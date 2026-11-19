@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { HTTPException } from 'hono/http-exception';
-import { adminAuth, adminDeleteRoom, listReports, resolveReport } from './admin.ts';
+import { adminAuth, adminDeleteRoom, adminResetArena, listReports, resolveReport } from './admin.ts';
 import { discardUserBugReport, issueUserBugReport, listUserBugReports, purgeUserBugReports, receiveBugReport, receiveUserBugReport, recordServerError } from './bug-reports.ts';
 import { syncGithub } from './github-sync.ts';
 import { rateLimit } from './rate-limit.ts';
@@ -55,6 +55,7 @@ app.use('/admin/*', adminAuth);
 app.get('/admin/reports', listReports);
 app.post('/admin/reports/:reportId/resolve', resolveReport);
 app.delete('/admin/rooms/:roomId', adminDeleteRoom);
+app.post('/admin/rooms/:roomId/arena-reset', adminResetArena);
 app.get('/admin/bug-reports', listUserBugReports);
 app.post('/admin/bug-reports/:id/issue', issueUserBugReport);
 app.delete('/admin/bug-reports/:id', discardUserBugReport);

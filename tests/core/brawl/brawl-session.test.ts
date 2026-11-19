@@ -188,3 +188,149 @@ describe('BrawlSession: theme change (FR-013, PR #84 review)', () => {
     expect(s.participant('b')?.fighter).toBeUndefined();
   });
 });
+
+describe('BrawlSession: blocks (US3, FR-015~017, FR-034, R9)', () => {
+  // a at [30.5, 1, 4.5] (cell [10, 1, 4]) facing east, b moved out of the way.
+  const builder = async () => {
+    const s = await duel();
+    await send(s, 'b', { t: 'move', p: [34.5, 1, 9.5], r: 0, a: 'walk' }, 15_000);
+    return s;
+  };
+
+  it('places a block in front for the whole channel and in welcome; an occupied cell is ignored', async () => {
+    const s = await builder();
+    const out = await send(s, 'a', { t: 'block', op: 'place', kind: 'dirt', h: 0 }, 20_000);
+    for (const id of ['a', 'b']) expect(msgs(out, id, 'block')).toEqual([{ t: 'block', cell: [11, 1, 4], kind: 'dirt', hp: 1, at: 20_000 }]);
+    expect((await send(s, 'a', { t: 'block', op: 'place', kind: 'stone', h: 0 }, 21_000)).send).toEqual([]);
+    s.connect('c');
+    const [welcome] = msgs(await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 22_000), 'c', 'welcome');
+    expect(welcome.arena.blocks).toEqual([[[11, 1, 4], 'dirt', 1]]);
+  });
+
+  it('breaks the floor in front below in four hits, then nothing is left to hit', async () => {
+    const s = await builder();
+    const hps = [];
+    for (let i = 0; i < 5; i++) hps.push(...msgs(await send(s, 'a', { t: 'block', op: 'break', h: -1 }, 20_000 + i * 1000), 'b', 'block').map((m) => [m.kind, m.hp]));
+    expect(hps).toEqual([['stone', 3], ['stone', 2], ['stone', 1], [null, 0]]);
+  });
+
+  it('nothing from the peace zone or onto a body, and over 4 a second is rate_limited {scope: block} to the sender only', async () => {
+    const s = await builder();
+    await send(s, 'b', { t: 'move', p: [31.5, 1, 4.5], r: 0, a: 'walk' }, 16_000);
+    expect((await send(s, 'a', { t: 'block', op: 'place', kind: 'dirt', h: 0 }, 20_000)).send, 'b stands there').toEqual([]);
+    const outs = [];
+    for (let i = 0; i < 5; i++) outs.push(await send(s, 'a', { t: 'block', op: 'break', h: -1 }, 21_000));
+    expect(outs.slice(0, 4).every((o) => msgs(o, 'b', 'block').length === 1)).toBe(true);
+    expect(outs[4].send).toEqual([{ to: 'a', msg: { t: 'rate_limited', scope: 'block', retryAfterMs: 250 } }]);
+    s.connect('c');
+    await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 30_000);
+    expect((await send(s, 'c', { t: 'block', op: 'break', h: -1 }, 31_000)).send).toEqual([]);
+  });
+});
+
+describe('BrawlSession: walls (US3 scenarios 3~5, FR-019)', () => {
+  // b with its back 3 cm from a dirt wall at x = 32 (cell [12, 1, 4]); a jab at 0% slides about 5 cm (strength 1.3).
+  const walled = async () => {
+    const s = await duel([30.9, 1, 4.5]);
+    await send(s, 'b', { t: 'move', p: [34.5, 1, 9.5], r: 0, a: 'walk' }, 15_000);
+    await send(s, 'a', { t: 'move', p: [30.9, 1, 4.5], r: EAST, a: 'idle' }, 15_500);
+    // a places the wall from [31.5, ...]: cell [11, ...] facing east puts it at [12, 1, 4].
+    await send(s, 'a', { t: 'move', p: [31.5, 1, 4.5], r: EAST, a: 'idle' }, 16_000);
+    await send(s, 'a', { t: 'block', op: 'place', kind: 'dirt', h: 0 }, 16_100);
+    await send(s, 'a', { t: 'move', p: [30.9, 1, 4.5], r: EAST, a: 'idle' }, 16_500);
+    await send(s, 'b', { t: 'move', p: [31.97, 1, 4.5], r: -EAST, a: 'walk' }, 17_000);
+    return s;
+  };
+
+  it('a weak hit into dirt bounces back with extra damage as a new launch {cause: wall}', async () => {
+    const s = await walled();
+    await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
+    const wallAt = s.nextEventAt()!;
+    const [launch] = msgs(s.runEvents(wallAt), 'a', 'launch');
+    expect(launch).toMatchObject({ peerId: 'b', launch: { p: [32, 1, 4.5], s: 0.65, cause: 'wall' }, wall: { result: 'bounce', damage: 4, cell: [12, 1, 4] } });
+    expect(launch.launch.v[0]).toBeLessThan(0);
+    expect(s.participant('b')!.fighter!.damage).toBeCloseTo(3.65);
+  });
+
+  it('a guard press just before the wall techs: landed {end: tech}, no extra damage, hitstun over', async () => {
+    const s = await walled();
+    await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
+    await send(s, 'b', { t: 'guard', on: true }, 20_020);
+    const wallAt = s.nextEventAt()!;
+    const [landed] = msgs(s.runEvents(wallAt), 'a', 'landed');
+    expect(landed).toMatchObject({ peerId: 'b', end: 'tech' });
+    expect(landed.p.slice(0, 2)).toEqual([32, 1]);
+    expect(s.participant('b')!.fighter!).toMatchObject({ damage: 3, flight: null, stunUntil: landed.at });
+  });
+
+  it('a smash breaks the dirt and flies on; the block is gone for a newcomer, with no block message', async () => {
+    const s = await walled();
+    await send(s, 'a', { t: 'hold', k: 'smash' }, 19_900);
+    await send(s, 'a', { t: 'skill', k: 'smash' }, 20_000);
+    const out = s.runEvents(s.nextEventAt()!);
+    expect(msgs(out, 'a', 'launch')[0]).toMatchObject({ peerId: 'b', launch: { cause: 'wall' }, wall: { result: 'break', cell: [12, 1, 4] } });
+    expect(msgs(out, 'a', 'block')).toEqual([]);
+    s.connect('c');
+    const [welcome] = msgs(await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 20_500), 'c', 'welcome');
+    expect(welcome.arena.blocks).toEqual([]);
+  });
+
+  it('a block placed on a flying fighter’s path relaunches it from where it is now {cause: block}', async () => {
+    // b flies east along z 4 from a full smash (32.4, about y 2.5 at x 34); c builds at eye height in [14, 2, 4], ahead of it.
+    const s = await duel([30.5, 1, 4.5], ['c']);
+    await send(s, 'c', { t: 'move', p: [33.5, 1, 4.5], r: EAST, a: 'walk' }, 15_000);
+    await send(s, 'a', { t: 'hold', k: 'smash' }, 19_000);
+    await send(s, 'a', { t: 'skill', k: 'smash' }, 20_000);
+    const before = s.nextEventAt()!;
+    const out = await send(s, 'c', { t: 'block', op: 'place', kind: 'stone', h: 1 }, 20_200);
+    const [relaunch] = msgs(out, 'a', 'launch');
+    expect(relaunch).toMatchObject({ peerId: 'b', at: 20_200, launch: { t: 20_200, cause: 'block' } });
+    expect(s.nextEventAt()).not.toBe(before);
+  });
+
+  it('breaking the wall a flight is about to hit relaunches it {cause: block}; no wall bounce follows (PR #91 review)', async () => {
+    const s = await walled();
+    s.connect('c');
+    await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 0);
+    await send(s, 'c', { t: 'move', p: [ex + 0.5, 0, ez + 0.5], r: 0, a: 'walk' }, 2000);
+    // c east of the wall facing west: its target is the wall cell [12, 1, 4].
+    await send(s, 'c', { t: 'move', p: [33.5, 1, 4.5], r: -EAST, a: 'walk' }, 17_000);
+    await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
+    const out = await send(s, 'c', { t: 'block', op: 'break', h: 0 }, 20_040);
+    expect(msgs(out, 'a', 'block')).toEqual([{ t: 'block', cell: [12, 1, 4], kind: null, hp: 0, at: 20_040 }]);
+    expect(msgs(out, 'a', 'launch')).toMatchObject([{ peerId: 'b', launch: { cause: 'block' } }]);
+    const later = s.runEvents(25_000);
+    expect(msgs(later, 'a', 'launch').filter((m) => m.wall)).toEqual([]);
+  });
+
+  it('a block that is not on any path relaunches nobody', async () => {
+    const s = await duel();
+    await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
+    s.connect('c');
+    await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 20_005);
+    await send(s, 'c', { t: 'move', p: [ex + 0.5, 0, ez + 0.5], r: 0, a: 'walk' }, 20_006);
+    await send(s, 'c', { t: 'move', p: [24.5, 1, 20.5], r: 0, a: 'walk' }, 20_007);
+    const out = await send(s, 'c', { t: 'block', op: 'place', kind: 'dirt', h: 0 }, 20_010);
+    expect(msgs(out, 'a', 'launch')).toEqual([]);
+  });
+});
+
+describe('RoomSession.resetArenas (FR-040, R10)', () => {
+  it('clears every channel’s blocks; arena people respawn at a start at 0% after arena_reset; the peace zone only hears it', async () => {
+    const s = await duel();
+    await send(s, 'a', { t: 'block', op: 'break', h: -1 }, 19_000);
+    await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
+    s.connect('c');
+    await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 20_100);
+    const out = s.resetArenas(21_000);
+    expect(out.send.filter((m) => m.to === 'b').map((m) => m.msg.t)).toEqual(['arena_reset', 'respawned', 'respawned']);
+    // c in the peace zone sees the arena too: it hears the same, but stays where it is.
+    expect(out.send.filter((m) => m.to === 'c').map((m) => m.msg.t)).toEqual(['arena_reset', 'respawned', 'respawned']);
+    expect(s.participant('c')!.pose.p).toEqual(THEMES.cafe.spawn);
+    expect(s.participant('b')!.fighter).toMatchObject({ damage: 0, flight: null });
+    expect(arena.starts.map((_, i) => startPoint(arena, i))).toContainEqual(s.participant('b')!.pose.p);
+    s.connect('d');
+    const [welcome] = msgs(await send(s, 'd', { t: 'join', v: 2, deviceKey: key(10) }, 21_100), 'd', 'welcome');
+    expect(welcome.arena.blocks).toEqual([]);
+  });
+});

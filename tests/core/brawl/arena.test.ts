@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGrid, cellKey, cellOf, inArena, makeArena, startPoint, worldOf } from '../../../src/core/brawl/arena.ts';
+import { buildGrid, canPlace, cellKey, cellOf, hitBlock, inArena, makeArena, placeBlock, startPoint, targetCell, worldOf } from '../../../src/core/brawl/arena.ts';
 import { TUNING } from '../../../src/core/brawl/tuning.ts';
 import { THEME_IDS, THEMES } from '../../../src/core/themes.ts';
 
@@ -68,5 +68,57 @@ describe('default arena (FR-016, R5, R12)', () => {
   it('knocks out below the floor top minus koDepth', () => {
     expect(arena.koY).toBe(1 - TUNING.koDepth);
     expect(arena.bounds.min[1]).toBe(arena.koY);
+  });
+});
+
+describe('placing and breaking blocks (FR-015, FR-015a, FR-016, FR-017, T033)', () => {
+  const EAST = Math.PI / 2;
+  // Feet in cell [10, 1, 10]: world [30.5, 1, 10.5].
+  const feet: [number, number, number] = [30.5, 1, 10.5];
+  const fresh = () => {
+    const changed = new Map();
+    return { changed, grid: buildGrid(arena, changed) };
+  };
+
+  it('targets the cell right in front, r rounded to four directions, at feet −1 / 0 / +1', () => {
+    expect(targetCell(arena, feet, EAST, 0)).toEqual([11, 1, 10]);
+    expect(targetCell(arena, feet, EAST, 1)).toEqual([11, 2, 10]);
+    expect(targetCell(arena, feet, EAST, -1)).toEqual([11, 0, 10]);
+    expect(targetCell(arena, feet, 0, 0)).toEqual([10, 1, 11]);
+    expect(targetCell(arena, feet, Math.PI, 0)).toEqual([10, 1, 9]);
+    expect(targetCell(arena, feet, -EAST, 0)).toEqual([9, 1, 10]);
+    // 40° rounds to facing +z, 50° to +x: never a diagonal, never my own cell or the one under me.
+    expect(targetCell(arena, feet, (40 * Math.PI) / 180, 0)).toEqual([10, 1, 11]);
+    expect(targetCell(arena, feet, (50 * Math.PI) / 180, 0)).toEqual([11, 1, 10]);
+  });
+
+  it('places only on an empty cell inside the arena that is no start, exit or body', () => {
+    const { grid } = fresh();
+    expect(canPlace(arena, grid, [11, 1, 10], [])).toBe(true);
+    expect(canPlace(arena, grid, [11, 0, 10], []), 'the floor is a block').toBe(false);
+    expect(canPlace(arena, grid, [24, 1, 10], []), 'outside the arena').toBe(false);
+    expect(canPlace(arena, grid, [11, 12, 10], []), 'above the arena').toBe(false);
+    expect(canPlace(arena, grid, [11, -1, 10], [])).toBe(false);
+    expect(canPlace(arena, grid, [...arena.starts[0]], [])).toBe(false);
+    expect(canPlace(arena, grid, [...arena.exit], [])).toBe(false);
+    // A body fills its feet cell and the one above.
+    expect(canPlace(arena, grid, [11, 1, 10], [[31.5, 1, 10.5]])).toBe(false);
+    expect(canPlace(arena, grid, [11, 2, 10], [[31.5, 1, 10.5]])).toBe(false);
+    expect(canPlace(arena, grid, [11, 3, 10], [[31.5, 1, 10.5]])).toBe(true);
+  });
+
+  it('a hit takes 1 hp: dirt breaks in one, stone in four, a default floor block too (FR-016)', () => {
+    const { changed, grid } = fresh();
+    const dirt = placeBlock(arena, changed, grid, [11, 1, 10], 'dirt', TUNING);
+    expect(dirt).toEqual({ cell: [11, 1, 10], kind: 'dirt', hp: 1 });
+    expect(hitBlock(arena, changed, grid, [11, 1, 10])).toEqual({ cell: [11, 1, 10], kind: null, hp: 0 });
+    expect(grid.has(cellKey([11, 1, 10]))).toBe(false);
+    expect(changed.has(cellKey([11, 1, 10])), 'a broken placed block leaves no diff').toBe(false);
+    expect(hitBlock(arena, changed, grid, [11, 1, 10]), 'nothing to break').toBeNull();
+
+    for (const hp of [3, 2, 1]) expect(hitBlock(arena, changed, grid, [11, 0, 10])).toEqual({ cell: [11, 0, 10], kind: 'stone', hp });
+    expect(hitBlock(arena, changed, grid, [11, 0, 10])).toEqual({ cell: [11, 0, 10], kind: null, hp: 0 });
+    expect(changed.get(cellKey([11, 0, 10])), 'a broken default block is a null diff').toBeNull();
+    expect(buildGrid(arena, changed)).toEqual(grid);
   });
 });
