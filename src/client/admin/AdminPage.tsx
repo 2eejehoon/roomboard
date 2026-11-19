@@ -212,7 +212,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
                     }
                     endContent={
                       status === 'open' && (
-                        <Stack direction="horizontal" gap={2} wrap="wrap">
+                        // Stacked: three buttons side by side squeezed the room link below a tap target on a phone.
+                        <Stack gap={2}>
                           <Button label={t('admin.deleteRoom')} variant="destructive" onClick={() => setDeleting(r)} />
                           <Button label={t('admin.resetArena')} variant="secondary" onClick={() => setResetting(r)} />
                           <Button label={t('admin.resolve')} onClick={() => void act(`reports/${r.id}/resolve`, 'POST')} />

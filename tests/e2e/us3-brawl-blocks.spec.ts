@@ -41,7 +41,7 @@ test('US3: 2D buttons place and break, dirt in one hit and stone in four, the sa
   }
   await b.getByRole('button', { name: ko['brawl.break'] }).click();
   await expect.poll(() => at(a, [11, 1, 4])).toBeNull();
-  expect(await at(b, [11, 1, 4])).toBeNull();
+  await expect.poll(() => at(b, [11, 1, 4])).toBeNull();
 
   // The 3D page's F key places a dirt block in front of it, wherever it faces.
   const before = (await blocks(b)).length;
@@ -49,7 +49,10 @@ test('US3: 2D buttons place and break, dirt in one hit and stone in four, the sa
   await move(a, [33.5, 1, 9.5]);
   await a.waitForTimeout(500);
   await a.locator('canvas').click();
-  await a.keyboard.press('KeyF');
+  // Held over a few frames: the scene reads keys once per frame, and a CI frame can be longer than a quick press.
+  await a.keyboard.down('KeyF');
+  await a.waitForTimeout(300);
+  await a.keyboard.up('KeyF');
   await expect.poll(async () => (await blocks(b)).length).toBe(before + 1);
 });
 
