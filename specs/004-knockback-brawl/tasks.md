@@ -175,6 +175,7 @@
   - (PR #88 리뷰에서 넘김) 2D: 동·서쪽 가장자리 밖으로 떨어지거나 넉아웃된 사람(나 포함)도 옆 그림·참가자 목록에서 "싸우는 중"으로 보이게(Room2D의 판정을 같이 쓰고 점을 viewBox 안으로).
     "경기장으로 가기" 걷기 타이머: 기다리는 동안 버튼을 끄고 unmount 때 지운다.
   - 참고(#88): us1-move T046이 #87 뒤 main CI에서 가끔 실패해 Arena를 `memo`로 감쌌다. 3D에 무거운 것을 더하면 Scene 리렌더에 딸려 가지 않게 한다.
+    원인(#93): 검사가 "store가 바뀐 다음 프레임 = 미끄러짐 시작"으로 가정했으나 React는 store 변경을 별도 작업에서 반영해 느린 프레임에서는 늦는다. 라벨이 움직이기 시작한 것을 보고 긴 프레임을 넣게 고쳤다(소프트웨어 렌더링에서도 통과, 우선순위 버그는 여전히 잡음).
   - 결과: 때린 사람은 `swing.at + hitstopMs`, 맞은 사람은 `launch.t`까지 멈춤(store `stopUntil`, `stopped()`). 꼬리는 drei `Line`에 궤적 점을 넣고 프레임마다 `instanceCount`만 바꿈(모든 화면 같은 점).
     흔들림은 세기 `LOOKS.shake.strengthFrom`(20) 이상, 머리 영역 "화면 흔들림 끄기/켜기" 버튼(3D에서만). 2D는 옆 그림 점 위에 색 있는 %. 넘긴 2D 항목: `fighting()` 하나를 옆 그림·목록·조작이 같이 쓰고 점은 viewBox 안으로,
     걷기 타이머 동안 버튼을 끄고 unmount 때 지움. 테스트 훅 `feel(peerId)`. (PR #90 리뷰) 날아가는 중에 나간 사람은 `peer_left`에서 store의 fighter를 지워 꼬리가 남지 않게(실패 확인 뒤 고침). 확인: `npx vitest run` 통과, us1-brawl·us2-brawl-feel·us2-fallback·a11y 로컬 데스크톱·모바일 통과, `check:bundle` 통과.

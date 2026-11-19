@@ -136,32 +136,34 @@ test('T046: right after a long frame the label is already where the avatar is', 
   await a.waitForTimeout(1000);
   const startX = await label.evaluate((el) => Math.round(el.getBoundingClientRect().x));
 
-  // As soon as the store has the new pose, hold the main thread for 300 ms (longer than the 200 ms glide), then read the label on
-  // the next frame. The avatar is at the end by then, so the label must be too.
+  // In the frame the glide is first seen, hold the main thread for 300 ms (longer than the 200 ms glide), then read the label on
+  // the next frame. The avatar is at the end by then, so the label must be too. The glide's start is seen on the label itself: React
+  // commits the store's new pose in a task of its own, which a slow frame can run after the next animation frame (CI, and always
+  // in software rendering), so "one frame after the store changed" did not mean the glide had started.
   const done = a.evaluate(
-    ({ name, peerId }) =>
-      new Promise<number>((resolve) => {
+    ({ name, peerId, startX }) =>
+      new Promise<{ seen: number; after: number }>((resolve) => {
         const el = [...document.querySelectorAll('span')].find((s) => s.textContent === name)!;
         const hooks = (window as unknown as { __roomboard: { state(): { peers: { peerId: string; p: number[] }[] } } }).__roomboard;
         const watch = () => {
-          if (hooks.state().peers.find((p) => p.peerId === peerId)?.p[0] !== 3) return requestAnimationFrame(watch);
-          // One frame for React to commit the pose and start the glide, then the long frame.
-          requestAnimationFrame(() => {
-            const t = performance.now();
-            while (performance.now() - t < 300);
-            requestAnimationFrame(() => resolve(Math.round(el.getBoundingClientRect().x)));
-          });
+          const seen = Math.round(el.getBoundingClientRect().x);
+          if (hooks.state().peers.find((p) => p.peerId === peerId)?.p[0] !== 3 || seen === startX) return requestAnimationFrame(watch);
+          const t = performance.now();
+          while (performance.now() - t < 300);
+          requestAnimationFrame(() => resolve({ seen, after: Math.round(el.getBoundingClientRect().x) }));
         };
         watch();
       }),
-    { name: peer.nickname, peerId: peer.peerId },
+    { name: peer.nickname, peerId: peer.peerId, startX },
   );
   await b.waitForTimeout(1000);
   await moveB([3, 0, 4]);
-  const afterStall = await done;
+  const { seen, after: afterStall } = await done;
   await a.waitForTimeout(1000);
   const endX = await label.evaluate((el) => Math.round(el.getBoundingClientRect().x));
   expect(Math.abs(endX - startX), 'the avatar moved on screen').toBeGreaterThan(20);
+  // Otherwise the long frame came after the glide, with nothing left to check (PR #93 review).
+  expect(Math.abs(seen - endX), `the long frame fell inside the glide (seen at ${seen}, end ${endX})`).toBeGreaterThan(5);
   expect(Math.abs(afterStall - endX), `label after the long frame at ${afterStall}, start ${startX}, end ${endX}`).toBeLessThanOrEqual(5);
 });
 
