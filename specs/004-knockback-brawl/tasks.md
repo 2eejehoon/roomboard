@@ -71,6 +71,7 @@
   welcome에 `arena`(차이·경기장 사람·판)를 넣는다. 기존 worker·core 테스트 전부 통과.
   - 결과: 뼈대는 `nextEventAt()`(아직 null)·`runEvents()`·`view()`만 둔다. `handle`은 처음 쓰는 US1(T021)에서 더한다(쓰지 않는 인자 린트).
     `onAlarm`은 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각에 넣으며, 난투 alarm이 잦아져도 D1 `online_count`는 값이 바뀔 때만 쓴다.
+    이 규칙은 `online-count.test.ts`의 "같은 값이면 쓰지 않음" 테스트가 지킨다(PR #83 리뷰, 매번 쓰는 코드에서 실패 확인: 99 대신 2).
     `npx vitest run` 614개 통과(`room-do`·`online-count` 포함), `npm run typecheck`·`npx eslint .` 통과.
 - [ ] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
   늦게 받은 궤적은 지금 위치로 짧게 보간(Edge Cases). `src/client/test-hooks.ts`에 난투 상태 읽기(피해 %, 위치, 블록 차이, 판)를 더한다(개발 빌드 전용).
