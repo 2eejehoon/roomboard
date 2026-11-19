@@ -58,6 +58,14 @@ describe('brawl store (R3)', () => {
     expect(s.getState().brawl.readyAt).toBe(20_385);
   });
 
+  it('readyAt follows only my jabs: cooldowns are per skill, and only a jab is held (FR-012)', () => {
+    const s = store();
+    s.apply({ ...swing(20_000), k: 'smash', readyAt: 21_000 } as ServerMessage, 20_050);
+    expect(s.getState().brawl.readyAt).toBe(0);
+    s.apply(swing(22_000), 22_050);
+    expect(s.getState().brawl.readyAt).toBe(22_385);
+  });
+
   it('replays the launch with the core flight at the estimated server time', () => {
     const s = store();
     s.apply(swing(20_000), 20_000 + 50);

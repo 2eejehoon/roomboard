@@ -14,7 +14,7 @@ export type BrawlState = {
   offset: number | null;
   fighters: Record<string, FighterView>;
   blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks'];
-  // When my next skill is accepted, in server time (swing.readyAt).
+  // When my next jab is accepted, in server time (swing.readyAt of my jabs; cooldowns are per skill, only a jab is held).
   readyAt: number;
 };
 
@@ -63,7 +63,7 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
     case 'swing': {
       let fighters = next.fighters;
       for (const h of msg.hits) fighters = { ...fighters, [h.peerId]: { ...(fighters[h.peerId] ?? blank), damage: h.damage, ...launched(h.peerId, h.launch) } };
-      return { ...next, fighters, readyAt: msg.peerId === me ? msg.readyAt : s.readyAt };
+      return { ...next, fighters, readyAt: msg.peerId === me && msg.k === 'jab' ? msg.readyAt : s.readyAt };
     }
     case 'launch':
       return { ...next, fighters: set(msg.peerId, launched(msg.peerId, msg.launch)) };
