@@ -4,7 +4,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { Stack } from '@astryxdesign/core/Stack';
 import { useEffect, useMemo, useRef } from 'react';
 import type { BrawlMessage } from '../../../core/brawl/brawl-session.ts';
-import { buildGrid, cellKey, cellOf, makeArena, type Grid } from '../../../core/brawl/arena.ts';
+import { buildGrid, cellKey, cellOf, inArena, makeArena, type Grid } from '../../../core/brawl/arena.ts';
+import { damageColor } from '../../../core/brawl/feel.ts';
 import { MAX_SPEED } from '../../../core/movement.ts';
 import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Pose } from '../../../core/room-session.ts';
@@ -13,7 +14,7 @@ import { createBrawlInput, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
 import { flightOf, serverNow, type BrawlState } from '../../brawl/store.ts';
 import { t } from '../../i18n/t.ts';
-import type { RoomState } from '../../state/room-store.ts';
+import type { Peer, RoomState } from '../../state/room-store.ts';
 
 const ARENA = makeArena(TUNING);
 const [W, H] = ARENA.size;
@@ -21,6 +22,11 @@ const FAINT = 0.4;
 // Facing for each button: r = 0, ±π/2, π (R8); the side view looks along -z, so right is +x.
 const FACE = { left: -Math.PI / 2, right: Math.PI / 2, front: Math.PI, back: 0 } as const;
 type Move = (p: Vec3, r: number, a: Pose['a']) => void;
+
+// In the arena, or falling off it or knocked out below it until the respawn. Only a fighter can be below the room floor
+// (PR #88 review), so the 2D screen's controls, side view and list all use this.
+export const fighting = (brawl: BrawlState, p: Pick<Peer, 'peerId' | 'p'>) => inArena(ARENA, p.p) || p.p[1] < 0 || !!brawl.fighters[p.peerId]?.knockedOut;
+const clamp = (v: number, max: number) => Math.min(max, Math.max(0, v));
 
 export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move; brawl: (msg: BrawlMessage) => void }) {
   const you = state.you!;
@@ -41,9 +47,10 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
     const to = stepTo(grid, you.p, dx, dz);
     move(to ?? you.p, r, to ? 'walk' : 'idle');
   };
-  const people = [you, ...state.peers].filter((p) => p.p[0] >= ARENA.bounds.min[0] && p.p[0] <= ARENA.bounds.max[0]);
-  const sx = (x: number) => (x - ARENA.origin[0]) / ARENA.cellSize;
-  const sy = (y: number) => H - (y - ARENA.origin[1]) / ARENA.cellSize;
+  const people = [you, ...state.peers].filter((p) => fighting(state.brawl, p));
+  // Off the edge or below the island a dot stays on the view's border (PR #88 review).
+  const sx = (x: number) => clamp((x - ARENA.origin[0]) / ARENA.cellSize, W);
+  const sy = (y: number) => clamp(H - (y - ARENA.origin[1]) / ARENA.cellSize, H);
   const facing = you.r;
   const dir: [number, number] = [Math.round(Math.sin(facing)), Math.round(Math.cos(facing))];
 
@@ -63,11 +70,15 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
         })}
         {people.map((p) => {
           const depth = cellOf(ARENA, p.p)[2] - row;
+          const damage = state.brawl.fighters[p.peerId]?.damage ?? 0;
           return (
             <g key={p.peerId} data-peer={p.peerId} opacity={depth === 0 ? 1 : FAINT}>
               <circle cx={sx(p.p[0])} cy={sy(p.p[1]) - 0.5} r={0.4} fill={p === you ? '#ffffff' : '#ff8a65'} />
+              <text x={sx(p.p[0])} y={sy(p.p[1]) - 1.2} fontSize={0.7} fill={LOOKS.damageText.colors[damageColor(damage, TUNING)]} textAnchor="middle">
+                {`${damage}%`}
+              </text>
               {depth !== 0 && (
-                <text x={sx(p.p[0])} y={sy(p.p[1]) - 1.2} fontSize={0.8} fill="#ffffff" textAnchor="middle">
+                <text x={sx(p.p[0])} y={sy(p.p[1]) - 2} fontSize={0.7} fill="#ffffff" textAnchor="middle">
                   {depth > 0 ? `+${depth}` : depth}
                 </text>
               )}

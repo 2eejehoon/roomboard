@@ -1,7 +1,7 @@
 // T011: the screen's brawl state (R3): server clock estimate, replaying launches with the core flight, late catch-up.
 import { describe, expect, it } from 'vitest';
 import { LOOKS } from '../../src/client/brawl/looks.ts';
-import { flightPosition, serverNow } from '../../src/client/brawl/store.ts';
+import { feel, flightPosition, serverNow, shakeOffset, stopped } from '../../src/client/brawl/store.ts';
 import { RoomStore } from '../../src/client/state/room-store.ts';
 import { buildGrid, makeArena } from '../../src/core/brawl/arena.ts';
 import { positionAt, simulate, type Launch } from '../../src/core/brawl/flight.ts';
@@ -111,5 +111,53 @@ describe('brawl store (R3)', () => {
     const s = store();
     s.apply({ t: 'respawned', peerId: 'me', p: [24.5, 1, 4.5], at: 24_000 }, 24_050);
     expect(s.getState().you?.p).toEqual([24.5, 1, 4.5]);
+  });
+});
+
+describe('brawl store: feel (US2, FR-020~024)', () => {
+  it('stops the attacker until at + hitstopMs and the target until launch.t, in server time (FR-020)', () => {
+    const s = store();
+    s.apply({ ...swing(20_000), peerId: 'a' } as ServerMessage, 20_050);
+    const b = s.getState().brawl;
+    // offset 50: server 20 034 is local 20 084.
+    expect(stopped(b, 'a', 20_084)).toBe(true);
+    expect(stopped(b, 'a', 20_085)).toBe(false);
+    expect(stopped(b, 'b', 20_084)).toBe(true);
+    expect(stopped(b, 'b', 20_085)).toBe(false);
+    expect(stopped(b, 'me', 20_060)).toBe(false);
+  });
+
+  it('feel() is the same from server values on every screen: stop time, trail while flying, % colour (FR-024)', () => {
+    const one = store();
+    const two = store();
+    one.apply(swing(20_000), 20_050);
+    two.apply(swing(20_000), 20_400);
+    for (const s of [one, two]) expect(feel(s.getState().brawl, 'b')).toEqual({ stopUntil: 20_035, trail: true, color: 'white' });
+    one.apply({ t: 'landed', peerId: 'b', p: [33, 1, 4.5], end: 'land', at: 21_000 }, 21_050);
+    expect(feel(one.getState().brawl, 'b').trail).toBe(false);
+    one.apply({ ...swing(22_000), hits: [{ peerId: 'b', damage: 55, guarded: false, hitstopMs: 35, launch }] } as ServerMessage, 22_050);
+    expect(feel(one.getState().brawl, 'b').color).toBe('yellow');
+  });
+
+  it('shakes only for a hit of strength >= LOOKS.shake.strengthFrom, fading over durationMs, never when off (FR-023, US2-5)', () => {
+    const s = store();
+    s.apply(swing(20_000, { ...launch, s: LOOKS.shake.strengthFrom - 0.1 }), 20_050);
+    expect(shakeOffset(s.getState().brawl, 20_060, true)).toBe(0);
+    s.apply(swing(21_000, { ...launch, t: 21_035, s: LOOKS.shake.strengthFrom }), 21_050);
+    expect(shakeOffset(s.getState().brawl, 21_050, true)).toBe(LOOKS.shake.amplitude);
+    expect(shakeOffset(s.getState().brawl, 21_050 + LOOKS.shake.durationMs / 2, true)).toBeCloseTo(LOOKS.shake.amplitude / 2);
+    expect(shakeOffset(s.getState().brawl, 21_050 + LOOKS.shake.durationMs, true)).toBe(0);
+    // Off: no shake, but the stop and the trail stay.
+    expect(shakeOffset(s.getState().brawl, 21_050, false)).toBe(0);
+    expect(feel(s.getState().brawl, 'b')).toMatchObject({ stopUntil: 21_035, trail: true });
+  });
+
+  it('forgets a fighter who leaves mid-flight, so no trail stays behind (PR #90 review)', () => {
+    const s = store();
+    s.apply(swing(20_000), 20_050);
+    expect(feel(s.getState().brawl, 'b').trail).toBe(true);
+    s.apply({ t: 'peer_left', peerId: 'b' }, 20_100);
+    expect(s.getState().brawl.fighters.b).toBeUndefined();
+    expect(feel(s.getState().brawl, 'b').trail).toBe(false);
   });
 });
