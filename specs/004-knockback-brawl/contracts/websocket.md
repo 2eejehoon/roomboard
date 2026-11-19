@@ -171,7 +171,8 @@
 { "t": "match", "state": "ended", "ranks": [{ "peerId": "p_1aQ9", "rank": 1 }, { "peerId": "p_7bX2", "rank": 2 }], "at": 1763400090000 }
 ```
 
-- `state`: `running`(시작), `ended`(결과, 같은 순위 허용), `cancelled`(되돌리기로 결과 없이 끝남). 결과는 저장하지 않는다(FR-027).
+- `state`: `running`(시작, 그리고 참가자가 출구·연결 끊김으로 탈락했을 때 그 사람 `stocks: 0`으로 다시), `ended`(결과, 같은 순위 허용), `cancelled`(되돌리기로 결과 없이 끝남).
+  결과는 저장하지 않는다(FR-027). `ended`를 받으면 참가자 피해는 0%다. `running` 시작 때도 참가자 피해는 0%다.
 
 ### `rate_limited` (바뀜)
 

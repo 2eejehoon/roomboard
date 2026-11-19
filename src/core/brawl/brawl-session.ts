@@ -7,6 +7,7 @@ import { buildGrid, canPlace, cellKey, hitBlock, inArena, placeBlock, removeBloc
 import { canAct, commitSkill, facesFront, holdSmash, inReach, isGuarding, newFighter, setGuard, takeHit, tryRoll, trySkill, type Fighter } from './fighter.ts';
 import { crosses, hitWall, positionAt, simulate, type Flight, type Launch } from './flight.ts';
 import { facingDir, launchVector, resolveHit, roundTo } from './knockback.ts';
+import { isOver, playing, ranks, startMatch, type Match } from './match.ts';
 import type { Tuning } from './tuning.ts';
 
 export type BrawlMessage = Exclude<ClientMessage, { t: 'join' | 'move' | 'chat' }>;
@@ -14,6 +15,8 @@ type ArenaView = Extract<ServerMessage, { t: 'welcome' }>['arena'];
 type Hit = Extract<ServerMessage, { t: 'swing' }>['hits'][number];
 type Armed = Participant & { fighter: Fighter };
 type BlockMsg = Extract<BrawlMessage, { t: 'block' }>;
+// What the room DO stores in arena:<channel> (R6): the block diff and the running match.
+export type ArenaRecord = { blocks: ArenaView['blocks']; match?: Match };
 
 const armed = (p: Participant): p is Armed => !!p.fighter;
 const none: Outbox = { send: [] };
@@ -23,15 +26,26 @@ export class BrawlSession {
   readonly changed: Changes = new Map();
   // Set when the blocks change; the room DO stores them (arena:<channel>, R6) and clears it.
   dirty = false;
+  // Set when the match starts, loses a stock or ends; the room DO writes it at once (R6) and clears it.
+  matchDirty = false;
+  private match: Match | null = null;
   private readonly arena: Arena;
   private readonly tuning: Tuning;
+  // The room's peace-zone spawn, where an eliminated player goes (FR-026); the theme can change.
+  private readonly spawn: () => Vec3;
   private grid: Grid;
   private readonly flights = new WeakMap<Launch, Flight>();
 
-  constructor(arena: Arena, tuning: Tuning) {
+  constructor(arena: Arena, tuning: Tuning, spawn: () => Vec3) {
     this.arena = arena;
     this.tuning = tuning;
+    this.spawn = spawn;
     this.grid = buildGrid(arena, this.changed);
+  }
+
+  // FR-026: nobody walks in while a match runs.
+  get open(): boolean {
+    return !this.match;
   }
 
   enter(me: Participant, now: number): void {
@@ -44,11 +58,25 @@ export class BrawlSession {
     return !!f && (f.flight !== null || !canAct(f, now));
   }
 
-  // Walking off the edge: the height the client sends decides (R4). shortcut: a doctored client need not fall; if that
-  // matters, check the blocks under the feet on the server.
+  // Walking off the edge: the height the client sends decides (R4).
   fell(me: Participant, y: number, members: Participant[], now: number): Outbox | null {
     if (!armed(me) || y >= this.arena.koY) return null;
-    return this.knockOut(me, now, members);
+    return this.judged(this.knockOut(me, now, members), members, now);
+  }
+
+  // After an accepted move: outside the box nothing holds anyone up, so staying there past fallMaxMs is a fall too
+  // (FR-005), run as an event even if the client goes quiet. A rejected move neither starts nor stops it (PR #95 review).
+  walked(me: Participant, now: number): void {
+    if (armed(me)) me.fighter.outsideAt = inArena(this.arena, me.pose.p) ? null : (me.fighter.outsideAt ?? now);
+  }
+
+  // Out of the arena by the exit or a disconnect: eliminated from a running match (spec Edge Cases).
+  leave(me: Participant, members: Participant[], now: number): Outbox {
+    const player = playing(this.match, me.peerId);
+    if (!player) return none;
+    [player.stocks, player.out] = [0, now];
+    this.matchDirty = true;
+    return this.judged(everyone(members, this.running(now)), members, now);
   }
 
   handle(me: Participant, msg: BrawlMessage, members: Participant[], now: number): Outbox {
@@ -59,13 +87,20 @@ export class BrawlSession {
     else if (msg.t === 'roll') tryRoll(f, now, this.tuning);
     else if (msg.t === 'skill') return this.swing(me, msg.k, msg.nonce, members, now);
     else if (msg.t === 'block') return this.block(me, msg, members, now);
+    else if (msg.t === 'match_start') return this.start(members, now);
     return none;
   }
 
-  // The stored diff after a wake (R6).
-  restore(blocks: ArenaView['blocks']): void {
+  record(): ArenaRecord {
+    const blocks = this.view([]).blocks;
+    return this.match ? { blocks, match: this.match } : { blocks };
+  }
+
+  // The stored diff and match after a wake (R6).
+  restore({ blocks, match }: ArenaRecord): void {
     for (const [cell, kind, hp] of blocks) this.changed.set(cellKey(cell), kind ? { cell, kind, hp } : null);
     this.grid = buildGrid(this.arena, this.changed);
+    this.match = match ?? null;
   }
 
   // FR-040, R10: back to the default arena; everyone in the arena stands at a start at 0%.
@@ -74,7 +109,7 @@ export class BrawlSession {
     this.grid = buildGrid(this.arena, this.changed);
     this.dirty = true;
     const fighters = members.filter(armed);
-    const send = everyone(members, { t: 'arena_reset', at: now }).send;
+    const send = [...this.cancel(members, now).send, ...everyone(members, { t: 'arena_reset', at: now }).send];
     fighters.forEach((p, i) => {
       p.fighter = newFighter(now, this.tuning);
       const at = startPoint(this.arena, i);
@@ -84,28 +119,67 @@ export class BrawlSession {
     return { send };
   }
 
+  // A match ends without a result when the arena is reset or the theme sends everyone to the peace zone.
+  cancel(members: Participant[], now: number): Outbox {
+    if (!this.match) return none;
+    [this.match, this.matchDirty] = [null, true];
+    return everyone(members, { t: 'match', state: 'cancelled', at: now });
+  }
+
   nextEventAt(members: Participant[]): number | null {
-    const times = members.filter(armed).flatMap((p) => this.eventAt(p.fighter) ?? []);
+    const times = [...members.filter(armed).flatMap((p) => this.eventAt(p.fighter) ?? []), ...(this.match ? [this.match.endsAt] : [])];
     return times.length ? Math.min(...times) : null;
   }
 
-  // Every event due by now, in time order (R2).
+  // Every event due by now, in time order (R2). The events of one ms are one server judgement: the match is checked after
+  // all of them, so fighters knocked out together are eliminated together (FR-027).
   runEvents(members: Participant[], now: number): Outbox {
     const send: Outbox['send'] = [];
+    const msOf = (p: Participant) => (armed(p) ? Math.round(this.eventAt(p.fighter) ?? Infinity) : Infinity);
     for (;;) {
-      const due = members.filter(armed).filter((p) => (this.eventAt(p.fighter) ?? Infinity) <= now);
-      if (!due.length) return { send };
-      const me = due.reduce((a, b) => (this.eventAt(b.fighter)! < this.eventAt(a.fighter)! ? b : a));
-      send.push(...this.runEvent(me, members).send);
+      const at = this.nextEventAt(members);
+      if (at === null || at > now) return { send };
+      const ms = Math.round(at);
+      // Checked again per fighter: one event (a broken wall) can move another fighter's.
+      for (const p of members.filter((o) => msOf(o) === ms)) if (msOf(p) === ms) send.push(...this.runEvent(p as Armed, members).send);
+      send.push(...this.judged(none, members, ms).send);
     }
   }
 
   view(members: Participant[]): ArenaView {
     return {
       blocks: [...this.changed].map(([key, b]) => (b ? [b.cell, b.kind, b.hp] : [key.split(',').map(Number) as Cell, null, 0])),
-      fighters: members.filter(armed).map((p) => ({ peerId: p.peerId, damage: Math.round(p.fighter.damage), launch: p.fighter.flight, stocks: null })),
-      match: null,
+      fighters: members
+        .filter(armed)
+        .map((p) => ({ peerId: p.peerId, damage: Math.round(p.fighter.damage), launch: p.fighter.flight, stocks: playing(this.match, p.peerId)?.stocks ?? null })),
+      match: this.match && this.running(this.match.startedAt),
     };
+  }
+
+  // FR-025: from the arena (handle() only sees fighters), two or more there, no match yet; everyone there plays from 0%.
+  private start(members: Participant[], now: number): Outbox {
+    const fighters = members.filter(armed);
+    if (this.match || fighters.length < 2) return none;
+    [this.match, this.matchDirty] = [startMatch(fighters.map((p) => p.peerId), now, this.tuning), true];
+    for (const p of fighters) p.fighter.damage = 0;
+    return everyone(members, this.running(now));
+  }
+
+  private running(at: number): Extract<ServerMessage, { t: 'match'; state: 'running' }> {
+    const m = this.match!;
+    return { t: 'match', state: 'running', endsAt: m.endsAt, players: m.players.map(({ peerId, stocks }) => ({ peerId, stocks })), at };
+  }
+
+  // After a judgement: one or nobody left, or the time is up, ends the match with the ranks, everyone back to 0% (FR-027).
+  private judged(out: Outbox, members: Participant[], now: number): Outbox {
+    const m = this.match;
+    if (!m || !isOver(m, now)) return out;
+    const fighters = members.filter(armed);
+    const damageOf = (id: string) => fighters.find((p) => p.peerId === id)?.fighter.damage ?? 0;
+    const ended = everyone(members, { t: 'match', state: 'ended', ranks: ranks(m, damageOf), at: now });
+    for (const p of fighters) p.fighter.damage = 0;
+    [this.match, this.matchDirty] = [null, true];
+    return { send: [...out.send, ...ended.send] };
   }
 
   private flight(launch: Launch): Flight {
@@ -121,12 +195,13 @@ export class BrawlSession {
 
   private eventAt(f: Fighter): number | null {
     if (f.flight) return this.flight(f.flight).end.t;
-    return f.knockedOutAt === null ? null : f.knockedOutAt + this.tuning.respawnMs;
+    if (f.knockedOutAt !== null) return f.knockedOutAt + this.tuning.respawnMs;
+    return f.outsideAt ? f.outsideAt + this.tuning.fallMaxMs : null;
   }
 
   private runEvent(me: Armed, members: Participant[]): Outbox {
     const f = me.fighter;
-    if (!f.flight) return this.respawn(me, members);
+    if (!f.flight) return f.knockedOutAt !== null ? this.respawn(me, members) : this.knockOut(me, f.outsideAt! + this.tuning.fallMaxMs, members);
     const end = this.flight(f.flight).end;
     const at = Math.round(end.t);
     if (end.kind === 'ko') return this.knockOut(me, at, members);
@@ -201,9 +276,18 @@ export class BrawlSession {
     return { send };
   }
 
+  // In a match each knock-out costs a stock; the last one eliminates to the peace-zone spawn, no respawn (FR-026).
   private knockOut(me: Armed, at: number, members: Participant[]): Outbox {
-    [me.fighter.flight, me.fighter.knockedOutAt] = [null, at];
-    return everyone(members, { t: 'knocked_out', peerId: me.peerId, respawnAt: at + this.tuning.respawnMs, stocks: null, out: false, at });
+    [me.fighter.flight, me.fighter.knockedOutAt, me.fighter.outsideAt] = [null, at, null];
+    const player = playing(this.match, me.peerId);
+    if (player) [player.stocks, this.matchDirty] = [player.stocks - 1, true];
+    const out = player?.stocks === 0;
+    if (out) {
+      player.out = at;
+      delete (me as Participant).fighter;
+      [me.pose, me.lastMoveAt] = [{ p: this.spawn(), r: 0, a: 'idle' }, at];
+    }
+    return everyone(members, { t: 'knocked_out', peerId: me.peerId, respawnAt: at + this.tuning.respawnMs, stocks: player?.stocks ?? null, out, at });
   }
 
   private respawn(me: Armed, members: Participant[]): Outbox {

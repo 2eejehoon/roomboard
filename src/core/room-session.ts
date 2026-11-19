@@ -6,7 +6,7 @@ import { CLOSE, parseClientMessage, PROTOCOL_VERSION, type ClientMessage, type S
 import { BLOCK_RATE, CHAT_RATE, MOVE_RATE, RateBucket } from './rate-bucket.ts';
 import { THEMES, type Vec3 } from './themes.ts';
 import { cellOf, inArena, makeArena, sameCell, startPoint } from './brawl/arena.ts';
-import { BrawlSession, type BrawlMessage } from './brawl/brawl-session.ts';
+import { BrawlSession, type ArenaRecord, type BrawlMessage } from './brawl/brawl-session.ts';
 import { TUNING } from './brawl/tuning.ts';
 import type { Fighter } from './brawl/fighter.ts';
 
@@ -111,17 +111,18 @@ export class RoomSession {
     return [...this.brawls.values()].some((b) => b.dirty);
   }
 
-  // R6: each channel whose blocks changed since the last call, for arena:<channel>; clears the marks.
-  takeDirtyArenas(): { channel: number; blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks'] }[] {
+  // R6: each channel whose blocks (or, with matchOnly, whose match) changed since the last call, for arena:<channel>;
+  // clears the marks, since the record holds both.
+  takeDirtyArenas(matchOnly = false): { channel: number; record: ArenaRecord }[] {
     return [...this.brawls].flatMap(([channel, b]) => {
-      if (!b.dirty) return [];
-      b.dirty = false;
-      return [{ channel, blocks: b.view([]).blocks }];
+      if (!b.matchDirty && (matchOnly || !b.dirty)) return [];
+      [b.dirty, b.matchDirty] = [false, false];
+      return [{ channel, record: b.record() }];
     });
   }
 
-  restoreArena(channel: number, blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks']): void {
-    this.brawl(channel).restore(blocks);
+  restoreArena(channel: number, record: ArenaRecord): void {
+    this.brawl(channel).restore(record);
   }
 
   // Channels with someone joined; an empty one's arena is gone (FR-018).
@@ -135,15 +136,19 @@ export class RoomSession {
     this.room = room;
     const joined = this.joined();
     if (respawn) for (const p of joined) [p.pose, p.lastMoveAt, p.fighter] = [{ p: THEMES[room.roomData.themeId].spawn, r: 0, a: 'idle' }, now, undefined];
-    return { send: joined.map((p) => ({ to: p.peerId, msg: { t: 'room_updated', room } })) };
+    const cancelled = respawn ? [...this.brawls].flatMap(([channel, b]) => b.cancel(this.members(channel), now).send) : [];
+    return { send: [...joined.map((p) => ({ to: p.peerId, msg: { t: 'room_updated', room } as const })), ...cancelled] };
   }
 
-  leave(peerId: string): Outbox {
+  leave(peerId: string, now: number): Outbox {
     const me = this.participant(peerId);
     this.conns.delete(peerId);
+    if (!me) return { send: [] };
     // FR-018: the last one out takes the channel's arena back to the default.
-    if (me && !this.occupied().has(me.channel)) this.brawls.delete(me.channel);
-    return me ? this.toChannel(me, { t: 'peer_left', peerId }) : { send: [] };
+    if (!this.occupied().has(me.channel)) this.brawls.delete(me.channel);
+    // A disconnect is out of a running match (spec Edge Cases).
+    const out = this.brawls.get(me.channel)?.leave(me, this.members(me.channel), now).send ?? [];
+    return { send: [...this.toChannel(me, { t: 'peer_left', peerId }).send, ...out] };
   }
 
   private join(peerId: string, conn: Conn, msg: Extract<ClientMessage, { t: 'join' }>, now: number): Outbox {
@@ -196,15 +201,17 @@ export class RoomSession {
     }
     me.pose = { p, r: round(msg.r), a: msg.a };
     me.lastMoveAt = now;
+    brawl.walked(me, now);
     // The entrance and exit cells teleport (004 R5): a correction to me, peer_moved to the others.
     const fighters = this.members(me.channel).filter((o) => o !== me && o.fighter).length;
-    if (!inArena(ARENA, p) && sameCell(p.map(Math.floor), theme.arenaEntrance)) {
+    if (!inArena(ARENA, p) && sameCell(p.map(Math.floor), theme.arenaEntrance) && brawl.open) {
       brawl.enter(me, now);
       return this.teleport(me, startPoint(ARENA, fighters), now);
     }
     if (inArena(ARENA, p) && sameCell(cellOf(ARENA, p), ARENA.exit)) {
       delete me.fighter;
-      return this.teleport(me, theme.spawn, now);
+      const left = brawl.leave(me, this.members(me.channel), now);
+      return { send: [...this.teleport(me, theme.spawn, now).send, ...left.send] };
     }
     return this.toChannel(me, { t: 'peer_moved', peerId: me.peerId, ...me.pose });
   }
@@ -217,7 +224,7 @@ export class RoomSession {
 
   private brawl(channel: number): BrawlSession {
     let b = this.brawls.get(channel);
-    if (!b) this.brawls.set(channel, (b = new BrawlSession(ARENA, TUNING)));
+    if (!b) this.brawls.set(channel, (b = new BrawlSession(ARENA, TUNING, () => THEMES[this.room.roomData.themeId].spawn)));
     return b;
   }
 
