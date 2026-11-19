@@ -42,6 +42,22 @@ describe('brawl input', () => {
     expect(shown).toEqual(['jab']);
   });
 
+  it('a second jab pressed before the first swing comes back is held for the jab cooldown, not sent at once (PR #87 review)', () => {
+    const i = input();
+    i.press('jab');
+    i.press('jab');
+    expect(sent).toEqual([{ t: 'skill', k: 'jab', nonce: 's1' }]);
+    server = 1349;
+    vi.advanceTimersByTime(349);
+    expect(sent).toHaveLength(1);
+    server = 1350;
+    vi.advanceTimersByTime(1);
+    expect(sent).toEqual([
+      { t: 'skill', k: 'jab', nonce: 's1' },
+      { t: 'skill', k: 'jab', nonce: 's2' },
+    ]);
+  });
+
   it('smash charges between press (hold) and release (skill); guard and roll pass through', () => {
     const i = input();
     i.press('smash');
