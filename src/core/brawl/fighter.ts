@@ -11,7 +11,8 @@ export type Fighter = {
   staminaAt: number;
   stunUntil: number;
   invulnUntil: number;
-  cooldownUntil: number;
+  // Per skill (FR-012): a whiffed smash does not hold back a jab.
+  cooldownUntil: Record<'jab' | 'smash' | 'throw', number>;
   jabStep: number;
   jabAt: number;
   holdAt: number | null;
@@ -31,7 +32,7 @@ export const newFighter = (now: number, t: Tuning): Fighter => ({
   staminaAt: now,
   stunUntil: 0,
   invulnUntil: 0,
-  cooldownUntil: 0,
+  cooldownUntil: { jab: 0, smash: 0, throw: 0 },
   jabStep: 0,
   jabAt: 0,
   holdAt: null,
@@ -62,7 +63,7 @@ export function holdSmash(f: Fighter, now: number): void {
 export function trySkill(f: Fighter, k: 'jab' | 'smash' | 'throw', now: number, t: Tuning): UsedSkill | null {
   const holdAt = f.holdAt;
   if (k === 'smash') f.holdAt = null;
-  if (!canAct(f, now) || now < f.cooldownUntil) return null;
+  if (!canAct(f, now) || now < f.cooldownUntil[k]) return null;
   if (k === 'throw') return { id: 'throw', chargeMs: 0 };
   if (k === 'smash') return { id: 'smash', chargeMs: holdAt === null ? 0 : Math.min(now - holdAt, t.smashChargeMs) };
   const step = f.jabStep > 0 && f.jabStep < t.jabSteps && now - f.jabAt <= t.jabChainMs ? f.jabStep + 1 : 1;
@@ -71,9 +72,10 @@ export function trySkill(f: Fighter, k: 'jab' | 'smash' | 'throw', now: number, 
 
 // Cooldown from the attacker's hitstop end (FR-012). Returns readyAt.
 export function commitSkill(f: Fighter, used: UsedSkill, now: number, hitstopMs: number, t: Tuning): number {
-  f.cooldownUntil = now + hitstopMs + t.skills[used.id].cooldownMs;
-  if (used.step) [f.jabStep, f.jabAt] = [used.step, f.cooldownUntil];
-  return f.cooldownUntil;
+  const readyAt = now + hitstopMs + t.skills[used.id].cooldownMs;
+  f.cooldownUntil[used.step ? 'jab' : (used.id as 'smash' | 'throw')] = readyAt;
+  if (used.step) [f.jabStep, f.jabAt] = [used.step, readyAt];
+  return readyAt;
 }
 
 export function tryRoll(f: Fighter, now: number, t: Tuning): boolean {

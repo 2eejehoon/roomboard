@@ -30,10 +30,10 @@ describe('skills (FR-007, FR-008, FR-012)', () => {
     const f = newFighter(0, T);
     expect(jabAt(f, 0)?.id).toBe('jab1');
     // cooldown end = 0 + 35 hitstop + 350 = 385
-    expect(f.cooldownUntil).toBe(385);
+    expect(f.cooldownUntil.jab).toBe(385);
     expect(jabAt(f, 385 + 400)?.id).toBe('jab2');
-    expect(jabAt(f, f.cooldownUntil)?.id).toBe('jab3');
-    expect(jabAt(f, f.cooldownUntil)?.id).toBe('jab1');
+    expect(jabAt(f, f.cooldownUntil.jab)?.id).toBe('jab3');
+    expect(jabAt(f, f.cooldownUntil.jab)?.id).toBe('jab1');
   });
 
   it('a late jab starts at step 1 again', () => {
@@ -42,12 +42,21 @@ describe('skills (FR-007, FR-008, FR-012)', () => {
     expect(jabAt(f, 385 + 401)?.id).toBe('jab1');
   });
 
-  it('ignores a skill before the cooldown ends; a whiff waits only the skill time (no hitstop)', () => {
+  it('ignores a skill before its own cooldown ends; a whiff waits only the skill time (no hitstop)', () => {
     const f = newFighter(0, T);
     jabAt(f, 0, 0);
-    expect(f.cooldownUntil).toBe(350);
-    expect(trySkill(f, 'smash', 349, T)).toBeNull();
+    expect(f.cooldownUntil.jab).toBe(350);
+    expect(trySkill(f, 'jab', 349, T)).toBeNull();
     expect(trySkill(f, 'jab', 350, T)).not.toBeNull();
+  });
+
+  it('each skill has its own cooldown: a whiffed smash does not hold back a jab or a throw (FR-012, PR #84 review)', () => {
+    const f = newFighter(0, T);
+    const smash = trySkill(f, 'smash', 0, T)!;
+    commitSkill(f, smash, 0, 0, T);
+    expect(trySkill(f, 'smash', 799, T)).toBeNull();
+    expect(trySkill(f, 'jab', 1, T)?.id).toBe('jab1');
+    expect(trySkill(f, 'throw', 1, T)?.id).toBe('throw');
   });
 
   it('smash charge runs from hold to the skill, capped at 1 s; no hold is no charge', () => {
