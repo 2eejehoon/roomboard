@@ -79,7 +79,7 @@
 
 **Checkpoint**: 기존 E2E(us1~us7·a11y·perf) 통과, v1 클라이언트는 4002를 받는다.
 
-**배포 금지(PR #83 리뷰)**: Phase 2가 머지되면 서버의 입구 칸이 동작하지만 3D 경기장 바닥은 T024에서 생긴다. T024·T026이 머지될 때까지 main을 배포하지 않는다
+**배포 금지(PR #83 리뷰, 2026-11-19 #88 머지로 풀림)**: Phase 2가 머지되면 서버의 입구 칸이 동작하지만 3D 경기장 바닥은 T024에서 생긴다. T024·T026이 머지될 때까지 main을 배포하지 않는다
 (배포는 수동 `deploy.yml`). 급한 수정을 배포해야 하면 그 전에 US1 화면 PR을 먼저 머지하거나 입구 칸을 테마 범위 밖으로 옮기는 임시 PR을 낸다.
 
 ---
@@ -165,8 +165,12 @@
 
 ### Implementation
 
+  - (PR #88 리뷰에서 넘김) 2D 방어 버튼을 누른 채 버튼 밖에서 떼면 방어가 끝나는지 E2E(그 뒤 정면 잽이 줄지 않음). 강펀치 경로는 us1-brawl이 확인한다.
 - [ ] T030 [US2] `src/core/brawl/feel.ts`(`damageColor`) + `src/client/brawl/looks.ts`의 `trail`·`damageText`·`shake`·`sfx`. T027 통과.
 - [ ] T031 [US2] `src/client/room/room3d/`: 타격 정지 동안 두 아바타 멈춤, 꼬리(`LOOKS.trail`), 숫자 색, 화면 흔들림(설정 존중), 효과음. 2D는 글 기록과 숫자 색으로 같은 정보(FR-033). T028·T029 통과.
+  - (PR #88 리뷰에서 넘김) 2D: 동·서쪽 가장자리 밖으로 떨어지거나 넉아웃된 사람(나 포함)도 옆 그림·참가자 목록에서 "싸우는 중"으로 보이게(Room2D의 판정을 같이 쓰고 점을 viewBox 안으로).
+    "경기장으로 가기" 걷기 타이머: 기다리는 동안 버튼을 끄고 unmount 때 지운다.
+  - 참고(#88): us1-move T046이 #87 뒤 main CI에서 가끔 실패해 Arena를 `memo`로 감쌌다. 3D에 무거운 것을 더하면 Scene 리렌더에 딸려 가지 않게 한다.
 - [ ] T032 [P] [US2] 효과음·그림이 필요하면 CC0만 `public/assets/`에 두고 `public/assets/CREDITS.md`·`scripts/assets.sha256`에 출처를 적는다(FR-038, 판례 2026-11-07-assets-quaternius).
   `scripts/`를 바꾸면 운영자 머지다. 첫 3D 에셋 상한 3MB(perf.spec)와 `check:bundle`을 넘지 않는다. 필요 없으면 이 항목에 "에셋 없음"이라 적고 닫는다.
 
