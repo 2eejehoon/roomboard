@@ -1,6 +1,6 @@
 // The screen's brawl state (R3): the server clock estimate and each fighter's launch, replayed with the core flight.
 // RoomStore applies the messages; screens ask flightPosition() every frame. The screen never judges (FR-031).
-import { buildGrid, makeArena } from '../../core/brawl/arena.ts';
+import { buildGrid, cellKey, makeArena } from '../../core/brawl/arena.ts';
 import { positionAt, simulate, type Flight, type Launch } from '../../core/brawl/flight.ts';
 import { damageColor } from '../../core/brawl/feel.ts';
 import { TUNING } from '../../core/brawl/tuning.ts';
@@ -36,18 +36,20 @@ const flights = new WeakMap<Launch, Flight>();
 
 export const serverNow = (s: BrawlState, local: number) => local - (s.offset ?? 0);
 
-export function flightOf(launch: Launch): Flight {
+// Over the channel's blocks when the launch is first replayed: the server sends a new launch whenever a block changes its path.
+export function flightOf(launch: Launch, blocks: BrawlState['blocks']): Flight {
   let f = flights.get(launch);
-  // shortcut: replays on the default arena; US3 (T043) passes the channel's blocks.
-  if (!f) flights.set(launch, (f = simulate(launch, buildGrid(ARENA, new Map()), ARENA, TUNING)));
+  if (!f) flights.set(launch, (f = simulate(launch, buildGrid(ARENA, new Map(blocks.map(([cell, kind, hp]) => [cellKey(cell), kind ? { cell, kind, hp } : null]))), ARENA, TUNING)));
   return f;
 }
+
+const isDefault = (cell: readonly number[]) => ARENA.defaultBlocks.some((b) => b.cell.every((v, i) => v === cell[i]));
 
 // Where a flying fighter is drawn at local time `local`, or null when not flying.
 export function flightPosition(s: BrawlState, peerId: string, local: number): Vec3 | null {
   const f = s.fighters[peerId];
   if (!f?.launch) return null;
-  const on = positionAt(flightOf(f.launch), f.launch, serverNow(s, local), TUNING);
+  const on = positionAt(flightOf(f.launch, s.blocks), f.launch, serverNow(s, local), TUNING);
   const k = f.from ? Math.min(1, (local - f.fromAt) / LOOKS.flight.catchUpMs) : 1;
   return k >= 1 || !f.from ? on : (on.map((v, i) => f.from![i] + (v - f.from![i]) * k) as Vec3);
 }
@@ -98,7 +100,15 @@ export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, 
       return { ...next, fighters, log, shakeAt, readyAt: msg.peerId === me && msg.k === 'jab' ? msg.readyAt : s.readyAt };
     }
     case 'launch':
-      return { ...next, fighters: set(msg.peerId, launched(msg.peerId, msg.launch)) };
+      return { ...next, fighters: set(msg.peerId, { ...launched(msg.peerId, msg.launch), ...(msg.wall && { damage: msg.wall.damage }) }) };
+    case 'block': {
+      // The diff against the default arena (welcome.arena.blocks): a placed block that is gone leaves no entry.
+      const rest = s.blocks.filter(([cell]) => cellKey(cell) !== cellKey(msg.cell));
+      const gone = msg.kind === null && !isDefault(msg.cell);
+      return { ...next, blocks: gone ? rest : [...rest, [msg.cell, msg.kind, msg.hp]] };
+    }
+    case 'arena_reset':
+      return { ...next, blocks: [] };
     case 'landed':
       return { ...next, fighters: set(msg.peerId, { launch: null, from: null }) };
     case 'knocked_out':

@@ -12,7 +12,7 @@ import type { Launch } from '../../../core/brawl/flight.ts';
 import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Vec3 } from '../../../core/themes.ts';
 import { LOOKS } from '../../brawl/looks.ts';
-import { flightOf } from '../../brawl/store.ts';
+import { flightOf, type BrawlState } from '../../brawl/store.ts';
 import type { Peer } from '../../state/room-store.ts';
 
 const CLIPS: Record<Pose['a'], string> = { idle: 'Idle', walk: 'Walk', run: 'Run', jump: 'Jump' };
@@ -65,9 +65,9 @@ export function DamageLabel({ damage }: { damage: number }) {
 
 // 004 FR-021: the flight's own points from the start up to now, so every screen draws the same trail (FR-024). World space: put it
 // outside the avatar's group. at: the step index now, read per frame (not React state, so Scene does not re-render).
-export function Trail({ launch, at }: { launch: Launch; at: () => number }) {
+export function Trail({ launch, blocks, at }: { launch: Launch; blocks: BrawlState['blocks']; at: () => number }) {
   const line = useRef<Line2>(null);
-  const points = flightOf(launch).points;
+  const points = flightOf(launch, blocks).points;
   useFrame(() => {
     if (line.current) line.current.geometry.instanceCount = Math.max(0, Math.min(points.length - 1, at()));
   });

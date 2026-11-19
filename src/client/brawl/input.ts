@@ -45,3 +45,8 @@ export function createBrawlInput({ send, serverNow, readyAt, show }: Deps) {
   };
 }
 export type BrawlInput = ReturnType<typeof createBrawlInput>;
+
+// US3 (FR-015a): the block kind and target height chosen on this screen, cycled by a key or a button.
+export const BLOCK_KINDS = ['dirt', 'stone'] as const;
+export const HEIGHTS = [0, 1, -1] as const;
+export const cycle = <T,>(list: readonly T[], v: T): T => list[(list.indexOf(v) + 1) % list.length];

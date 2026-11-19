@@ -2,7 +2,7 @@
 // with their depth difference; buttons move a cell, change row, face and use skills under the same server rules as 3D.
 import { Button } from '@astryxdesign/core/Button';
 import { Stack } from '@astryxdesign/core/Stack';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BrawlMessage } from '../../../core/brawl/brawl-session.ts';
 import { buildGrid, cellKey, cellOf, inArena, makeArena, type Grid } from '../../../core/brawl/arena.ts';
 import { damageColor } from '../../../core/brawl/feel.ts';
@@ -10,7 +10,7 @@ import { MAX_SPEED } from '../../../core/movement.ts';
 import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Pose } from '../../../core/room-session.ts';
 import type { Vec3 } from '../../../core/themes.ts';
-import { createBrawlInput, type BrawlInput } from '../../brawl/input.ts';
+import { BLOCK_KINDS, createBrawlInput, cycle, HEIGHTS, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
 import { flightOf, serverNow, type BrawlState } from '../../brawl/store.ts';
 import { t } from '../../i18n/t.ts';
@@ -32,6 +32,8 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
   const you = state.you!;
   const grid = useMemo(() => buildGrid(ARENA, new Map(state.brawl.blocks.map(([cell, kind, hp]) => [cellKey(cell), kind ? { cell, kind, hp } : null]))), [state.brawl.blocks]);
   const input = useRef<BrawlInput | null>(null);
+  const [kind, setKind] = useState<(typeof BLOCK_KINDS)[number]>('dirt');
+  const [h, setH] = useState<(typeof HEIGHTS)[number]>(0);
   const live = useRef(state.brawl);
   useEffect(() => {
     live.current = state.brawl;
@@ -65,7 +67,7 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
         {people.map((p) => {
           const launch = state.brawl.fighters[p.peerId]?.launch;
           return launch ? (
-            <polyline key={`path-${p.peerId}`} points={flightOf(launch).points.map((q) => `${sx(q[0])},${sy(q[1])}`).join(' ')} fill="none" stroke={LOOKS.swing.color} strokeWidth={0.1} />
+            <polyline key={`path-${p.peerId}`} points={flightOf(launch, state.brawl.blocks).points.map((q) => `${sx(q[0])},${sy(q[1])}`).join(' ')} fill="none" stroke={LOOKS.swing.color} strokeWidth={0.1} />
           ) : null;
         })}
         {people.map((p) => {
@@ -125,6 +127,13 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
           onBlur={() => input.current?.guard(false)}
         />
         <Button label={t('brawl.roll')} onClick={() => input.current?.roll(dir)} />
+      </Stack>
+      {/* US3 (FR-015a): the cell in front at the chosen height; the server picks it from my pose. */}
+      <Stack direction="horizontal" gap={2} wrap="wrap">
+        <Button label={t('brawl.place')} onClick={() => brawl({ t: 'block', op: 'place', kind, h })} />
+        <Button label={t('brawl.break')} onClick={() => brawl({ t: 'block', op: 'break', h })} />
+        <Button label={t('brawl.kind', { kind: t(`brawl.kind.${kind}`) })} variant="secondary" onClick={() => setKind(cycle(BLOCK_KINDS, kind))} />
+        <Button label={t('brawl.height', { h: t(`brawl.height.${h}`) })} variant="secondary" onClick={() => setH(cycle(HEIGHTS, h))} />
       </Stack>
     </Stack>
   );

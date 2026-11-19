@@ -49,6 +49,8 @@ describe('Room2D brawl (FR-033)', () => {
   it('has move, row, facing and skill buttons in the arena', () => {
     const t = text(render(store([30.5, 1, 4.5])));
     for (const label of ['왼쪽', '오른쪽', '앞 줄', '뒤 줄', '잽', '강펀치', '던지기', '방어', '구르기']) expect(t).toContain(label);
+    // US3 (FR-015a): place, break, the block kind and the height, each a button.
+    for (const label of ['놓기', '부수기', '블록: 흙', '높이: 발']) expect(t).toContain(label);
   });
 
   it('a knocked-out fighter below the island keeps the arena view, not the way in (PR #88 review)', () => {
