@@ -2,7 +2,7 @@
 // so the whole branch and the hook name drop out of the bundle (npm run check:bundle).
 import type { RoomSocket } from './net/room-socket.ts';
 import type { RoomStore } from './state/room-store.ts';
-import { flightPosition } from './brawl/store.ts';
+import { feel, flightPosition } from './brawl/store.ts';
 
 export function installTestHooks(store: RoomStore, socket: RoomSocket): void {
   if (import.meta.env.DEV) {
@@ -11,6 +11,8 @@ export function installTestHooks(store: RoomStore, socket: RoomSocket): void {
       move: (p: [number, number, number], r: number) => socket.move(p, r, 'walk'),
       // 004: where a fighter is drawn now (null when not flying); damage, launches and blocks are in state().brawl.
       flight: (peerId: string) => flightPosition(store.getState().brawl, peerId, Date.now()),
+      // US2: the hitstop end, trail and % colour this screen derives from the server values (FR-024).
+      feel: (peerId: string) => feel(store.getState().brawl, peerId),
     };
   }
 }

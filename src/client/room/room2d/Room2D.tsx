@@ -4,16 +4,14 @@ import { List, ListItem } from '@astryxdesign/core/List';
 import { Stack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { Button } from '@astryxdesign/core/Button';
-import { inArena, makeArena } from '../../../core/brawl/arena.ts';
+import { useEffect, useRef, useState } from 'react';
 import type { BrawlMessage } from '../../../core/brawl/brawl-session.ts';
-import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Pose, RoomInfo } from '../../../core/room-session.ts';
 import { THEMES, zoneAt, type Vec3 } from '../../../core/themes.ts';
-import { ArenaSide, BrawlLog, entranceWalk } from './ArenaSide.tsx';
+import { ArenaSide, BrawlLog, entranceWalk, fighting } from './ArenaSide.tsx';
 import { t } from '../../i18n/t.ts';
 import type { RoomState } from '../../state/room-store.ts';
 
-const ARENA = makeArena(TUNING);
 type Props = {
   room: Pick<RoomInfo, 'title' | 'description' | 'roomData'>;
   state: RoomState;
@@ -25,13 +23,18 @@ type Props = {
 export function Room2D({ room, state, move, brawl }: Props) {
   const { themeId } = room.roomData;
   const people = state.you ? [state.you, ...state.peers] : state.peers;
-  // Falling off the island or knocked out I am below it until the respawn; that is still the arena. Only a fighter can be below the
-  // room floor (PR #88 review).
-  const fighting = !!state.you && (inArena(ARENA, state.you.p) || state.you.p[1] < 0 || !!state.brawl.fighters[state.you.peerId]?.knockedOut);
   const name = (id: string) => people.find((p) => p.peerId === id)?.nickname ?? '';
+  // The walk to the entrance: the button waits with it, and leaving the room drops it (PR #88 review).
+  const [walking, setWalking] = useState(false);
+  const walk = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(walk.current), []);
   const enter = (send: NonNullable<Props['move']>) => {
     const { to, waitMs } = entranceWalk(state.you!.p, THEMES[themeId].arenaEntrance);
-    setTimeout(() => send(to, 0, 'walk'), waitMs);
+    setWalking(true);
+    walk.current = setTimeout(() => {
+      setWalking(false);
+      send(to, 0, 'walk');
+    }, waitMs);
   };
   return (
     <Stack as="section" gap={3} padding={4}>
@@ -47,11 +50,11 @@ export function Room2D({ room, state, move, brawl }: Props) {
           <ListItem
             key={p.peerId}
             label={`${p.nickname}${p === state.you ? ` ${t('room2d.me')}` : ''}`}
-            description={`${t(`room2d.anim.${p.a}`)} · ${inArena(ARENA, p.p) ? `${state.brawl.fighters[p.peerId]?.damage ?? 0}%` : t(zoneAt(themeId, p.p))}`}
+            description={`${t(`room2d.anim.${p.a}`)} · ${fighting(state.brawl, p) ? `${state.brawl.fighters[p.peerId]?.damage ?? 0}%` : t(zoneAt(themeId, p.p))}`}
           />
         ))}
       </List>
-      {move && brawl && state.you && (fighting ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} onClick={() => enter(move)} />)}
+      {move && brawl && state.you && (fighting(state.brawl, state.you) ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} isDisabled={walking} onClick={() => enter(move)} />)}
       <div aria-live="polite">
         {state.notices.map((n) => (
           <p key={n.id}>{t(n.kind === 'joined' ? 'room2d.joined' : 'room2d.left', { nickname: n.nickname })}</p>

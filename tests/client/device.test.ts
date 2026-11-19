@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deviceKey, readView, saveView } from '../../src/client/device.ts';
+import { deviceKey, readShake, readView, saveShake, saveView } from '../../src/client/device.ts';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const memoryStorage = (init: Record<string, string> = {}) => {
@@ -53,5 +53,23 @@ describe('rb.view', () => {
   it('does not throw when storage is broken', () => {
     expect(readView(brokenStorage)).toBeNull();
     expect(() => saveView('3d', brokenStorage)).not.toThrow();
+  });
+});
+
+describe('roomboard.shake (004 FR-023, T028)', () => {
+  it('is on by default, off once saved off, and stays on the device', () => {
+    const s = memoryStorage();
+    expect(readShake(s)).toBe(true);
+    saveShake(false, s);
+    expect(s.map.get('roomboard.shake')).toBe('off');
+    expect(readShake(s)).toBe(false);
+    saveShake(true, s);
+    expect(readShake(s)).toBe(true);
+  });
+
+  it('does not throw when storage is broken or missing', () => {
+    expect(readShake(brokenStorage)).toBe(true);
+    expect(() => saveShake(false, brokenStorage)).not.toThrow();
+    expect(readShake(null)).toBe(true);
   });
 });

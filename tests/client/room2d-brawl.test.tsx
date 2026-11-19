@@ -76,4 +76,20 @@ describe('Room2D brawl (FR-033)', () => {
     s.apply({ t: 'knocked_out', peerId: 'a', respawnAt: 3300, stocks: null, out: false, at: 300 }, 400);
     expect(text(render(s))).toMatch(/느긋한 수달 님이 용감한 여우 님을 쳤어요 \(10%\).*용감한 여우 님이 떨어졌어요/);
   });
+
+  it('someone falling off the east edge is still fighting: drawn inside the side view and listed with their % (PR #88 review)', () => {
+    const s = store([30.5, 1, 4.5]);
+    s.apply({ t: 'peer_moved', peerId: 'a', p: [46, -4, 4.5], r: 0, a: 'idle' }, 100);
+    const html = render(s);
+    const dot = html.match(/data-peer="a"[^>]*>\s*<circle cx="([-\d.]+)" cy="([-\d.]+)"/);
+    expect(dot).not.toBeNull();
+    expect(Number(dot![1])).toBeLessThanOrEqual(24);
+    expect(Number(dot![2])).toBeLessThanOrEqual(12);
+    expect(text(html)).toMatch(/용감한 여우.*7%/);
+  });
+
+  it("shows each fighter's % in the side view, coloured by damage (FR-022, FR-033)", () => {
+    const html = render(store([30.5, 1, 4.5]));
+    expect(html).toMatch(/<text[^>]*fill="#ffffff"[^>]*>7%<\/text>/);
+  });
 });

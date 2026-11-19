@@ -16,10 +16,12 @@ import { t } from '../../i18n/t.ts';
 import type { RoomStore } from '../../state/room-store.ts';
 import { createBrawlInput, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
-import { flightPosition, serverNow } from '../../brawl/store.ts';
+import { flightPosition, serverNow, shakeOffset, stopped } from '../../brawl/store.ts';
+import { readShake } from '../../device.ts';
+import { TUNING } from '../../../core/brawl/tuning.ts';
 import { Arena, ARENA, Entrance } from './Arena.tsx';
 import { feetY, nextSend, onStorePose } from '../send-rule.ts';
-import { Avatar, DamageLabel, RemoteAvatar, shadowed } from './RemoteAvatar.tsx';
+import { Avatar, DamageLabel, RemoteAvatar, shadowed, Trail } from './RemoteAvatar.tsx';
 import { TouchControls } from './TouchControls.tsx';
 
 type Move = (p: Vec3, r: number, a: Pose['a'], d?: [number, number]) => void;
@@ -104,8 +106,14 @@ export default memo(function Scene({ store, move, brawl }: { store: RoomStore; m
               peer={p}
               damage={inArena(ARENA, p.p) ? (fighters[p.peerId]?.damage ?? 0) : null}
               fly={() => flightPosition(store.getState().brawl, p.peerId, Date.now())}
+              stopped={() => stopped(store.getState().brawl, p.peerId, Date.now())}
             />
           ))}
+          {Object.entries(fighters).map(([peerId, f]) =>
+            f?.launch ? (
+              <Trail key={peerId} launch={f.launch} at={() => Math.round((serverNow(store.getState().brawl, Date.now()) - f.launch!.t) / TUNING.stepMs)} />
+            ) : null,
+          )}
         </Suspense>
       </Canvas>
       <Progress />
@@ -240,7 +248,10 @@ function Me({ store, move, brawl, avatarId }: { store: RoomStore; move: Move; br
     const stick = useJoystickStore.getState().joysticks.default;
     const jump = keys.jump || !!useButtonStore.getState().buttons.jump;
     h.setMovement({ ...keys, jump, joystick: { x: stick.x, y: stick.y } });
-    camera.current.moveTo(h.currPos.x, h.currPos.y + 0.6, h.currPos.z, false);
+    // FR-023: a strong hit shakes the view unless this device turned it off.
+    const shake = shakeOffset(store.getState().brawl, Date.now(), readShake());
+    const jolt = () => (Math.random() * 2 - 1) * shake;
+    camera.current.moveTo(h.currPos.x + jolt(), h.currPos.y + 0.6 + jolt(), h.currPos.z + jolt(), false);
     if (flash.current) flash.current.visible = performance.now() - swungAt.current < LOOKS.swing.durationMs;
 
     const you = store.getState().you;
@@ -248,6 +259,11 @@ function Me({ store, move, brawl, avatarId }: { store: RoomStore; move: Move; br
     const fly = you && flightPosition(store.getState().brawl, you.peerId, Date.now());
     // A smash let go while flying or outside the arena is not a release (PR #87 review): forget the press.
     if (fly || !(you && inArena(ARENA, you.p))) pressed.current.smash = false;
+    // FR-020: my own hitstop as the attacker holds me too (a target is held by its flight).
+    if (you && !fly && stopped(store.getState().brawl, you.peerId, Date.now())) {
+      h.setMovement(STILL);
+      h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    }
     if (fly) {
       h.body.setTranslation({ x: fly[0], y: fly[1] + FEET, z: fly[2] }, true);
       h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
