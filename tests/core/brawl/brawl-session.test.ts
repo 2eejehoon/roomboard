@@ -288,6 +288,21 @@ describe('BrawlSession: walls (US3 scenarios 3~5, FR-019)', () => {
     expect(s.nextEventAt()).not.toBe(before);
   });
 
+  it('breaking the wall a flight is about to hit relaunches it {cause: block}; no wall bounce follows (PR #91 review)', async () => {
+    const s = await walled();
+    s.connect('c');
+    await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 0);
+    await send(s, 'c', { t: 'move', p: [ex + 0.5, 0, ez + 0.5], r: 0, a: 'walk' }, 2000);
+    // c east of the wall facing west: its target is the wall cell [12, 1, 4].
+    await send(s, 'c', { t: 'move', p: [33.5, 1, 4.5], r: -EAST, a: 'walk' }, 17_000);
+    await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
+    const out = await send(s, 'c', { t: 'block', op: 'break', h: 0 }, 20_040);
+    expect(msgs(out, 'a', 'block')).toEqual([{ t: 'block', cell: [12, 1, 4], kind: null, hp: 0, at: 20_040 }]);
+    expect(msgs(out, 'a', 'launch')).toMatchObject([{ peerId: 'b', launch: { cause: 'block' } }]);
+    const later = s.runEvents(25_000);
+    expect(msgs(later, 'a', 'launch').filter((m) => m.wall)).toEqual([]);
+  });
+
   it('a block that is not on any path relaunches nobody', async () => {
     const s = await duel();
     await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000);
