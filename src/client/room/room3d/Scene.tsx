@@ -18,7 +18,7 @@ import { createBrawlInput, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
 import { flightPosition, serverNow } from '../../brawl/store.ts';
 import { Arena, ARENA, Entrance } from './Arena.tsx';
-import { nextSend, onStorePose } from '../send-rule.ts';
+import { feetY, nextSend, onStorePose } from '../send-rule.ts';
 import { Avatar, DamageLabel, RemoteAvatar, shadowed } from './RemoteAvatar.tsx';
 import { TouchControls } from './TouchControls.tsx';
 
@@ -282,9 +282,9 @@ function Me({ store, move, brawl, avatarId }: { store: RoomStore; move: Move; br
     if (!anim) return;
     sending.current = anim !== 'idle';
     const r = euler.setFromQuaternion(h.currQuat).y;
-    // Not clamped at 0: in the arena I can walk off the edge and fall below the floor (004 R4).
-    const y = h.currPos.y - FEET;
-    move([h.currPos.x, you && inArena(ARENA, you.p) ? y : Math.max(0, y), h.currPos.z], r, anim, driving ? (facing(v) ?? undefined) : undefined);
+    const p: Vec3 = [h.currPos.x, h.currPos.y - FEET, h.currPos.z];
+    const themeId = store.getState().room?.roomData.themeId;
+    move([p[0], themeId ? feetY(p[1], p, THEMES[themeId].bounds) : p[1], p[2]], r, anim, driving ? (facing(v) ?? undefined) : undefined);
     own.current = store.getState().you;
   });
 

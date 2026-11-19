@@ -1,7 +1,7 @@
 // When the 3D scene sends my pose (T045), kept out of the renderer so it is tested without WebGL (constitution IV).
 // My input starts the sends; leftover motion (sliding, mid-air) keeps them going, then one idle. Resting physics sends nothing.
 import type { Pose } from '../../core/room-session.ts';
-import type { Vec3 } from '../../core/themes.ts';
+import type { Bounds, Vec3 } from '../../core/themes.ts';
 
 export function nextSend(driving: boolean, wasSending: boolean, [vx, vy, vz]: Vec3): Pose['a'] | null {
   // Thresholds, not zero: ecctrl slows down exponentially and its float spring bobs.
@@ -18,3 +18,6 @@ export function nextSend(driving: boolean, wasSending: boolean, [vx, vy, vz]: Ve
 const SNAP_M = 3; // a run send covers about 1 m
 export const onStorePose = (body: Vec3, target: Vec3): 'snap' | 'resend' =>
   Math.hypot(body[0] - target[0], body[1] - target[1], body[2] - target[2]) > SNAP_M ? 'snap' : 'resend';
+
+// 004 R4: the feet stay at 0 or above on the room floor; off the arena island they fall, so the server sees the drop below koY.
+export const feetY = (y: number, [x, , z]: Vec3, { min, max }: Bounds) => (x >= min[0] && x <= max[0] && z >= min[2] && z <= max[2] ? Math.max(0, y) : y);

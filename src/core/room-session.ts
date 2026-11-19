@@ -11,6 +11,8 @@ import { TUNING } from './brawl/tuning.ts';
 import type { Fighter } from './brawl/fighter.ts';
 
 const ARENA = makeArena(TUNING);
+// 004 R4: a fighter may walk off the island and fall anywhere until koY (then fell() knocks them out); speed is still checked.
+const FALL = { min: [-Infinity, ARENA.koY, -Infinity] as Vec3, max: [Infinity, ARENA.bounds.max[1], Infinity] as Vec3 };
 
 export type RoomInfo = Extract<ServerMessage, { t: 'welcome' }>['room'];
 export type Pose = { p: Vec3; r: number; a: 'idle' | 'walk' | 'run' | 'jump' };
@@ -147,7 +149,7 @@ export class RoomSession {
     if (fell) return fell;
     const p = msg.p.map(round) as Vec3;
     const theme = THEMES[this.room.roomData.themeId];
-    if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, [theme.bounds, ARENA.bounds])) {
+    if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, me.fighter ? [FALL] : [theme.bounds, ARENA.bounds])) {
       return { send: [{ to: me.peerId, msg: { t: 'correction', p: me.pose.p, r: me.pose.r } }] };
     }
     me.pose = { p, r: round(msg.r), a: msg.a };
