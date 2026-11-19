@@ -72,8 +72,10 @@
   `handle(me, msg, members, now)`, 참가자 상태(`Fighter`, 참가자 attachment에), `runEvents(now)`는 T021에서 더한다(PR #83 리뷰).
   - 결과: `nextEventAt()`은 아직 null. `handle`은 처음 쓰는 T021에서 더한다(쓰지 않는 인자 린트). online_count 규칙은 `online-count.test.ts`의 "같은 값이면 쓰지 않음" 테스트가 지킨다(PR #83 리뷰, 매번 쓰는 코드에서 실패 확인: 99 대신 2).
     `npx vitest run` 614개 통과(`room-do`·`online-count` 포함), `npm run typecheck`·`npx eslint .` 통과.
-- [ ] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
+- [X] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
   늦게 받은 궤적은 지금 위치로 짧게 보간(Edge Cases). `src/client/test-hooks.ts`에 난투 상태 읽기(피해 %, 위치, 블록 차이, 판)를 더한다(개발 빌드 전용).
+  - 실패 확인: `src/client/brawl/looks.ts`·`store.ts`가 없어 모듈을 찾지 못함. 늦게 받은 궤적을 따라잡는 시간은 `LOOKS.flight.catchUpMs`로 data-model에 먼저 더함.
+  - 결과: T011 통과. 상태는 `RoomStore`의 `brawl`에 두고(`applyBrawl`), 화면은 `flightPosition()`으로 그린다. 테스트 훅 `flight(peerId)`. 블록 차이를 궤적에 넣는 것은 US3(T043).
 
 **Checkpoint**: 기존 E2E(us1~us7·a11y·perf) 통과, v1 클라이언트는 4002를 받는다.
 
@@ -108,8 +110,10 @@
   3초 뒤 `respawned`(피해 0%, 시작 지점), 걸어서 떨어짐은 보낸 높이로 넉아웃(R4 shortcut), US1-7 반격 틈(100%에서 잽 연타 사이에 경직이 0.08초 이상 먼저 풀림).
   - 실패 확인: 11개 중 9개 실패(`swing`이 오지 않음, 날아가는 중 `move`가 그대로 중계됨, `nextEventAt` 없음). 평화 구역 무시·쿨다운 무시처럼 "보내지 않음"을 보는 2개는 지금도 통과.
     날아가는 중의 출구 칸(T006에서 옮김)은 `move.p`를 무시하는 검사로 본다.
-- [ ] T016 [P] [US1] `tests/worker/brawl.test.ts`(quickstart 2): 가짜 소켓 2~3개로 평화 구역에서 맞지 않음, 다시 쓰기·닿는 거리 밖 요청은 조용히 무시(FR-034), 다른 채널에 아무것도 가지 않음(FR-018),
+- [X] T016 [P] [US1] `tests/worker/brawl.test.ts`(quickstart 2): 가짜 소켓 2~3개로 평화 구역에서 맞지 않음, 다시 쓰기·닿는 거리 밖 요청은 조용히 무시(FR-034), 다른 채널에 아무것도 가지 않음(FR-018),
   alarm이 착지·넉아웃·재시작을 메시지 없이 제때 보냄, 피해·기력이 attachment에 있어 DO를 다시 만들어도 남음(R6). 실패 확인.
+  - 실패 확인: 3개 중 1개 실패. 맞은 사람의 attachment를 쓰지 않아 DO를 다시 만들면 b의 피해 3%가 사라짐. 평화 구역·쿨다운 무시·alarm 착지는 PR 3 코드로 이미 통과.
+    다른 채널(FR-018)은 core `members(channel)`로 나뉘어 worker에서 21명을 띄우지 않는다.
 - [ ] T017 [P] [US1] `tests/e2e/us1-brawl.spec.ts`(브라우저 2개, US1 시나리오 1·3·4): 둘이 입구로 경기장에 들어가 잽 → 상대 % 3, 반복해 넉아웃 → 3초 뒤 0%로 다시 섬(테스트 훅으로 읽음),
   평화 구역에서 기술 버튼이 막힘, 한쪽이 2D 화면(옆 그림·버튼·글 기록)이어도 같다(FR-033). 실패 확인.
 
@@ -124,7 +128,8 @@
 - [X] T021 [US1] `src/core/brawl/brawl-session.ts`: `handle(me, msg, members, now) → Outbox`, `runEvents(now)`(지난 사건 따라잡기, R2), `room-session.ts`가 난투 메시지를 넘김, `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
   - 결과: T015 통과. `RoomSession.receive`가 메시지마다 지난 사건을 먼저 보내고, `move`는 날아가는 중·경직 중·넉아웃 중에 `d`만 받는다. 입구로 들어가면 `fighter`가 생기고 출구로 나가면 없어진다.
     맞은 사람의 attachment 쓰기와 alarm 사건의 attachment 갱신은 T022(PR 4). `npx vitest run` 651개, typecheck·lint 통과.
-- [ ] T022 [US1] `src/worker/room-do.ts`: `Fighter`를 attachment에 쓰기(보낸 사람·맞은 사람), alarm 사건 처리. T016 통과.
+- [X] T022 [US1] `src/worker/room-do.ts`: `Fighter`를 attachment에 쓰기(보낸 사람·맞은 사람), alarm 사건 처리. T016 통과.
+  - 결과: T016 통과. 메시지·alarm 결과가 이름을 부르는 사람(`swing.hits`, `landed`·`knocked_out`·`respawned`)의 attachment를 다시 쓴다.
 - [ ] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
   보냄(R2), 경직으로 거부되면 버림. 때린 사람 화면은 서버를 기다리지 않고 이펙트를 먼저 보여 주고 `nonce`로 `swing`과 맞춰 보정(FR-032).
 - [ ] T024 [US1] `src/client/room/room3d/`: 경기장 섬(기본 블록, instanced mesh + Rapier 고정 콜라이더), 입구·출구·경계 표시(FR-014, 색은 `LOOKS.arena`), 날아가는 아바타를 store 궤적으로 그림,
@@ -270,6 +275,6 @@ T012 knockback.test ∥ T013 flight.test ∥ T014 fighter.test ∥ T015 brawl-se
 ## Implementation Strategy
 
 - MVP는 US1(+ 같은 P1인 US2). US1만으로 경기장에서 밀어 떨어뜨리는 놀이가 되므로 US1 PR이 머지되면 미리보기로 운영자 확인을 받는다.
-- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4) US1 worker·화면(T011·T016·T017·T022~T026), (5) US2, (6) US3,
+- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4a) US1 DO·화면 상태(T011·T016·T022), (4b) 3D·입력·모습(T023~T025), (4c) 2D·E2E(T017·T026), (5) US2, (6) US3,
   (7) US4, (8) US5, (9) T054~T058, (10) T059~T060. `scripts/`·설정을 바꾸는 PR은 운영자 머지다.
 - 각 PR은 테스트 실패 확인 → 구현 → 통과를 항목 끝에 적고, 머지되면 이 파일의 체크를 갱신한다.

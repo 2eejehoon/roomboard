@@ -107,6 +107,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     const out = await session.receive(peerId, message, now);
     const participant = session.participant(peerId);
     if (participant) ws.serializeAttachment({ peerId, connectedAt, participant } satisfies Attachment);
+    this.saveTouched(session, out);
     await this.deliver(out);
     if (!wasJoined && participant) await this.schedule(now + ONLINE_DEBOUNCE_MS);
     await this.scheduleEvents(session);
@@ -119,7 +120,9 @@ export class RoomDurableObject extends DurableObject<Env> {
     let next = Infinity;
     const session = await this.session();
     if (session) {
-      await this.deliver(session.runEvents(now));
+      const out = session.runEvents(now);
+      this.saveTouched(session, out);
+      await this.deliver(out);
       next = Math.min(next, session.nextEventAt() ?? Infinity);
     }
     for (const ws of [...this.sockets.values()]) {
@@ -156,6 +159,20 @@ export class RoomDurableObject extends DurableObject<Env> {
       },
     );
     return this.loading;
+  }
+
+  // 004 R6: whoever a brawl message names (hit, new launch, landed, knocked out, respawned) changed state, so their attachment is rewritten.
+  private saveTouched(session: RoomSession, out: Outbox): void {
+    const ids = new Set<string>();
+    for (const { msg } of out.send) {
+      if (msg.t === 'swing') for (const h of msg.hits) ids.add(h.peerId);
+      else if (msg.t === 'launch' || msg.t === 'landed' || msg.t === 'knocked_out' || msg.t === 'respawned') ids.add(msg.peerId);
+    }
+    for (const id of ids) {
+      const ws = this.sockets.get(id);
+      const participant = session.participant(id);
+      if (ws && participant) ws.serializeAttachment({ ...att(ws), participant } satisfies Attachment);
+    }
   }
 
   private async deliver(out: Outbox): Promise<void> {
