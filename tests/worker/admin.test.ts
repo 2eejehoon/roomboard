@@ -1,3 +1,4 @@
+import { runInDurableObject } from 'cloudflare:test';
 import { env } from 'cloudflare:workers';
 import { describe, expect, it } from 'vitest';
 import { CLOSE } from '../../src/core/protocol.ts';
@@ -178,5 +179,28 @@ describe('DELETE /api/admin/rooms/:id', () => {
     expect((await call('DELETE', '/admin/rooms/nosuchroom')).status).toBe(404);
     const gone = await insertRoom({ deletedAt: 5000 });
     expect((await call('DELETE', `/admin/rooms/${gone}`)).status).toBe(410);
+  });
+});
+
+// T036 (FR-040, R10, contracts/openapi.yaml).
+describe('POST /api/admin/rooms/:id/arena-reset', () => {
+  it('401 without or with a wrong token, 404 unknown, 410 deleted, 204 with nobody there', async () => {
+    const a = await insertRoom();
+    expect((await call('POST', `/admin/rooms/${a}/arena-reset`, { token: null })).status).toBe(401);
+    expect((await call('POST', `/admin/rooms/${a}/arena-reset`, { token: 'wrong' })).status).toBe(401);
+    expect((await call('POST', '/admin/rooms/nosuchroom/arena-reset')).status).toBe(404);
+    expect((await call('POST', `/admin/rooms/${await insertRoom({ deletedAt: 5000 })}/arena-reset`)).status).toBe(410);
+    expect((await call('POST', `/admin/rooms/${a}/arena-reset`)).status).toBe(204);
+  });
+
+  it('clears every arena key, sends arena_reset to the channel, and leaves the reports open', async () => {
+    const a = await insertRoom();
+    await reportRoom(a, 1);
+    await runInDurableObject(env.ROOM.getByName(a), (_o, state) => state.storage.put('arena:2', { blocks: [[[5, 1, 4], 'dirt', 1]] }));
+    const p = await joinRoom(a, 1);
+    expect((await call('POST', `/admin/rooms/${a}/arena-reset`)).status).toBe(204);
+    for (let m = await p.next(); ; m = await p.next()) if (m.t === 'arena_reset') break;
+    expect(await runInDurableObject(env.ROOM.getByName(a), (_o, state) => state.storage.list({ prefix: 'arena:' }))).toEqual(new Map());
+    expect(await list('open', a)).toHaveLength(1);
   });
 });

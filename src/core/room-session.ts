@@ -3,7 +3,7 @@ import { assignChannel } from './channels.ts';
 import { avatarFor, nicknameFor } from './identity.ts';
 import { validateMove } from './movement.ts';
 import { CLOSE, parseClientMessage, PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from './protocol.ts';
-import { CHAT_RATE, MOVE_RATE, RateBucket } from './rate-bucket.ts';
+import { BLOCK_RATE, CHAT_RATE, MOVE_RATE, RateBucket } from './rate-bucket.ts';
 import { THEMES, type Vec3 } from './themes.ts';
 import { cellOf, inArena, makeArena, sameCell, startPoint } from './brawl/arena.ts';
 import { BrawlSession, type BrawlMessage } from './brawl/brawl-session.ts';
@@ -31,8 +31,14 @@ const BAD_WINDOW_MS = 10_000;
 const round = (n: number) => Math.round(n * 100) / 100;
 
 // Rate bucket and bad-message times live only in memory; they reset when the DO hibernates, which is fine for abuse limits.
-type Conn = { participant: Participant | null; moves: RateBucket; chats: RateBucket; bad: number[] };
-const newConn = (participant: Participant | null): Conn => ({ participant, moves: new RateBucket(MOVE_RATE), chats: new RateBucket(CHAT_RATE), bad: [] });
+type Conn = { participant: Participant | null; moves: RateBucket; chats: RateBucket; blocks: RateBucket; bad: number[] };
+const newConn = (participant: Participant | null): Conn => ({
+  participant,
+  moves: new RateBucket(MOVE_RATE),
+  chats: new RateBucket(CHAT_RATE),
+  blocks: new RateBucket(BLOCK_RATE),
+  bad: [],
+});
 
 export class RoomSession {
   private readonly conns = new Map<string, Conn>();
@@ -74,12 +80,15 @@ export class RoomSession {
     if (!me) return { send: [{ to: peerId, msg: { t: 'error', code: 'not_joined' } }] };
     // Brawl events that fell due since the last message or alarm come first (004 R2).
     const events = this.brawl(me.channel).runEvents(this.members(me.channel), now);
+    let taken: ReturnType<RateBucket['take']> | undefined;
     const out =
       msg.t === 'move'
         ? this.move(me, conn, msg, now)
         : msg.t === 'chat'
           ? await this.chat(me, conn, msg, now)
-          : this.brawl(me.channel).handle(me, msg satisfies BrawlMessage, this.members(me.channel), now);
+          : msg.t === 'block' && !(taken = conn.blocks.take(now)).ok
+            ? { send: [{ to: peerId, msg: { t: 'rate_limited', scope: 'block', retryAfterMs: taken.retryAfterMs } } as const] }
+            : this.brawl(me.channel).handle(me, msg satisfies BrawlMessage, this.members(me.channel), now);
     return { ...out, send: [...events.send, ...out.send] };
   }
 
@@ -91,6 +100,33 @@ export class RoomSession {
 
   runEvents(now: number): Outbox {
     return { send: [...this.brawls].flatMap(([channel, b]) => b.runEvents(this.members(channel), now).send) };
+  }
+
+  // FR-040: the admin's reset, every channel (R10).
+  resetArenas(now: number): Outbox {
+    return { send: [...this.brawls].flatMap(([channel, b]) => b.reset(this.members(channel), now).send) };
+  }
+
+  get dirty(): boolean {
+    return [...this.brawls.values()].some((b) => b.dirty);
+  }
+
+  // R6: each channel whose blocks changed since the last call, for arena:<channel>; clears the marks.
+  takeDirtyArenas(): { channel: number; blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks'] }[] {
+    return [...this.brawls].flatMap(([channel, b]) => {
+      if (!b.dirty) return [];
+      b.dirty = false;
+      return [{ channel, blocks: b.view([]).blocks }];
+    });
+  }
+
+  restoreArena(channel: number, blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks']): void {
+    this.brawl(channel).restore(blocks);
+  }
+
+  // Channels with someone joined; an empty one's arena is gone (FR-018).
+  occupied(): Set<number> {
+    return new Set(this.joined().map((p) => p.channel));
   }
 
   // The owner's edit (T083), to every channel. respawn: the theme changed, so old poses mean nothing in the new bounds. The
@@ -105,6 +141,8 @@ export class RoomSession {
   leave(peerId: string): Outbox {
     const me = this.participant(peerId);
     this.conns.delete(peerId);
+    // FR-018: the last one out takes the channel's arena back to the default.
+    if (me && !this.occupied().has(me.channel)) this.brawls.delete(me.channel);
     return me ? this.toChannel(me, { t: 'peer_left', peerId }) : { send: [] };
   }
 

@@ -184,28 +184,41 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T033 [P] [US3] `tests/core/brawl/arena.test.ts`에 더함(FR-015·015a·017): `targetCell(pose, h)` = `r`를 네 방향으로 반올림한 바로 앞 칸, `h` ∈ `-1 | 0 | 1`(앞쪽 아래·발·눈 높이),
+- [X] T033 [P] [US3] `tests/core/brawl/arena.test.ts`에 더함(FR-015·015a·017): `targetCell(pose, h)` = `r`를 네 방향으로 반올림한 바로 앞 칸, `h` ∈ `-1 | 0 | 1`(앞쪽 아래·발·눈 높이),
   내 몸 칸·내 바로 아래 칸은 대상 아님, 놓기는 경기장 안·시작 지점과 출구 아님·빈 칸(블록도 참가자 몸도 없음)만, 부수기는 블록이 있는 칸만, 한 번에 `hp − 1`(흙 1, 돌 4, 0이면 없어짐), 기본 돌 블록도 부서짐(FR-016).
-- [ ] T034 [P] [US3] `tests/core/brawl/flight.test.ts`에 더함(FR-019, US3 시나리오 3~5): 옆면·아랫면 충돌만 벽, 반사 방향 × `s × 0.5`로 튕김 + 추가 피해 `s × 0.5`%, 흙 3·돌 10 이상이면 블록이 부서지고
+  - 실패 확인: `targetCell`·`canPlace`·`placeBlock`·`hitBlock`이 없어 3개 실패. 몸은 발 칸과 그 위 칸을 차지한다. 부서진 놓은 블록은 차이에서 빠지고 기본 블록만 null로 남는다.
+- [X] T034 [P] [US3] `tests/core/brawl/flight.test.ts`에 더함(FR-019, US3 시나리오 3~5): 옆면·아랫면 충돌만 벽, 반사 방향 × `s × 0.5`로 튕김 + 추가 피해 `s × 0.5`%, 흙 3·돌 10 이상이면 블록이 부서지고
   그대로 날아감, 충돌 전 200ms 안의 방어 누름이면 낙법(추가 피해 없이 멈추고 경직 끝), 뚫림 기준 이상이면 낙법보다 뚫림이 먼저, 세기는 궤적의 시작 세기. R11 (a): 0% 강펀치 20.4는 돌 벽을 뚫는다.
-- [ ] T035 [P] [US3] `tests/worker/brawl-arena.test.ts`(R6, R9): `block` 요청 → 같은 채널 전원에게 `block`, 초당 4개를 넘으면 `rate_limited {scope: "block"}`, 블록 차이를 2초에 한 번 `arena:<채널>`에 씀,
+  - 실패 확인: `hitWall`이 없고 벽 끝에 면(`axis`)·속도(`v`)가 없어 5개 실패. 튕김 방향은 부딪힌 속도의 그 면 성분만 뒤집어 세기 × 0.5 속력으로 맞춘다.
+- [X] T035 [P] [US3] `tests/worker/brawl-arena.test.ts`(R6, R9): `block` 요청 → 같은 채널 전원에게 `block`, 초당 4개를 넘으면 `rate_limited {scope: "block"}`, 블록 차이를 2초에 한 번 `arena:<채널>`에 씀,
   DO를 다시 만들어도(잠들었다 깸) 지은 블록이 남음, 채널의 마지막 사람이 나가면 키 삭제, 깨어날 때 사람 없는 채널의 키 삭제,
   **close 이벤트 없이 소켓이 사라진 경우**(`webSocketClose`를 부르지 않고 DO를 다시 만들어 소켓 0개): `arena:*` 키가 있는 동안 정리 alarm(`now + 10분`, 쓸 때마다 다시 검)이 있고,
   그 alarm이 소켓 없는 채널의 키를 지우고 남은 키가 없으면 다시 걸지 않음. 날아가는 경로의 블록이 바뀌면 그 시각부터 다시 계산한 `launch`(`cause: "block"`). 실패 확인.
-- [ ] T036 [P] [US3] `tests/worker/admin.test.ts`에 더함(FR-040, contracts/openapi.yaml): `POST /api/admin/rooms/{roomId}/arena-reset` 토큰 없음·틀림 401, 없는 방 404, 삭제된 방 410,
+  - 실패 확인: 저장소 쓰기·삭제·정리 alarm이 없어 3개 실패(요청 제한은 core에서 이미 통과). 저장 값은 `{ blocks }`(판은 US4에서 더함).
+    소켓이 close 없이 사라진 경우는 소켓 없는 DO에 키를 넣고 alarm을 돌려 본다. 날아가는 경로의 블록 변경(`cause: block`)은 core `brawl-session.test`에서 본다.
+- [X] T036 [P] [US3] `tests/worker/admin.test.ts`에 더함(FR-040, contracts/openapi.yaml): `POST /api/admin/rooms/{roomId}/arena-reset` 토큰 없음·틀림 401, 없는 방 404, 삭제된 방 410,
   토큰 실패 횟수 제한 429(001과 같음), 성공 204(사람 없어도 204) → 모든 채널의 `arena:*` 삭제, 경기장 사람에게 `arena_reset` 뒤 `respawned`(시작 지점, 피해 0%), 평화 구역 사람은 그대로, 신고 상태는 그대로.
+  - 실패 확인: 라우트가 없어 2개 실패. 판 취소(`cancelled`)는 US4(T045).
 - [ ] T037 [P] [US3] `tests/e2e/us3-brawl-blocks.spec.ts`(브라우저 2개, US3-1·2): 한쪽이 흙 블록을 놓으면 다른 쪽 같은 칸에 보이고, 2D 화면 버튼(놓기·부수기·종류·높이)으로 놓아도 같다,
   흙은 한 번·돌은 네 번 쳐서 부서짐. `tests/e2e/us7-admin-states.spec.ts` 또는 새 파일: 관리자 화면에서 신고된 방의 "경기장 되돌리기" → 다른 브라우저의 지은 블록이 사라짐. 실패 확인.
 
 ### Implementation
 
-- [ ] T038 [US3] `src/core/brawl/arena.ts`: `targetCell`, 놓기·부수기 허용, 차이 적용. T033 통과.
-- [ ] T039 [US3] `src/core/brawl/flight.ts`: 벽 충돌(튕김·뚫림·낙법)을 `FlightEnd` `wall`로, 세션이 새 `launch {cause: "wall"}`·`landed {end: "tech"}`를 낸다. T034 통과.
-- [ ] T040 [US3] `src/core/brawl/brawl-session.ts`: `block` 처리(경기장 안에 있는 사람만, FR-034), `BLOCK_RATE`(초당 4개) 토큰 버킷(`src/core/rate-bucket.ts`의 `RateRule`로), 경로 블록 변경 시 다시 계산.
-- [ ] T041 [US3] `src/worker/room-do.ts`: `arena:<채널>` 2초 묶어 쓰기, 비면 삭제, 깨어날 때 정리, 10분 정리 alarm(모두 alarm 하나로), `resetArenas()` RPC(R10). T035 통과.
-- [ ] T042 [US3] `src/worker/admin.ts`·`src/worker/index.ts`: `app.post('/admin/rooms/:roomId/arena-reset', ...)`(기존 `adminAuth`와 `adminDeleteRoom`의 방 조회·410 처리를 그대로), DO `resetArenas()` 호출. T036 통과.
+- [X] T038 [US3] `src/core/brawl/arena.ts`: `targetCell`, 놓기·부수기 허용, 차이 적용. T033 통과.
+  - 결과: T033 통과. `removeBlock`은 벽 뚫림과 같이 쓴다.
+- [X] T039 [US3] `src/core/brawl/flight.ts`: 벽 충돌(튕김·뚫림·낙법)을 `FlightEnd` `wall`로, 세션이 새 `launch {cause: "wall"}`·`landed {end: "tech"}`를 낸다. T034 통과.
+  - 결과: T034 통과. `hitWall(launch, end, kind, guardPressedAt, damage)` → `bounce | break | tech`. `simulate`가 점마다 속도(`vels`)를 내고, `crosses()`가 남은 경로가 칸을 지나는지 본다.
+    `launch.wall.damage`는 벽 뒤 누적 피해(정수)로 contracts에 먼저 적었다.
+- [X] T040 [US3] `src/core/brawl/brawl-session.ts`: `block` 처리(경기장 안에 있는 사람만, FR-034), `BLOCK_RATE`(초당 4개) 토큰 버킷(`src/core/rate-bucket.ts`의 `RateRule`로), 경로 블록 변경 시 다시 계산.
+  - 결과: 놓기·부수기는 경기장 안·넉아웃 아님·앞 칸만, 놓기는 빈 칸(경기장 사람 몸 제외)만. 블록이 생기거나 없어진 칸을 남은 경로가 지나면 지금 위치·속도에서 `launch {cause: block}`.
+    내구만 줄면 다시 계산하지 않는다. `BLOCK_RATE`는 `TUNING.blockRate`에서. core 테스트 8개 더함(실패 확인: 8개 모두 실패).
+- [X] T041 [US3] `src/worker/room-do.ts`: `arena:<채널>` 2초 묶어 쓰기, 비면 삭제, 깨어날 때 정리, 10분 정리 alarm(모두 alarm 하나로), `resetArenas()` RPC(R10). T035 통과.
+  - 결과: T035 통과. 쓰기 예정 시각은 메모리(`arenaDue`), 정리 alarm은 alarm마다 키 목록을 보고 다시 건다. 채널의 마지막 사람이 나가면 core가 그 채널 경기장을 버리고 DO가 키를 지운다.
+- [X] T042 [US3] `src/worker/admin.ts`·`src/worker/index.ts`: `app.post('/admin/rooms/:roomId/arena-reset', ...)`(기존 `adminAuth`와 `adminDeleteRoom`의 방 조회·410 처리를 그대로), DO `resetArenas()` 호출. T036 통과.
+  - 결과: T036 통과. `adminResetArena`(`requireRoom`의 404·410 그대로). `npx vitest run` 711개, typecheck·lint 통과.
 - [ ] T043 [US3] `src/client/`: 블록 그리기(`LOOKS.blocks`, instanced mesh + 걷기용 콜라이더 갱신), PC 키·휴대폰 버튼(놓기·부수기·종류·높이 `-1|0|1`, 44px), 2D 옆 그림의 블록 칸과 같은 버튼,
   `src/client/admin/AdminPage.tsx` 신고된 방 줄에 "경기장 되돌리기" 버튼(확인 뒤 호출, 문구 i18n). T037 통과.
+  - (6a 리뷰에서 넘김) store: `block`·`arena_reset`을 `blocks`에 적용하고 `flightOf`에 채널 블록을 넘김(shortcut 해소), `launch.wall.damage`로 피해 % 갱신.
 
 ---
 
@@ -289,6 +302,6 @@ T012 knockback.test ∥ T013 flight.test ∥ T014 fighter.test ∥ T015 brawl-se
 ## Implementation Strategy
 
 - MVP는 US1(+ 같은 P1인 US2). US1만으로 경기장에서 밀어 떨어뜨리는 놀이가 되므로 US1 PR이 머지되면 미리보기로 운영자 확인을 받는다.
-- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4a) US1 DO·화면 상태(T011·T016·T022), (4b) 3D·입력·모습(T023~T025), (4c) 2D·E2E(T017·T026), (5) US2, (6) US3,
+- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4a) US1 DO·화면 상태(T011·T016·T022), (4b) 3D·입력·모습(T023~T025), (4c) 2D·E2E(T017·T026), (5) US2, (6a) US3 core·DO·관리자(T033~T036·T038~T042), (6b) US3 화면·E2E(T037·T043),
   (7) US4, (8) US5, (9) T054~T058, (10) T059~T060. `scripts/`·설정을 바꾸는 PR은 운영자 머지다.
 - 각 PR은 테스트 실패 확인 → 구현 → 통과를 항목 끝에 적고, 머지되면 이 파일의 체크를 갱신한다.

@@ -106,3 +106,11 @@ export async function adminDeleteRoom(c: C): Promise<Response> {
   await c.env.ROOM.getByName(id).roomDeleted('admin');
   return c.body(null, 204);
 }
+
+// FR-040, R10: every channel's arena back to the default. The same room checks as a delete (404, 410); reports stay as they are.
+export async function adminResetArena(c: C): Promise<Response> {
+  const id = c.req.param('roomId')!;
+  await requireRoom(c.env.DB, id);
+  await c.env.ROOM.getByName(id).resetArenas();
+  return c.body(null, 204);
+}
