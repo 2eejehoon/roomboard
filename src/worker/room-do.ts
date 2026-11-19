@@ -151,7 +151,8 @@ export class RoomDurableObject extends DurableObject<Env> {
         else await this.ctx.storage.delete(`${ARENA}${channel}`);
       }
     }
-    const occupied = session?.occupied() ?? new Set<number>();
+    // From the attachments, not the session: a session that failed to load (D1 down) must not read as an empty room (PR #91 review).
+    const occupied = new Set([...this.sockets.values()].flatMap((ws) => att(ws).participant?.channel ?? []));
     const keys = [...(await this.ctx.storage.list({ prefix: ARENA })).keys()];
     const empty = keys.filter((k) => !occupied.has(Number(k.slice(ARENA.length))));
     await this.ctx.storage.delete(empty);
@@ -190,8 +191,8 @@ export class RoomDurableObject extends DurableObject<Env> {
   // Built from D1 and the attachments on first use after a wake; not cached while the row is missing, because US3 calls
   // this DO (password hash) before inserting the row.
   private session(): Promise<RoomSession | null> {
-    this.loading ??= requireRoom(this.env.DB, this.ctx.id.name!).then(
-      async ({ id, title, description, roomData }) => {
+    this.loading ??= requireRoom(this.env.DB, this.ctx.id.name!)
+      .then(async ({ id, title, description, roomData }) => {
         const sign = (c: ChatFields) => signChat(this.env.SERVER_SECRET, id, c);
         const session = new RoomSession({ id, title, description, roomData }, { filter, sign });
         for (const ws of this.sockets.values()) {
@@ -207,12 +208,12 @@ export class RoomDurableObject extends DurableObject<Env> {
           else await this.ctx.storage.delete(key);
         }
         return session;
-      },
-      () => {
+      })
+      // Also a throw while reading the stored arenas: the next use tries again (PR #91 review).
+      .catch(() => {
         this.loading = undefined;
         return null;
-      },
-    );
+      });
     return this.loading;
   }
 

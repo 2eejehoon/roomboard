@@ -83,6 +83,19 @@ describe('room DO arena storage (R6, FR-018)', { timeout: 20_000 }, () => {
     expect(await stored(roomId)).toBeUndefined();
   });
 
+  it('an alarm that cannot load the room keeps the keys of channels whose sockets are still there (PR #91 review)', async () => {
+    const { roomId, a, b } = await builder();
+    a.send({ t: 'block', op: 'place', kind: 'dirt', h: 0 });
+    await nextOf(b, 'block');
+    await wait(2500);
+    // The row reads as gone (as when D1 fails) after a wake; the sockets are still attached.
+    await env.DB.prepare('UPDATE rooms SET deleted_at = 1 WHERE id = ?').bind(roomId).run();
+    await evictDurableObject(env.ROOM.getByName(roomId));
+    await runInDurableObject(env.ROOM.getByName(roomId), (_o, state) => state.storage.setAlarm(Date.now()));
+    expect(await runDurableObjectAlarm(env.ROOM.getByName(roomId))).toBe(true);
+    expect(await stored(roomId)).toEqual({ blocks: [[[5, 1, 4], 'dirt', 1]] });
+  });
+
   it('a block request over 4 a second is rate_limited {scope: block}', async () => {
     const { a } = await builder();
     for (let i = 0; i < 5; i++) a.send({ t: 'block', op: 'break', h: -1 });
