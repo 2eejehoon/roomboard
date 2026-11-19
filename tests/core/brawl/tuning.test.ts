@@ -43,6 +43,7 @@ describe('TUNING', () => {
     expect(TUNING).toMatchObject({
       reachSlack: 0.3,
       weight: 100,
+      weightBase: 100,
       hitstunMsPerStrength: 40,
       hitstunMaxMs: 300, // precedent 2026-11-18-hitstun-cap
       guard: { reduction: 0.8, arcDeg: 120 },

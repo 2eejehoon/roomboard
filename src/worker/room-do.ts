@@ -119,7 +119,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     let next = Infinity;
     const session = await this.session();
     if (session) {
-      await this.deliver(session.runEvents());
+      await this.deliver(session.runEvents(now));
       next = Math.min(next, session.nextEventAt() ?? Infinity);
     }
     for (const ws of [...this.sockets.values()]) {
