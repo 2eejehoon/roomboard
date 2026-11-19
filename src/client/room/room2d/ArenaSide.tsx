@@ -110,6 +110,8 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
           onLostPointerCapture={() => input.current?.guard(false)}
           onKeyDown={(e) => !e.repeat && (e.key === ' ' || e.key === 'Enter') && input.current?.guard(true)}
           onKeyUp={(e) => (e.key === ' ' || e.key === 'Enter') && input.current?.guard(false)}
+          // A key let go after focus moved on never reaches this button (PR #88 review).
+          onBlur={() => input.current?.guard(false)}
         />
         <Button label={t('brawl.roll')} onClick={() => input.current?.roll(dir)} />
       </Stack>
