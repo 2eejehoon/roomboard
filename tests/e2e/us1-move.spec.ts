@@ -136,16 +136,18 @@ test('T046: right after a long frame the label is already where the avatar is', 
   await a.waitForTimeout(1000);
   const startX = await label.evaluate((el) => Math.round(el.getBoundingClientRect().x));
 
-  // As soon as the store has the new pose, hold the main thread for 300 ms (longer than the 200 ms glide), then read the label on
-  // the next frame. The avatar is at the end by then, so the label must be too.
+  // As soon as the glide has started, hold the main thread for 300 ms (longer than the 200 ms glide), then read the label on the
+  // next frame. The avatar is at the end by then, so the label must be too. The glide's start is seen on the label itself: React
+  // commits the store's new pose in a task of its own, which a slow frame can run after the next animation frame (CI, and always
+  // in software rendering), so "one frame after the store changed" did not mean the glide had started.
   const done = a.evaluate(
-    ({ name, peerId }) =>
+    ({ name, peerId, startX }) =>
       new Promise<number>((resolve) => {
         const el = [...document.querySelectorAll('span')].find((s) => s.textContent === name)!;
         const hooks = (window as unknown as { __roomboard: { state(): { peers: { peerId: string; p: number[] }[] } } }).__roomboard;
         const watch = () => {
-          if (hooks.state().peers.find((p) => p.peerId === peerId)?.p[0] !== 3) return requestAnimationFrame(watch);
-          // One frame for React to commit the pose and start the glide, then the long frame.
+          const moving = hooks.state().peers.find((p) => p.peerId === peerId)?.p[0] === 3 && Math.round(el.getBoundingClientRect().x) !== startX;
+          if (!moving) return requestAnimationFrame(watch);
           requestAnimationFrame(() => {
             const t = performance.now();
             while (performance.now() - t < 300);
@@ -154,7 +156,7 @@ test('T046: right after a long frame the label is already where the avatar is', 
         };
         watch();
       }),
-    { name: peer.nickname, peerId: peer.peerId },
+    { name: peer.nickname, peerId: peer.peerId, startX },
   );
   await b.waitForTimeout(1000);
   await moveB([3, 0, 4]);
