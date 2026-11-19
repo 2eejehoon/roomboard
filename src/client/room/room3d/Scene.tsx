@@ -246,6 +246,8 @@ function Me({ store, move, brawl, avatarId }: { store: RoomStore; move: Move; br
     const you = store.getState().you;
     // 004: while I fly the server owns my position and the store replays it (FR-031); knocked out, I just fall.
     const fly = you && flightPosition(store.getState().brawl, you.peerId, Date.now());
+    // A smash let go while flying or outside the arena is not a release (PR #87 review): forget the press.
+    if (fly || !(you && inArena(ARENA, you.p))) pressed.current.smash = false;
     if (fly) {
       h.body.setTranslation({ x: fly[0], y: fly[1] + FEET, z: fly[2] }, true);
       h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
