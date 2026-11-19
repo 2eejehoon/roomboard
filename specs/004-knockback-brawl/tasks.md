@@ -66,12 +66,11 @@
 - [X] T008 `src/core/protocol.ts`: `PROTOCOL_VERSION = 2`, 004 websocket.md의 클라이언트·서버 메시지 스키마(제약을 그대로: `nonce` ≤ 32자, `d` 길이 ≤ 1, `h` ∈ `-1 | 0 | 1`,
   `launch.p` 소수 2자리·`v`·`s` 3자리, `rate_limited.scope`에 `block`), welcome의 `arena`·`at`. T002·T003 통과. 클라이언트(`src/client/net/`)는 상수를 쓰므로 그대로 v2를 보낸다.
 - [X] T009 `src/core/brawl/arena.ts`·`src/core/themes.ts`(`arenaEntrance`)·`src/core/movement.ts`·`src/core/room-session.ts`: 경기장 상수·칸 도우미·평화 구역, 두 영역 이동 검사, 입구·출구 순간이동. T005·T006 통과.
-- [X] T010 `src/core/brawl/brawl-session.ts` 뼈대: 채널 하나의 난투 상태(참가자 `Fighter` 맵, 블록 차이, 판), `handle(peerId, msg, now) → Outbox`, `nextEventAt()`, `runEvents(now) → Outbox`(지난 사건 따라잡기, R2).
-  `room-session.ts`가 채널마다 `BrawlSession`을 갖고 난투 메시지를 넘긴다. `src/worker/room-do.ts` `onAlarm`이 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각 계산에 넣는다.
-  welcome에 `arena`(차이·경기장 사람·판)를 넣는다. 기존 worker·core 테스트 전부 통과.
-  - 결과: 뼈대는 `nextEventAt()`(아직 null)·`runEvents()`·`view()`만 둔다. `handle`은 처음 쓰는 US1(T021)에서 더한다(쓰지 않는 인자 린트).
-    `onAlarm`은 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각에 넣으며, 난투 alarm이 잦아져도 D1 `online_count`는 값이 바뀔 때만 쓴다.
-    이 규칙은 `online-count.test.ts`의 "같은 값이면 쓰지 않음" 테스트가 지킨다(PR #83 리뷰, 매번 쓰는 코드에서 실패 확인: 99 대신 2).
+- [X] T010 `src/core/brawl/brawl-session.ts` 뼈대: 채널 하나의 블록 차이(`changed`), `nextEventAt()`, `runEvents()`, welcome용 `view()`(차이·경기장 사람·판 null).
+  `room-session.ts`가 채널마다 `BrawlSession`을 갖는다(난투 메시지는 아직 무시). `src/worker/room-do.ts` `onAlarm`이 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각 계산에 넣으며,
+  D1 `online_count`는 값이 바뀔 때만 쓴다. welcome에 `arena`·`at`을 넣는다. 기존 worker·core 테스트 전부 통과.
+  `handle(me, msg, members, now)`, 참가자 상태(`Fighter`, 참가자 attachment에), `runEvents(now)`는 T021에서 더한다(PR #83 리뷰).
+  - 결과: `nextEventAt()`은 아직 null. `handle`은 처음 쓰는 T021에서 더한다(쓰지 않는 인자 린트). online_count 규칙은 `online-count.test.ts`의 "같은 값이면 쓰지 않음" 테스트가 지킨다(PR #83 리뷰, 매번 쓰는 코드에서 실패 확인: 99 대신 2).
     `npx vitest run` 614개 통과(`room-do`·`online-count` 포함), `npm run typecheck`·`npx eslint .` 통과.
 - [ ] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
   늦게 받은 궤적은 지금 위치로 짧게 보간(Edge Cases). `src/client/test-hooks.ts`에 난투 상태 읽기(피해 %, 위치, 블록 차이, 판)를 더한다(개발 빌드 전용).
@@ -115,7 +114,7 @@
 - [ ] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
 - [ ] T020 [US1] `src/core/brawl/fighter.ts`: `Fighter`(data-model 필드 그대로: `damage` 0~999 정수, `stamina` 0~max + `staminaAt`, `stunUntil`, `invulnUntil`, `cooldownUntil`, `jabStep`·`jabAt`,
   `holdAt`, `guarding`·`guardPressedAt`, `inputDir`, `airJumps`·`airRecovers`, `flight`, `knockedOutAt`) 허용 검사와 상태 전이. T014 통과.
-- [ ] T021 [US1] `src/core/brawl/brawl-session.ts`: `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
+- [ ] T021 [US1] `src/core/brawl/brawl-session.ts`: `handle(me, msg, members, now) → Outbox`, `runEvents(now)`(지난 사건 따라잡기, R2), `room-session.ts`가 난투 메시지를 넘김, `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
 - [ ] T022 [US1] `src/worker/room-do.ts`: `Fighter`를 attachment에 쓰기(보낸 사람·맞은 사람), alarm 사건 처리. T016 통과.
 - [ ] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
   보냄(R2), 경직으로 거부되면 버림. 때린 사람 화면은 서버를 기다리지 않고 이펙트를 먼저 보여 주고 `nonce`로 `swing`과 맞춰 보정(FR-032).
