@@ -25,8 +25,9 @@ type Props = {
 export function Room2D({ room, state, move, brawl }: Props) {
   const { themeId } = room.roomData;
   const people = state.you ? [state.you, ...state.peers] : state.peers;
-  // Knocked out I am below the island until the respawn moves me back; that is still the arena (PR #88 review).
-  const fighting = !!state.you && (inArena(ARENA, state.you.p) || !!state.brawl.fighters[state.you.peerId]?.knockedOut);
+  // Falling off the island or knocked out I am below it until the respawn; that is still the arena. Only a fighter can be below the
+  // room floor (PR #88 review).
+  const fighting = !!state.you && (inArena(ARENA, state.you.p) || state.you.p[1] < 0 || !!state.brawl.fighters[state.you.peerId]?.knockedOut);
   const name = (id: string) => people.find((p) => p.peerId === id)?.nickname ?? '';
   const enter = (send: NonNullable<Props['move']>) => {
     const { to, waitMs } = entranceWalk(state.you!.p, THEMES[themeId].arenaEntrance);
