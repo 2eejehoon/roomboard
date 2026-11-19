@@ -102,6 +102,25 @@ describe('reportError', () => {
     expect(recentFingerprints()).toEqual(await Promise.all([6, 5, 4, 3, 2].map(fp)));
   });
 
+  // CI run 44431441065: the hashes finish in any order, but the list follows the order the reports were made.
+  it('keeps newest first even when earlier hashes finish later', async () => {
+    stub();
+    const subtle = crypto.subtle;
+    const digest = subtle.digest.bind(subtle);
+    let call = 0;
+    const slow = vi.spyOn(subtle, 'digest').mockImplementation((alg, data) => {
+      const wait = 30 - 5 * call++; // the first report's hash finishes last
+      return new Promise<void>((r) => setTimeout(r, Math.max(0, wait))).then(() => digest(alg, data));
+    });
+    const errs = Array.from({ length: 3 }, (_, i) => error(`o${i}`, `E${i}: o${i}\n    at g${i} (https://x.dev/assets/index-BXjaK0XS.js?t=1:1:1)`, `O${i}`));
+    for (const [i, e] of errs.entries()) reportError(e, 2e9 + i);
+    const sha256 = (text: string) => digest('SHA-256', new TextEncoder().encode(text));
+    const fp = (i: number) => fingerprint(`O${i}`, [{ file: 'index-BXjaK0XS.js', fn: `g${i}`, line: 1, col: 1 }], sha256);
+    const want = await Promise.all([2, 1, 0].map(fp));
+    await vi.waitFor(() => expect(recentFingerprints().slice(0, 3)).toEqual(want));
+    slow.mockRestore();
+  });
+
   it('drops values that are not Errors (no stack to fingerprint)', () => {
     const fetch = stub();
     reportError('Script error.', 1e8);
