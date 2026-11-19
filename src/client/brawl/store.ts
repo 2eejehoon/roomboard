@@ -70,6 +70,8 @@ export function shakeOffset(s: BrawlState, local: number, on: boolean): number {
 
 // pose: where each peer is drawn now (the store's pose, or its flight), for the catch-up start.
 export function applyBrawl(s: BrawlState, msg: ServerMessage, received: number, pose: (peerId: string) => Vec3 | undefined, me: string | undefined): BrawlState {
+  // Someone who leaves mid-flight gets no landed or knocked_out, so their trail and flight go with them (PR #90 review).
+  if (msg.t === 'peer_left') return msg.peerId in s.fighters ? { ...s, fighters: Object.fromEntries(Object.entries(s.fighters).filter(([id]) => id !== msg.peerId)) } : s;
   if (!('at' in msg)) return s;
   const offset = Math.min(s.offset ?? Infinity, received - msg.at);
   const next = { ...s, offset };

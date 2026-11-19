@@ -177,7 +177,7 @@
   - 참고(#88): us1-move T046이 #87 뒤 main CI에서 가끔 실패해 Arena를 `memo`로 감쌌다. 3D에 무거운 것을 더하면 Scene 리렌더에 딸려 가지 않게 한다.
   - 결과: 때린 사람은 `swing.at + hitstopMs`, 맞은 사람은 `launch.t`까지 멈춤(store `stopUntil`, `stopped()`). 꼬리는 drei `Line`에 궤적 점을 넣고 프레임마다 `instanceCount`만 바꿈(모든 화면 같은 점).
     흔들림은 세기 `LOOKS.shake.strengthFrom`(20) 이상, 머리 영역 "화면 흔들림 끄기/켜기" 버튼(3D에서만). 2D는 옆 그림 점 위에 색 있는 %. 넘긴 2D 항목: `fighting()` 하나를 옆 그림·목록·조작이 같이 쓰고 점은 viewBox 안으로,
-    걷기 타이머 동안 버튼을 끄고 unmount 때 지움. 테스트 훅 `feel(peerId)`. 확인: `npx vitest run` 통과, us1-brawl·us2-brawl-feel·us2-fallback·a11y 로컬 데스크톱·모바일 통과, `check:bundle` 통과.
+    걷기 타이머 동안 버튼을 끄고 unmount 때 지움. 테스트 훅 `feel(peerId)`. (PR #90 리뷰) 날아가는 중에 나간 사람은 `peer_left`에서 store의 fighter를 지워 꼬리가 남지 않게(실패 확인 뒤 고침). 확인: `npx vitest run` 통과, us1-brawl·us2-brawl-feel·us2-fallback·a11y 로컬 데스크톱·모바일 통과, `check:bundle` 통과.
 - [X] T032 [P] [US2] 효과음·그림이 필요하면 CC0만 `public/assets/`에 두고 `public/assets/CREDITS.md`·`scripts/assets.sha256`에 출처를 적는다(FR-038, 판례 2026-11-07-assets-quaternius).
   `scripts/`를 바꾸면 운영자 머지다. 첫 3D 에셋 상한 3MB(perf.spec)와 `check:bundle`을 넘지 않는다. 필요 없으면 이 항목에 "에셋 없음"이라 적고 닫는다.
   - 에셋 없음. 효과음은 spec의 FR·US2 시나리오에 없고(FR-030a는 모습을 둘 곳만 정함) 넣으면 `scripts/assets.sha256`을 바꿔 운영자 머지가 된다. data-model LOOKS에서 `sfx`를 빼고 T060 판정에서 필요하면 더한다고 적었다.

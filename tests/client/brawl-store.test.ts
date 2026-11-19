@@ -151,4 +151,13 @@ describe('brawl store: feel (US2, FR-020~024)', () => {
     expect(shakeOffset(s.getState().brawl, 21_050, false)).toBe(0);
     expect(feel(s.getState().brawl, 'b')).toMatchObject({ stopUntil: 21_035, trail: true });
   });
+
+  it('forgets a fighter who leaves mid-flight, so no trail stays behind (PR #90 review)', () => {
+    const s = store();
+    s.apply(swing(20_000), 20_050);
+    expect(feel(s.getState().brawl, 'b').trail).toBe(true);
+    s.apply({ t: 'peer_left', peerId: 'b' }, 20_100);
+    expect(s.getState().brawl.fighters.b).toBeUndefined();
+    expect(feel(s.getState().brawl, 'b').trail).toBe(false);
+  });
 });
