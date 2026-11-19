@@ -117,6 +117,21 @@ describe('BrawlSession: knock-out and respawn (FR-005, FR-006)', () => {
     expect(msgs(out, 'b', 'knocked_out')[0]).toMatchObject({ peerId: 'a' });
   });
 
+  it('a fighter cannot walk from the arena into the room: the room is reached only through the exit (R5, PR #87 review)', async () => {
+    const s = await duel([20.5, 1, 4.5]);
+    await send(s, 'a', { t: 'move', p: [12, 0, 4.5], r: 0, a: 'walk' }, 22_000);
+    const out = await send(s, 'a', { t: 'move', p: [5.5, 0, 4], r: 0, a: 'walk' }, 24_000);
+    expect(msgs(out, 'a', 'correction')).toHaveLength(1);
+    expect(s.participant('a')?.fighter).toBeDefined();
+  });
+
+  it('nobody outside the arena box is hit or hits (FR-013), even with a fighter state', async () => {
+    const s = await duel();
+    s.participant('b')!.pose.p = [12, 0, 4.5];
+    s.participant('a')!.pose.p = [11, 0, 4.5];
+    expect((await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000)).send).toEqual([]);
+  });
+
   it('walking off the edge knocks out by the height the client sends (R4 shortcut)', async () => {
     const s = await duel();
     const out = await send(s, 'b', { t: 'move', p: [31.5, arena.koY - 0.5, 4.5], r: 0, a: 'jump' }, 21_000);
