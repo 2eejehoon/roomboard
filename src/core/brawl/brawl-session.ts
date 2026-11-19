@@ -77,7 +77,7 @@ export class BrawlSession {
   view(members: Participant[]): ArenaView {
     return {
       blocks: [...this.changed].map(([key, b]) => (b ? [b.cell, b.kind, b.hp] : [key.split(',').map(Number) as Cell, null, 0])),
-      fighters: members.filter(armed).map((p) => ({ peerId: p.peerId, damage: p.fighter.damage, launch: p.fighter.flight, stocks: null })),
+      fighters: members.filter(armed).map((p) => ({ peerId: p.peerId, damage: Math.round(p.fighter.damage), launch: p.fighter.flight, stocks: null })),
       match: null,
     };
   }
@@ -150,7 +150,7 @@ export class BrawlSession {
         cause: 'hit',
       };
       takeHit(o.fighter, r, launch, now);
-      return { peerId: o.peerId, damage: r.damage, guarded, hitstopMs: r.hitstopMs, launch };
+      return { peerId: o.peerId, damage: Math.round(r.damage), guarded, hitstopMs: r.hitstopMs, launch };
     });
     const hitstopMs = Math.max(0, ...hits.map((h) => h.hitstopMs));
     const readyAt = commitSkill(me.fighter, used, now, hitstopMs, t);

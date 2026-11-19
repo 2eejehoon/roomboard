@@ -119,7 +119,7 @@
   - 결과: T012 통과. 방향 틀기는 US5(T052). 넉백 세기는 반올림하지 않고 `launch.s`로 보낼 때 3자리로 반올림한다.
 - [X] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
   - 결과: T013 통과. 함수 이름은 `simulate`(점 목록과 끝)와 `positionAt`. 미끄럼 거리는 v²/(2×6)과 한 간격 이동 이내로 같다.
-- [X] T020 [US1] `src/core/brawl/fighter.ts`: `Fighter`(data-model 필드 그대로: `damage` 0~999 정수, `stamina` 0~max + `staminaAt`, `stunUntil`, `invulnUntil`, `cooldownUntil`, `jabStep`·`jabAt`,
+- [X] T020 [US1] `src/core/brawl/fighter.ts`: `Fighter`(data-model 필드 그대로: `damage` 0~999(메시지에만 정수), `stamina` 0~max + `staminaAt`, `stunUntil`, `invulnUntil`, `cooldownUntil`, `jabStep`·`jabAt`,
   `holdAt`, `guarding`·`guardPressedAt`, `inputDir`, `airJumps`·`airRecovers`, `flight`, `knockedOutAt`) 허용 검사와 상태 전이. T014 통과.
 - [X] T021 [US1] `src/core/brawl/brawl-session.ts`: `handle(me, msg, members, now) → Outbox`, `runEvents(now)`(지난 사건 따라잡기, R2), `room-session.ts`가 난투 메시지를 넘김, `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
   - 결과: T015 통과. `RoomSession.receive`가 메시지마다 지난 사건을 먼저 보내고, `move`는 날아가는 중·경직 중·넉아웃 중에 `d`만 받는다. 입구로 들어가면 `fighter`가 생기고 출구로 나가면 없어진다.

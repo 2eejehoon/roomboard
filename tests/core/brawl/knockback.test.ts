@@ -23,10 +23,16 @@ describe('resolveHit (FR-002, FR-003, FR-010, FR-020, SC-004)', () => {
     expect(hit({ before: 995 }).damage).toBe(998);
   });
 
-  it('a guarded jab at 0% goes 1.3 → 0.212 (US1-5): damage × 0.2 first, strength from it, then × 0.2; stored % is rounded', () => {
+  it('a guarded jab at 0% goes 1.3 → 0.212 (US1-5): damage × 0.2 first, strength from it, then × 0.2; the % stays exact', () => {
     const r = hit({ guarded: true });
     expect(r.strength).toBeCloseTo(0.212, 10);
-    expect(r.damage).toBe(1);
+    expect(r.damage).toBeCloseTo(0.6, 10);
+  });
+
+  it('five guarded jabs add 3%, the 80% cut, not 5% (FR-010, PR #84 review)', () => {
+    let before = 0;
+    for (let i = 0; i < 5; i++) before = resolveHit({ before, skill: 'jab1', chargeMs: 0, guarded: true }, TUNING).damage;
+    expect(before).toBeCloseTo(3, 10);
   });
 
   it('hitstun is max(hitstop, min(300, s × 40)): a jab 52 ms, a hard hit stops at the 300 ms cap', () => {

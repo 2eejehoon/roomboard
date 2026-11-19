@@ -68,7 +68,7 @@ Cell = [x, y, z]             // 정수 칸 좌표
 
 | 필드 | 규칙 |
 |---|---|
-| damage | 0~999 정수 %. 넉아웃·판 종료·되돌리기 때 0 |
+| damage | 0~999 %. 소수 그대로 저장하고 메시지(`swing.hits`·`welcome.arena.fighters`)에만 정수로 반올림해 싣는다. 넉아웃·판 종료·되돌리기 때 0 |
 | stamina | 0~max, `staminaAt` 시각부터 초당 회복을 계산(저장은 값과 시각만) |
 | stunUntil | 경직 끝 시각. 이 전에는 기술·방어·구르기·공중 동작 거부(방어 누름은 낙법 판정용으로 기록) |
 | invulnUntil | 구르기 무적 끝 시각 |
@@ -97,7 +97,7 @@ FlightEnd { kind: 'land' | 'wall' | 'ko', t: number, p: Vec3, cell?: Cell }
 - `t`는 타격 시각 + 타격 정지(FR-020). `v` = 방향 단위 벡터(방향 틀기 반영) × s × speedPerStrength, 소수 3자리로 반올림(research R3).
 - `s`는 그 궤적의 시작 세기. 뚫림 기준·벽 추가 피해·반발은 이 값으로(FR-019). 튕김의 새 `s` = s × wall.bounce.
 - 계산 순서(FR-002·FR-010): 방어 중 정면이면 피해 × (1 − 0.8) → damage에 더함(상한 999) → s = base + damage × growth × (weightBase/weight)
-  → 방어면 s × (1 − 0.8). s는 더한 값 그대로 쓰고, 저장하는 damage는 정수로 반올림한다(0%에서 방어한 잽: 0.6%로 s = 0.212, 저장은 1%).
+  → 방어면 s × (1 − 0.8). damage는 반올림하지 않고 저장한다(0%에서 방어한 잽: 0.6%로 s = 0.212, 저장 0.6, 메시지 1). 저장값을 반올림하면 방어한 타격마다 1%씩 쌓여 FR-010의 80% 감소가 깨진다(PR #84 리뷰).
   타격 정지·경직은 ms 정수로 반올림한다. 경직(ms, 타격 시각부터) = max(타격 정지, min(hitstunMaxMs, s × hitstunMsPerStrength)). 타격 정지 = 마무리면 maxMs, 아니면 min(maxMs, minMs + s × msPerStrength).
 
 ## 판 Match (`src/core/brawl/match.ts`, 저장소 `arena:<채널>`의 `match`)

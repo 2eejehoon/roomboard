@@ -24,7 +24,8 @@ export function resolveHit({ before, skill, chargeMs, guarded }: HitInput, t: Tu
   const finisher = skill === 'jab3' || (skill === 'smash' && chargeOf(chargeMs, t) === 1) || strength >= t.hitstop.finisherStrength;
   const hitstopMs = finisher ? t.hitstop.maxMs : Math.round(Math.min(t.hitstop.maxMs, t.hitstop.minMs + strength * t.hitstop.msPerStrength));
   const hitstunMs = Math.max(hitstopMs, Math.round(Math.min(t.hitstunMaxMs, strength * t.hitstunMsPerStrength)));
-  return { damage: Math.min(t.damageMax, Math.round(total)), strength, hitstopMs, hitstunMs };
+  // Kept exact: rounding the stored % would add a full 1% per guarded jab (FR-010). Messages round it.
+  return { damage: total, strength, hitstopMs, hitstunMs };
 }
 
 // The horizontal unit direction for a yaw r (models face +z).
