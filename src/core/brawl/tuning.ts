@@ -28,6 +28,7 @@ export const TUNING = {
   air: { jumps: 1, recovers: 1, jumpSpeed: 8, recoverSpeed: 12 },
   gravity: 20,
   koDepth: 10,
+  fallMaxMs: 3000,
   match: { stocks: 3, limitMs: 300_000 },
   speedPerStrength: 0.6,
   blockRate: 4,

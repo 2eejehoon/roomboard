@@ -247,19 +247,27 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T044 [P] [US4] `tests/core/brawl/match.test.ts`(FR-025~027): 시작은 경기장에 2명 이상·요청자가 경기장에 있고 판이 없을 때만, 그 순간 경기장 사람이 players(피해 0%), 넉아웃마다 `stocks − 1`,
+- [X] T044 [P] [US4] `tests/core/brawl/match.test.ts`(FR-025~027): 시작은 경기장에 2명 이상·요청자가 경기장에 있고 판이 없을 때만, 그 순간 경기장 사람이 players(피해 0%), 넉아웃마다 `stocks − 1`,
   0이면 탈락(`out` 순서 번호, 같은 서버 판정의 동시 탈락은 같은 번호), 출구로 나감·연결 끊김 = 탈락, 진행 중 비참가자 입구 차단, 남은 사람 ≤ 1이면 끝, `endsAt`(5분)이면 목숨 많은 순 → 피해 낮은 순 → 같은 순위,
   탈락자는 그 아래 `out` 역순, 모두 함께 탈락하면 공동 1위, 끝나면 피해 0%.
   - (PR #87 리뷰) 경기장 사람은 섬 밖 공중에서 koY까지 자유롭게 떨어질 수 있어, 조작된 클라이언트가 섬 옆 공중(경기장 상자 밖, koY 위)에 머물면 맞지도 넉아웃되지도 않는다(R4 shortcut).
     목숨이 걸리는 이 판에서 "상자 밖에 일정 시간 넘게 머물면 넉아웃" 같은 서버 규칙을 스펙·조정표부터 정하고 테스트한다.
-- [ ] T045 [P] [US4] `tests/worker/brawl-match.test.ts`: 판 시작·탈락·끝을 `arena:<채널>`의 `match`에 바로 씀, DO를 다시 만들어도 판이 이어짐, 제한 시간 alarm으로 끝남, 결과를 보낸 뒤 `match` 삭제(FR-027),
+    → FR-005·조정표 `fallMaxMs` 3초(R12 계산)·Fighter `outsideAt`·판례 2026-11-19-arena-hover-ko. 판 밖에서도 같다. 상자 안 바닥 아래는 shortcut(R4).
+  - 실패 확인: `ranks`만 있는 빈 `match.ts`로 8개 실패(`match` 메시지 없음, 목숨이 줄지 않음, 출구·끊김이 탈락 아님, 입구가 열림, 시간 제한 사건 없음, `fallMaxMs` 사건 없음).
+    "같은 서버 판정" = 같은 ms의 사건으로 정하고(data-model) 마지막 두 명이 같은 ms에 넉아웃되면 공동 1위인지 본다.
+- [X] T045 [P] [US4] `tests/worker/brawl-match.test.ts`: 판 시작·탈락·끝을 `arena:<채널>`의 `match`에 바로 씀, DO를 다시 만들어도 판이 이어짐, 제한 시간 alarm으로 끝남, 결과를 보낸 뒤 `match` 삭제(FR-027),
   관리자 되돌리기 중 판이 있으면 `match {state: "cancelled"}`가 `arena_reset`보다 먼저(T036의 판 부분). 실패 확인.
+  - 실패 확인: `match` 메시지가 오지 않아 3개 모두 시간 초과. 제한 시간은 저장된 `endsAt`을 지금으로 바꾸고 DO를 다시 만든 뒤 alarm을 돌려 본다.
 - [ ] T046 [P] [US4] `tests/e2e/us4-brawl-match.spec.ts`(브라우저 3개, US4-1·2): 판 시작 → 세 화면에 같은 시작 신호, 넉아웃을 만들어 끝까지 → 세 화면에 같은 순위, 피해 0%. 평화 구역에서는 시작 버튼이 막힘. 실패 확인.
 
 ### Implementation
 
-- [ ] T047 [US4] `src/core/brawl/match.ts`: `Match`(data-model)와 시작·탈락·순위. T044 통과.
-- [ ] T048 [US4] `src/core/brawl/brawl-session.ts`·`src/worker/room-do.ts`: `match_start`, 넉아웃의 `stocks`·`out`, 제한 시간 사건, 저장·삭제, `resetArenas()`의 cancelled. T045 통과.
+- [X] T047 [US4] `src/core/brawl/match.ts`: `Match`(data-model)와 시작·탈락·순위. T044 통과.
+  - 결과: `startMatch`·`playing`·`isOver`·`ranks`. `out`은 탈락 시각(ms). 순위는 앞선 사람 수 + 1, 피해 비교는 보이는 정수 %.
+- [X] T048 [US4] `src/core/brawl/brawl-session.ts`·`src/worker/room-do.ts`: `match_start`, 넉아웃의 `stocks`·`out`, 제한 시간 사건, 저장·삭제, `resetArenas()`의 cancelled. T045 통과.
+  - 결과: `runEvents`는 같은 ms 사건을 모두 처리한 뒤 판 끝을 한 번 본다(`judged`). 탈락자는 fighter를 지우고 방 시작 지점(`BrawlSession`이 테마 spawn을 함수로 받음).
+    출구·끊김(`RoomSession.leave(peerId, now)`)은 `match running`(그 사람 stocks 0) 뒤 필요하면 `ended`. 입구는 판 중 닫힘(`open`). 방 테마 변경은 `cancelled`(data-model).
+    저장 값은 `{ blocks, match? }` 하나를 블록 2초 묶음과 판 변경 즉시 쓰기가 같이 쓰고(`saveArenas`), 둘 다 없으면 지운다. 확인: `npx vitest run` 741개, typecheck·lint 통과.
 - [ ] T049 [US4] `src/client/`: 판 시작 버튼(경기장에서만), 남은 목숨·남은 시간, 결과 순위 화면(3D·2D, 글 기록에도), 문구 i18n. T046 통과.
 
 ---
@@ -320,5 +328,5 @@ T012 knockback.test ∥ T013 flight.test ∥ T014 fighter.test ∥ T015 brawl-se
 
 - MVP는 US1(+ 같은 P1인 US2). US1만으로 경기장에서 밀어 떨어뜨리는 놀이가 되므로 US1 PR이 머지되면 미리보기로 운영자 확인을 받는다.
 - PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4a) US1 DO·화면 상태(T011·T016·T022), (4b) 3D·입력·모습(T023~T025), (4c) 2D·E2E(T017·T026), (5) US2, (6a) US3 core·DO·관리자(T033~T036·T038~T042), (6b) US3 화면·E2E(T037·T043),
-  (7) US4, (8) US5, (9) T054~T058, (10) T059~T060. `scripts/`·설정을 바꾸는 PR은 운영자 머지다.
+  (7a) US4 core·DO(T044·T045·T047·T048, 영역 밖 머무름 규칙 포함), (7b) US4 화면·E2E(T046·T049, `claude/`), (8) US5, (9) T054~T058, (10) T059~T060. `scripts/`·설정을 바꾸는 PR은 운영자 머지다.
 - 각 PR은 테스트 실패 확인 → 구현 → 통과를 항목 끝에 적고, 머지되면 이 파일의 체크를 갱신한다.

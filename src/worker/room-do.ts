@@ -1,6 +1,7 @@
 // One DO per room (research R6): Hibernation WebSockets in, RoomSession decides, results out.
 import { DurableObject } from 'cloudflare:workers';
-import { CLOSE, type ServerMessage } from '../core/protocol.ts';
+import { CLOSE } from '../core/protocol.ts';
+import type { ArenaRecord } from '../core/brawl/brawl-session.ts';
 import { RoomSession, type ChatFields, type Outbox, type Participant, type RoomInfo } from '../core/room-session.ts';
 import { recordServerError } from './bug-reports.ts';
 import { signChat } from './chat-sign.ts';
@@ -11,11 +12,11 @@ import { filter, requireRoom } from './rooms.ts';
 type Attachment = { peerId: string; connectedAt: number; participant: Participant | null };
 const JOIN_TIMEOUT_MS = 5000;
 const ONLINE_DEBOUNCE_MS = 2000;
-// 004 R6: a channel's blocks are written at most every 2 s; while any arena:* key exists a cleanup alarm stays within 10 min.
+// 004 R6: a channel's blocks are written at most every 2 s, a match change at once; while any arena:* key exists a cleanup
+// alarm stays within 10 min.
 const ARENA_WRITE_MS = 2000;
 const ARENA_CLEANUP_MS = 10 * 60_000;
 const ARENA = 'arena:';
-type ArenaRecord = { blocks: Extract<ServerMessage, { t: 'welcome' }>['arena']['blocks'] };
 const att = (ws: WebSocket) => ws.deserializeAttachment() as Attachment;
 
 export class RoomDurableObject extends DurableObject<Env> {
@@ -61,6 +62,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     const session = await this.session();
     if (!session) return;
     await this.deliver(session.update(room, respawn, Date.now()));
+    await this.saveArenas(session, true);
     for (const ws of this.sockets.values()) {
       const participant = session.participant(att(ws).peerId);
       if (participant) ws.serializeAttachment({ ...att(ws), participant } satisfies Attachment);
@@ -129,6 +131,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     if (participant) ws.serializeAttachment({ peerId, connectedAt, participant } satisfies Attachment);
     this.saveTouched(session, out);
     await this.deliver(out);
+    await this.saveArenas(session, true);
     if (!wasJoined && participant) await this.schedule(now + ONLINE_DEBOUNCE_MS);
     await this.arenaChanged(session, now);
     await this.scheduleEvents(session);
@@ -146,10 +149,7 @@ export class RoomDurableObject extends DurableObject<Env> {
     // Due with no session (a deleted room, D1 down): nothing to write, and a past due time would ring the alarm forever (PR #91 review).
     if (this.arenaDue !== null && this.arenaDue <= now) {
       this.arenaDue = null;
-      for (const { channel, blocks } of session?.takeDirtyArenas() ?? []) {
-        if (blocks.length) await this.ctx.storage.put(`${ARENA}${channel}`, { blocks } satisfies ArenaRecord);
-        else await this.ctx.storage.delete(`${ARENA}${channel}`);
-      }
+      if (session) await this.saveArenas(session, false);
     }
     // From the attachments, not the session: a session that failed to load (D1 down) must not read as an empty room (PR #91 review).
     const occupied = new Set([...this.sockets.values()].flatMap((ws) => att(ws).participant?.channel ?? []));
@@ -158,6 +158,14 @@ export class RoomDurableObject extends DurableObject<Env> {
     await this.ctx.storage.delete(empty);
     const due = this.arenaDue ?? Infinity;
     return keys.length > empty.length ? Math.min(due, now + ARENA_CLEANUP_MS) : due;
+  }
+
+  // The whole record of each changed channel; no blocks and no match deletes the key. matchOnly: a match change, written at once.
+  private async saveArenas(session: RoomSession, matchOnly: boolean): Promise<void> {
+    for (const { channel, record } of session.takeDirtyArenas(matchOnly)) {
+      if (record.blocks.length || record.match) await this.ctx.storage.put(`${ARENA}${channel}`, record);
+      else await this.ctx.storage.delete(`${ARENA}${channel}`);
+    }
   }
 
   // Closes sockets that missed the join deadline, runs due brawl events (004 R2) and writes online_count; one alarm serves
@@ -170,6 +178,7 @@ export class RoomDurableObject extends DurableObject<Env> {
       const out = session.runEvents(now);
       this.saveTouched(session, out);
       await this.deliver(out);
+      await this.saveArenas(session, true);
       await this.arenaChanged(session, now);
       next = Math.min(next, session.nextEventAt() ?? Infinity);
     }
@@ -204,7 +213,7 @@ export class RoomDurableObject extends DurableObject<Env> {
         const occupied = session.occupied();
         for (const [key, value] of await this.ctx.storage.list<ArenaRecord>({ prefix: ARENA })) {
           const channel = Number(key.slice(ARENA.length));
-          if (occupied.has(channel)) session.restoreArena(channel, value.blocks);
+          if (occupied.has(channel)) session.restoreArena(channel, value);
           else await this.ctx.storage.delete(key);
         }
         return session;
@@ -217,12 +226,14 @@ export class RoomDurableObject extends DurableObject<Env> {
     return this.loading;
   }
 
-  // 004 R6: whoever a brawl message names (hit, new launch, landed, knocked out, respawned) changed state, so their attachment is rewritten.
+  // 004 R6: whoever a brawl message names (hit, new launch, landed, knocked out, respawned, a match's players) changed state, so
+  // their attachment is rewritten.
   private saveTouched(session: RoomSession, out: Outbox): void {
     const ids = new Set<string>();
     for (const { msg } of out.send) {
       if (msg.t === 'swing') for (const h of msg.hits) ids.add(h.peerId);
       else if (msg.t === 'launch' || msg.t === 'landed' || msg.t === 'knocked_out' || msg.t === 'respawned') ids.add(msg.peerId);
+      else if (msg.t === 'match' && msg.state !== 'cancelled') for (const p of msg.state === 'running' ? msg.players : msg.ranks) ids.add(p.peerId);
     }
     for (const id of ids) {
       const ws = this.sockets.get(id);
@@ -253,7 +264,10 @@ export class RoomDurableObject extends DurableObject<Env> {
     // A socket whose close wakes the DO is already missing from getWebSockets(), so the session learns it from the attachment.
     if (participant && !session.participant(peerId)) session.restore(participant);
     const wasJoined = session.participant(peerId) !== null;
-    await this.deliver(session.leave(peerId));
+    const out = session.leave(peerId, Date.now());
+    this.saveTouched(session, out);
+    await this.deliver(out);
+    await this.saveArenas(session, true);
     if (wasJoined) await this.schedule(Date.now() + ONLINE_DEBOUNCE_MS);
     // FR-018: the last one out takes the channel's arena with them.
     const channel = session.participant(peerId)?.channel ?? participant?.channel;

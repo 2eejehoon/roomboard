@@ -119,17 +119,17 @@ describe('RoomSession move', () => {
 describe('RoomSession leave and bad input', () => {
   it('tells the channel when a participant leaves, and forgets them', async () => {
     const s = await joined('a', 'b');
-    const out = s.leave('a');
+    const out = s.leave('a', 0);
     expect(only(out, 'b', 'peer_left')).toEqual({ t: 'peer_left', peerId: 'a' });
     expect(s.participant('a')).toBeNull();
     expect(s.joinedCount).toBe(1);
-    expect(s.leave('a').send, 'leaving twice is a no-op').toEqual([]);
+    expect(s.leave('a', 0).send, 'leaving twice is a no-op').toEqual([]);
   });
 
   it('a socket that never joined leaves without telling anyone', async () => {
     const s = await joined('a');
     s.connect('b');
-    expect(s.leave('b').send).toEqual([]);
+    expect(s.leave('b', 0).send).toEqual([]);
   });
 
   it('answers malformed messages with bad_message and closes with 4008 on the 5th within 10 seconds', async () => {

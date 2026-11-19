@@ -22,6 +22,8 @@ export type Fighter = {
   airJumps: number;
   airRecovers: number;
   flight: Launch | null;
+  // When a walk first left the arena box (FR-005): a knock-out at outsideAt + fallMaxMs unless back inside.
+  outsideAt: number | null;
   knockedOutAt: number | null;
 };
 export type UsedSkill = { id: SkillId; step?: number; chargeMs: number };
@@ -42,6 +44,7 @@ export const newFighter = (now: number, t: Tuning): Fighter => ({
   airJumps: t.air.jumps,
   airRecovers: t.air.recovers,
   flight: null,
+  outsideAt: null,
   knockedOutAt: null,
 });
 

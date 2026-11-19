@@ -30,6 +30,7 @@ spec의 이름 ↔ 코드 키. 값은 spec과 research R12의 초기값이다. �
 | 방향 틀기 각도 | `steerMaxDeg` | 15 |
 | 공중 점프·복귀기 횟수와 세기 | `air.jumps`, `air.recovers`, `air.jumpSpeed`, `air.recoverSpeed` | 1, 1, 8, 12 m/s |
 | 중력, 넉아웃 높이 | `gravity`, `koDepth` | 20 m/s², 바닥 −10 m |
+| 영역 밖 머무름 상한(FR-005) | `fallMaxMs` | 3000 ms(research R12) |
 | 목숨 수, 판 제한 시간 | `match.stocks`, `match.limitMs` | 3, 300000 |
 | 넉백 세기 → 속도 계수 | `speedPerStrength` | 0.6 m/s |
 | 블록 요청 제한 | `blockRate` | 초당 4 |
@@ -79,7 +80,8 @@ Cell = [x, y, z]             // 정수 칸 좌표
 | inputDir | 마지막 `move.d`(방향 틀기·던지기 방향) |
 | airJumps, airRecovers | 남은 공중 점프·복귀기. 착지 때 다시 참 |
 | flight | 지금 궤적 `Launch` 또는 null. null이 아니면 서버가 위치의 주인. 경직이 풀렸으면 날아가는 중에도 기술·구르기를 쓴다. 날아가는 중의 구르기는 무적만 주고 궤적은 이어진다(research R2) |
-| knockedOutAt | 넉아웃 시각, 재시작 전까지. 탈락이면 `eliminated: true` |
+| outsideAt | 걸어서(위치의 주인이 화면일 때) 경기장 상자 밖에 처음 나간 시각, 안에 있으면 null. `outsideAt + fallMaxMs`에 넉아웃 사건(FR-005) |
+| knockedOutAt | 넉아웃 시각, 재시작 전까지. 목숨을 다 잃으면(탈락) fighter를 지우고 평화 구역 시작 지점으로 |
 
 - 상태 전이: `서 있음` →(맞음)→ `타격 정지` →(정지 끝)→ `날아감(flight)`(공중, 또는 0°로 땅에서 시작하면 윗면 미끄러짐) →(내려앉음·미끄러짐 멈춤 = 착지)→ `서 있음`(경직 남으면 경직) /
   →(벽)→ 튕김·뚫림이면 새 `flight`, 낙법이면 `서 있음`(경직 끝) / →(koY 아래)→ `넉아웃` →(respawnMs)→ `서 있음` 또는 `탈락`.
@@ -108,9 +110,11 @@ Match { state: 'running', startedAt, endsAt, players: { peerId, stocks, out?: nu
 
 - 시작(FR-025): 경기장에 2명 이상이고 요청자가 경기장에 있을 때. 그 순간 경기장에 있는 사람이 players, 모두 피해 0%.
 - 진행 중 경기장 입장: players만(나머지는 입구에서 막혀 방 시작 지점에 그대로). 출구로 나감·연결 끊김 = 탈락(out 기록).
-- 넉아웃마다 stocks − 1, 0이면 탈락(평화 구역 시작 지점으로). `out`은 탈락 순서 번호이고 같은 서버 판정에서 함께 탈락하면 같은 번호.
+- 넉아웃마다 stocks − 1, 0이면 탈락(평화 구역 시작 지점으로). `out`은 탈락 시각(ms)이다. 같은 서버 판정 = 같은 ms의 사건이라 같은 값이 되고,
+  끝 검사(남은 사람 ≤ 1)는 그 ms의 사건을 모두 처리한 뒤에 한다. 출구·연결 끊김으로 탈락하면 `match {state: running}`을 그 사람 stocks 0으로 다시 보낸다.
 - 끝: 남은 사람 ≤ 1, 또는 endsAt(FR-025a). 순위 = 남은 사람(목숨 많은 순 → 피해 낮은 순, 같으면 같은 순위) 다음에 out 역순.
-  모두 함께 탈락하면 공동 1위(FR-027). 결과를 보낸 뒤 match를 지우고 참가자 피해를 0%로. 되돌리기(FR-040)는 `cancelled`로 끝낸다.
+  모두 함께 탈락하면 공동 1위(FR-027). 순위는 자기보다 앞선 사람 수 + 1(같으면 같은 순위), 피해 비교는 보이는 정수 %로. 결과를 보낸 뒤 match를 지우고 참가자 피해를 0%로. 되돌리기(FR-040)와 방 테마 변경(모두 평화 구역 시작 지점으로)은 `cancelled`로 끝낸다.
+- 저장: `arena:<채널>` = `{ blocks, match }`. 블록은 2초에 한 번, 판 시작·탈락·끝은 바로 같은 값 전체를 쓴다. 블록 차이가 비고 판도 없으면 키를 지운다.
 
 ## 모습 목록 `LOOKS` (`src/client/brawl/looks.ts`, FR-030a)
 
