@@ -117,6 +117,19 @@ describe('BrawlSession: knock-out and respawn (FR-005, FR-006)', () => {
     expect(msgs(out, 'b', 'knocked_out')[0]).toMatchObject({ peerId: 'a' });
   });
 
+  it('a real free fall off the edge (9.81 m/s², a move every 200 ms) is never corrected and ends in a knock-out (PR #87 review)', async () => {
+    const s = await duel([20.5, 1, 4.5]);
+    const seen: string[] = [];
+    for (let i = 1; i <= 10; i++) {
+      const t = i * 0.2;
+      const out = await send(s, 'a', { t: 'move', p: [19.5, 1 - 0.5 * 9.81 * t * t, 4.5], r: 0, a: 'jump' }, 20_000 + i * 200);
+      seen.push(...out.send.filter((m) => m.to === 'a').map((m) => m.msg.t));
+      if (seen.includes('knocked_out')) break;
+    }
+    expect(seen).not.toContain('correction');
+    expect(seen).toContain('knocked_out');
+  });
+
   it('a fighter cannot walk from the arena into the room: the room is reached only through the exit (R5, PR #87 review)', async () => {
     const s = await duel([20.5, 1, 4.5]);
     await send(s, 'a', { t: 'move', p: [12, 0, 4.5], r: 0, a: 'walk' }, 22_000);
