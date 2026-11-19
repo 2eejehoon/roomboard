@@ -161,12 +161,12 @@ export class RoomDurableObject extends DurableObject<Env> {
     return this.loading;
   }
 
-  // 004 R6: whoever a brawl message names (hit, landed, knocked out, respawned) changed state, so their attachment is rewritten.
+  // 004 R6: whoever a brawl message names (hit, new launch, landed, knocked out, respawned) changed state, so their attachment is rewritten.
   private saveTouched(session: RoomSession, out: Outbox): void {
     const ids = new Set<string>();
     for (const { msg } of out.send) {
       if (msg.t === 'swing') for (const h of msg.hits) ids.add(h.peerId);
-      else if (msg.t === 'landed' || msg.t === 'knocked_out' || msg.t === 'respawned') ids.add(msg.peerId);
+      else if (msg.t === 'launch' || msg.t === 'landed' || msg.t === 'knocked_out' || msg.t === 'respawned') ids.add(msg.peerId);
     }
     for (const id of ids) {
       const ws = this.sockets.get(id);
