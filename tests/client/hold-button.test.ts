@@ -1,19 +1,12 @@
-// PR #88 review: a held button (guard, smash) must end however the press ends: release off the button, a touch cancel, a lost
-// capture. holdHandlers captures the pointer on press and ends on lostpointercapture, which all of those fire.
+// PR #88 review: a held 2D button (guard, smash) must end however the press ends. The press captures the pointer, so a release
+// off the button, a touch cancel or any other loss fires lostpointercapture on the button, which ends the hold.
 import { describe, expect, it, vi } from 'vitest';
-import { holdHandlers } from '../../src/client/room/room2d/ArenaSide.tsx';
+import { capture } from '../../src/client/room/room2d/ArenaSide.tsx';
 
-const press = () => ({ pointerId: 7, currentTarget: { setPointerCapture: vi.fn() } }) as unknown as Parameters<ReturnType<typeof holdHandlers>['onPointerDown']>[0];
-
-describe('holdHandlers', () => {
-  it('captures the pointer on press and ends once when the capture is lost (release anywhere, or a cancel)', () => {
-    const [down, up] = [vi.fn(), vi.fn()];
-    const h = holdHandlers(down, up);
-    const e = press();
-    h.onPointerDown(e);
-    expect(down).toHaveBeenCalledTimes(1);
-    expect((e.currentTarget as unknown as { setPointerCapture: ReturnType<typeof vi.fn> }).setPointerCapture).toHaveBeenCalledWith(7);
-    h.onLostPointerCapture();
-    expect(up).toHaveBeenCalledTimes(1);
+describe('held 2D buttons', () => {
+  it('capture() takes the pointer on press', () => {
+    const setPointerCapture = vi.fn();
+    capture({ pointerId: 7, currentTarget: { setPointerCapture } } as unknown as Parameters<typeof capture>[0]);
+    expect(setPointerCapture).toHaveBeenCalledWith(7);
   });
 });

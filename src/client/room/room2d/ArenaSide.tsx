@@ -89,8 +89,11 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
         {/* Charged between press and release; a keyboard click sends both at once. */}
         <Button
           label={t('brawl.smash')}
-          onPointerDown={() => input.current?.press('smash')}
-          onPointerUp={() => input.current?.release('smash')}
+          onPointerDown={(e) => {
+            capture(e);
+            input.current?.press('smash');
+          }}
+          onLostPointerCapture={() => input.current?.release('smash')}
           onClick={(e) => {
             if (e.detail === 0) {
               input.current?.press('smash');
@@ -102,8 +105,11 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
         {/* Held: pointer or a held key. */}
         <Button
           label={t('brawl.guard')}
-          onPointerDown={() => input.current?.guard(true)}
-          onPointerUp={() => input.current?.guard(false)}
+          onPointerDown={(e) => {
+            capture(e);
+            input.current?.guard(true);
+          }}
+          onLostPointerCapture={() => input.current?.guard(false)}
           onKeyDown={(e) => !e.repeat && (e.key === ' ' || e.key === 'Enter') && input.current?.guard(true)}
           onKeyUp={(e) => (e.key === ' ' || e.key === 'Enter') && input.current?.guard(false)}
         />
@@ -112,6 +118,10 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
     </Stack>
   );
 }
+
+// A held button (guard, smash) ends on lostpointercapture, not pointerup (PR #88 review): with the pointer captured on press,
+// a release anywhere, a touch cancel or any other loss fires it once.
+export const capture = (e: React.PointerEvent<HTMLElement>) => e.currentTarget.setPointerCapture(e.pointerId);
 
 export function BrawlLog({ brawl, name }: { brawl: BrawlState; name: (peerId: string) => string }) {
   return (
