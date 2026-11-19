@@ -28,7 +28,10 @@
   (`-1`은 `1`에 단항 `-`라 따로 허용할 것 없음). 고치는 방법을 알려 주는 문구가 필요하므로 `no-magic-numbers`(문구 지정 불가) 대신 `no-restricted-syntax`의 숫자
   `Literal` 선택자 + `message: "수치는 TUNING(src/core/brawl/tuning.ts)에 항목으로 두고 tuning.<키>로 읽으세요(FR-030, research R7)."`로 한다. 허용 목록은 넓히지 않는다.
   - 실패 확인(헌법 VI): 아직 `src/core/brawl` 코드가 없으므로 수치가 박힌 실제 커밋 코드 `tests/bench/brawl-load/worker.js`를 임시로 `src/core/brawl/probe.js`로 복사해
-    `npx eslint src/core/brawl`이 실패하는 것(오류 수 기록)을 보고 지운다. `src/core/brawl/` 밖 파일은 이 규칙에 걸리지 않는 것도 확인한다.
+    `npx eslint src/core/brawl`을 돌린다. probe는 `cloudflare:workers`를 import해 기존 `no-restricted-imports`에도 걸리므로 "lint 실패"만으로는 확인이 아니다.
+    새 `no-restricted-syntax` 문구(TUNING 안내)의 오류 수와 import 규칙 오류 수를 나눠 기록하고 지운다. `src/core/brawl/` 밖 파일은 이 규칙에 걸리지 않는 것도 확인한다.
+  - 확인 결과(2026-11-18): `src/core/brawl/probe.js`에서 TUNING 문구 53개, `no-restricted-imports` 1개(`cloudflare:workers`). 같은 파일을 `src/core/probe.js`에 두면
+    TUNING 문구 0개(import 1개만). 경계: `0, 1, 2, -1`과 문자열·템플릿 `"3"`·`` `4` ``는 통과, `3, 0.5, .5, 1e3, 10`은 오류. 지운 뒤 `npx eslint .` 통과.
   - `eslint.config.js`는 허용 경로 밖이므로 이 작업만 한 PR로 내고 운영자에게 머지를 요청한다(같은 PR에 `src/`를 섞지 않는다). 머지 뒤 main CI의 lint가 통과하는지 확인해 여기에 적는다.
 
 ---
