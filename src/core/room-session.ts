@@ -149,7 +149,9 @@ export class RoomSession {
     if (fell) return fell;
     const p = msg.p.map(round) as Vec3;
     const theme = THEMES[this.room.roomData.themeId];
-    if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, me.fighter ? [FALL] : [theme.bounds, ARENA.bounds])) {
+    // A fighter falls freely, but never into the room: that way is only the exit (R5).
+    const intoRoom = !!me.fighter && validateMove({ p, at: now }, p, now, [theme.bounds]);
+    if (intoRoom || !validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, me.fighter ? [FALL] : [theme.bounds, ARENA.bounds])) {
       return { send: [{ to: me.peerId, msg: { t: 'correction', p: me.pose.p, r: me.pose.r } }] };
     }
     me.pose = { p, r: round(msg.r), a: msg.a };
