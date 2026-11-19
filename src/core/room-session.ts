@@ -188,7 +188,7 @@ export class RoomSession {
     if (me.fighter && msg.d) me.fighter.inputDir = msg.d;
     // Flying, in hitstun or knocked out: the server owns the position and only d counts (004 R4).
     if (brawl.locked(me, now)) return { send: [] };
-    const fell = brawl.fell(me, msg.p, this.members(me.channel), now);
+    const fell = brawl.fell(me, msg.p[1], this.members(me.channel), now);
     if (fell) return fell;
     const p = msg.p.map(round) as Vec3;
     const theme = THEMES[this.room.roomData.themeId];
@@ -201,6 +201,7 @@ export class RoomSession {
     }
     me.pose = { p, r: round(msg.r), a: msg.a };
     me.lastMoveAt = now;
+    brawl.walked(me, now);
     // The entrance and exit cells teleport (004 R5): a correction to me, peer_moved to the others.
     const fighters = this.members(me.channel).filter((o) => o !== me && o.fighter).length;
     if (!inArena(ARENA, p) && sameCell(p.map(Math.floor), theme.arenaEntrance) && brawl.open) {

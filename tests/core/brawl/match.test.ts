@@ -203,6 +203,18 @@ describe('hover outside the arena box (FR-005, PR #87 review)', () => {
     expect(s.nextEventAt(), 'the respawned fighter is inside again').toBeNull();
   });
 
+  it('only accepted moves count: a rejected claim outside does not start it, a rejected claim inside does not clear it (PR #95 review)', async () => {
+    const s = await channel(['a', 'b']);
+    const x = arena.origin[0];
+    await send(s, 'a', { t: 'move', p: [x + 0.5, 1, 4.5], r: 0, a: 'walk' }, 8000);
+    const far = await send(s, 'a', { t: 'move', p: [x - 8, 1, 4.5], r: 0, a: 'jump' }, 8100);
+    expect(msgs(far, 'a', 'correction'), 'too fast: rejected').toHaveLength(1);
+    expect(s.nextEventAt(), 'still inside, where a can be hit and land').toBeNull();
+    await send(s, 'a', { t: 'move', p: [x - 0.4, 0.5, 4.5], r: 0, a: 'jump' }, 10_000);
+    await send(s, 'a', { t: 'move', p: [x + 8, 1, 4.5], r: 0, a: 'walk' }, 10_100);
+    expect(s.nextEventAt(), 'still outside').toBe(10_000 + TUNING.fallMaxMs);
+  });
+
   it('coming back into the box clears it', async () => {
     const s = await channel(['a', 'b']);
     await send(s, 'a', { t: 'move', p: [arena.origin[0] + 0.5, 1, 4.5], r: 0, a: 'walk' }, 8000);

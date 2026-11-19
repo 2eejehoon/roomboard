@@ -89,7 +89,8 @@ export function tryRoll(f: Fighter, now: number, t: Tuning): boolean {
 }
 
 export function takeHit(f: Fighter, hit: { damage: number; hitstunMs: number }, launch: Launch, now: number): void {
-  [f.damage, f.stunUntil, f.flight, f.holdAt] = [hit.damage, now + hit.hitstunMs, launch, null];
+  // The server owns the position from here, so a walk's time outside the box (FR-005) ends too (PR #95 review).
+  [f.damage, f.stunUntil, f.flight, f.holdAt, f.outsideAt] = [hit.damage, now + hit.hitstunMs, launch, null, null];
 }
 
 const toward = (from: Vec3, to: Vec3) => [to[0] - from[0], to[2] - from[2]];

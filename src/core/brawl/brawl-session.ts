@@ -58,13 +58,16 @@ export class BrawlSession {
     return !!f && (f.flight !== null || !canAct(f, now));
   }
 
-  // Walking off the edge: the height the client sends decides (R4). Outside the box nothing holds anyone up, so staying
-  // there past fallMaxMs is a fall too (FR-005), run as an event even if the client goes quiet.
-  fell(me: Participant, p: Vec3, members: Participant[], now: number): Outbox | null {
-    if (!armed(me)) return null;
-    if (p[1] < this.arena.koY) return this.judged(this.knockOut(me, now, members), members, now);
-    me.fighter.outsideAt = inArena(this.arena, p) ? null : (me.fighter.outsideAt ?? now);
-    return null;
+  // Walking off the edge: the height the client sends decides (R4).
+  fell(me: Participant, y: number, members: Participant[], now: number): Outbox | null {
+    if (!armed(me) || y >= this.arena.koY) return null;
+    return this.judged(this.knockOut(me, now, members), members, now);
+  }
+
+  // After an accepted move: outside the box nothing holds anyone up, so staying there past fallMaxMs is a fall too
+  // (FR-005), run as an event even if the client goes quiet. A rejected move neither starts nor stops it (PR #95 review).
+  walked(me: Participant, now: number): void {
+    if (armed(me)) me.fighter.outsideAt = inArena(this.arena, me.pose.p) ? null : (me.fighter.outsideAt ?? now);
   }
 
   // Out of the arena by the exit or a disconnect: eliminated from a running match (spec Edge Cases).

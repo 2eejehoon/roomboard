@@ -267,6 +267,7 @@
 - [X] T048 [US4] `src/core/brawl/brawl-session.ts`·`src/worker/room-do.ts`: `match_start`, 넉아웃의 `stocks`·`out`, 제한 시간 사건, 저장·삭제, `resetArenas()`의 cancelled. T045 통과.
   - 결과: `runEvents`는 같은 ms 사건을 모두 처리한 뒤 판 끝을 한 번 본다(`judged`). 탈락자는 fighter를 지우고 방 시작 지점(`BrawlSession`이 테마 spawn을 함수로 받음).
     출구·끊김(`RoomSession.leave(peerId, now)`)은 `match running`(그 사람 stocks 0) 뒤 필요하면 `ended`. 입구는 판 중 닫힘(`open`). 방 테마 변경은 `cancelled`(data-model).
+    (PR #95 리뷰) `outsideAt`은 받아들인 move로만 바꾸고(`walked`) 맞으면 지운다. 거부된 move로 시각을 켜고 끄던 것을 테스트 먼저 실패 확인.
     저장 값은 `{ blocks, match? }` 하나를 블록 2초 묶음과 판 변경 즉시 쓰기가 같이 쓰고(`saveArenas`), 둘 다 없으면 지운다. 확인: `npx vitest run` 741개, typecheck·lint 통과.
 - [ ] T049 [US4] `src/client/`: 판 시작 버튼(경기장에서만), 남은 목숨·남은 시간, 결과 순위 화면(3D·2D, 글 기록에도), 문구 i18n. T046 통과.
 
