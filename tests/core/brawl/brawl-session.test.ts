@@ -109,6 +109,14 @@ describe('BrawlSession: knock-out and respawn (FR-005, FR-006)', () => {
     expect(s.participant('b')?.pose.p).toEqual(startPoint(arena, 1));
   });
 
+  it('walking off the side of the island falls freely (no correction) until koY, then knocks out (PR #87 review)', async () => {
+    const s = await duel([20.5, 1, 4.5]);
+    expect((await send(s, 'a', { t: 'move', p: [19.6, 0.5, 4.5], r: 0, a: 'jump' }, 20_100)).send.map((m) => m.msg.t)).not.toContain('correction');
+    expect((await send(s, 'a', { t: 'move', p: [19.4, -4, 4.5], r: 0, a: 'jump' }, 21_000)).send.map((m) => m.msg.t)).not.toContain('correction');
+    const out = await send(s, 'a', { t: 'move', p: [19.3, arena.koY - 0.5, 4.5], r: 0, a: 'jump' }, 21_800);
+    expect(msgs(out, 'b', 'knocked_out')[0]).toMatchObject({ peerId: 'a' });
+  });
+
   it('walking off the edge knocks out by the height the client sends (R4 shortcut)', async () => {
     const s = await duel();
     const out = await send(s, 'b', { t: 'move', p: [31.5, arena.koY - 0.5, 4.5], r: 0, a: 'jump' }, 21_000);
