@@ -12,7 +12,7 @@ import type { Pose } from '../../../core/room-session.ts';
 import type { Vec3 } from '../../../core/themes.ts';
 import { BLOCK_KINDS, createBrawlInput, cycle, HEIGHTS, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
-import { flightOf, serverNow, type BrawlState } from '../../brawl/store.ts';
+import { flightOf, serverNow, type BrawlState, type LogEntry } from '../../brawl/store.ts';
 import { t } from '../../i18n/t.ts';
 import type { Peer, RoomState } from '../../state/room-store.ts';
 
@@ -145,13 +145,23 @@ export const capture = (e: React.PointerEvent<HTMLElement>) => e.currentTarget.s
 
 // Lines for the room's one live region (Room2D), next to the join and leave notices: a second region would compete with it.
 export function BrawlLog({ brawl, name }: { brawl: BrawlState; name: (peerId: string) => string }) {
-  return brawl.log.map((e) => (
-    <p key={`brawl-${e.id}`}>
-      {e.kind === 'hit'
-        ? t('brawl.log.hit', { by: name(e.by!), target: name(e.peerId), damage: e.damage! })
-        : t(e.kind === 'ko' ? 'brawl.log.ko' : 'brawl.log.respawn', { name: name(e.peerId) })}
-    </p>
-  ));
+  return brawl.log.map((e) => <p key={`brawl-${e.id}`}>{logLine(e, name)}</p>);
+}
+
+function logLine(e: LogEntry, name: (peerId: string) => string): string {
+  switch (e.kind) {
+    case 'hit':
+      return t('brawl.log.hit', { by: name(e.by!), target: name(e.peerId), damage: e.damage! });
+    case 'ko':
+    case 'respawn':
+      return t(e.kind === 'ko' ? 'brawl.log.ko' : 'brawl.log.respawn', { name: name(e.peerId) });
+    case 'start':
+      return t('brawl.log.matchStart');
+    case 'cancel':
+      return t('brawl.log.matchCancel');
+    case 'end':
+      return t('brawl.log.matchEnd', { ranks: e.ranks.map((r) => t('match.rank', { rank: r.rank, name: name(r.peerId) || t('match.gone') })).join(', ') });
+  }
 }
 
 // One cell along x or z, or null when a block fills it. Off the edge (no block under) the client falls, which the server reads

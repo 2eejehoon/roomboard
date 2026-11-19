@@ -54,7 +54,7 @@ export function Room2D({ room, state, move, brawl }: Props) {
           />
         ))}
       </List>
-      {move && brawl && state.you && (fighting(state.brawl, state.you) ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} isDisabled={walking} onClick={() => enter(move)} />)}
+      {move && brawl && state.you && (fighting(state.brawl, state.you) ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} isDisabled={walking || !!state.brawl.match} onClick={() => enter(move)} />)}
       <div aria-live="polite">
         {state.notices.map((n) => (
           <p key={n.id}>{t(n.kind === 'joined' ? 'room2d.joined' : 'room2d.left', { nickname: n.nickname })}</p>

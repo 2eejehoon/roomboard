@@ -194,3 +194,58 @@ describe('brawl store: blocks (US3, T043)', () => {
     expect(s.getState().brawl.fighters.b.damage).toBe(15);
   });
 });
+
+describe('brawl store: match (US4, T049)', () => {
+  const running = (at: number, stocks = 3): ServerMessage => ({ t: 'match', state: 'running', endsAt: at + 300_000, players: [{ peerId: 'me', stocks: 3 }, { peerId: 'b', stocks }], at });
+
+  it('welcome takes the running match', () => {
+    const s = new RoomStore();
+    const w = welcome(10_000) as Extract<ServerMessage, { t: 'welcome' }>;
+    s.apply({ ...w, arena: { ...w.arena, match: running(9_000) as Extract<ServerMessage, { t: 'match'; state: 'running' }> } }, 10_100);
+    expect(s.getState().brawl.match).toMatchObject({ endsAt: 309_000, players: [{ peerId: 'me', stocks: 3 }, { peerId: 'b', stocks: 3 }] });
+  });
+
+  it('a start puts the players at 0% and logs it; a resend (someone left by the exit) only updates the stocks', () => {
+    const s = store();
+    s.apply(running(20_000), 20_050);
+    expect(s.getState().brawl.fighters.b.damage).toBe(0);
+    expect(s.getState().brawl.log.at(-1)).toMatchObject({ kind: 'start' });
+    s.apply(swing(21_000), 21_050);
+    s.apply(running(20_000, 0), 22_050);
+    expect(s.getState().brawl.fighters.b.damage).toBe(10);
+    expect(s.getState().brawl.match?.players[1]).toEqual({ peerId: 'b', stocks: 0 });
+  });
+
+  it('a knock-out lowers the stocks; the last one sends the player to the room spawn with no fighter (FR-026)', () => {
+    const s = store();
+    s.apply(running(20_000, 1), 20_050);
+    s.apply({ t: 'knocked_out', peerId: 'me', respawnAt: 24_000, stocks: 2, out: false, at: 21_000 }, 21_050);
+    expect(s.getState().brawl.match?.players[0]).toEqual({ peerId: 'me', stocks: 2 });
+    s.apply({ t: 'knocked_out', peerId: 'b', respawnAt: 25_000, stocks: 0, out: true, at: 22_000 }, 22_050);
+    expect(s.getState().brawl.match?.players[1]).toEqual({ peerId: 'b', stocks: 0 });
+    expect(s.getState().brawl.fighters.b).toBeUndefined();
+    expect(s.getState().peers[0].p).toEqual([0, 0, 4]);
+  });
+
+  it('ended keeps the ranks as the result, ends the match and puts the ranked at 0%; the next start clears the result (FR-027)', () => {
+    const s = store();
+    s.apply(running(20_000), 20_050);
+    s.apply(swing(21_000), 21_050);
+    s.apply({ t: 'match', state: 'ended', ranks: [{ peerId: 'me', rank: 1 }, { peerId: 'b', rank: 2 }], at: 30_000 }, 30_050);
+    const b = s.getState().brawl;
+    expect(b.match).toBeNull();
+    expect(b.result).toEqual([{ peerId: 'me', rank: 1 }, { peerId: 'b', rank: 2 }]);
+    expect(b.fighters.b.damage).toBe(0);
+    expect(b.log.at(-1)).toMatchObject({ kind: 'end', ranks: b.result });
+    s.apply(running(40_000), 40_050);
+    expect(s.getState().brawl.result).toBeNull();
+  });
+
+  it('cancelled ends the match with no result', () => {
+    const s = store();
+    s.apply(running(20_000), 20_050);
+    s.apply({ t: 'match', state: 'cancelled', at: 21_000 }, 21_050);
+    expect(s.getState().brawl).toMatchObject({ match: null, result: null });
+    expect(s.getState().brawl.log.at(-1)).toMatchObject({ kind: 'cancel' });
+  });
+});
