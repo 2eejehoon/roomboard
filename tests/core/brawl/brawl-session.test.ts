@@ -140,3 +140,15 @@ describe('BrawlSession: counter window (US1-7)', () => {
     expect(msgs(await send(s, 'a', { t: 'skill', k: 'jab' }, 20_000), 'a', 'swing')[0].hits).toEqual([]);
   });
 });
+
+describe('BrawlSession: theme change (FR-013, PR #84 review)', () => {
+  it('a theme change sends fighters to the peace-zone spawn unarmed: no fighters in welcome, nothing to hit', async () => {
+    const s = await duel();
+    s.update({ ...room, roomData: createRoomData('library') }, true, 30_000);
+    s.connect('c');
+    const welcome = msgs(await send(s, 'c', { t: 'join', v: 2, deviceKey: key(9) }, 30_100), 'c', 'welcome')[0];
+    expect(welcome.arena.fighters).toEqual([]);
+    expect((await send(s, 'a', { t: 'skill', k: 'jab' }, 30_200)).send).toEqual([]);
+    expect(s.participant('b')?.fighter).toBeUndefined();
+  });
+});
