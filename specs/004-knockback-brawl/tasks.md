@@ -24,7 +24,7 @@
 
 ## Phase 1: Setup — 조정표 린트 (운영자 머지, 따로 PR)
 
-- [ ] T001 `eslint.config.js`: `files: ['src/core/brawl/**']`, `ignores: ['src/core/brawl/tuning.ts']` 블록에 숫자 상수 금지 규칙(R7, SC-005, 헌법 VI). 허용은 0·1·2와 `-1`
+- [X] T001 `eslint.config.js`: `files: ['src/core/brawl/**']`, `ignores: ['src/core/brawl/tuning.ts']` 블록에 숫자 상수 금지 규칙(R7, SC-005, 헌법 VI). 허용은 0·1·2와 `-1`
   (`-1`은 `1`에 단항 `-`라 따로 허용할 것 없음). 고치는 방법을 알려 주는 문구가 필요하므로 `no-magic-numbers`(문구 지정 불가) 대신 `no-restricted-syntax`의 숫자
   `Literal` 선택자 + `message: "수치는 TUNING(src/core/brawl/tuning.ts)에 항목으로 두고 tuning.<키>로 읽으세요(FR-030, research R7)."`로 한다. 허용 목록은 넓히지 않는다.
   - 실패 확인(헌법 VI): 아직 `src/core/brawl` 코드가 없으므로 수치가 박힌 실제 커밋 코드 `tests/bench/brawl-load/worker.js`를 임시로 `src/core/brawl/probe.js`로 복사해
@@ -33,6 +33,7 @@
   - 확인 결과(2026-11-18): `src/core/brawl/probe.js`에서 TUNING 문구 53개, `no-restricted-imports` 1개(`cloudflare:workers`). 같은 파일을 `src/core/probe.js`에 두면
     TUNING 문구 0개(import 1개만). 경계: `0, 1, 2, -1`과 문자열·템플릿 `"3"`·`` `4` ``는 통과, `3, 0.5, .5, 1e3, 10`은 오류. 지운 뒤 `npx eslint .` 통과.
   - `eslint.config.js`는 허용 경로 밖이므로 이 작업만 한 PR로 내고 운영자에게 머지를 요청한다(같은 PR에 `src/`를 섞지 않는다). 머지 뒤 main CI의 lint가 통과하는지 확인해 여기에 적는다.
+  - 머지 확인(2026-11-19): #82 squash 머지(370872e) 뒤 main CI 실행 44430605261의 `npm run lint` 통과(typecheck·unit·build·check:bundle도 통과).
 
 ---
 
@@ -43,32 +44,41 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T002 [P] `tests/core/protocol.test.ts`: 예시 수집을 문서 경로를 받는 함수로 바꾸고 001과 004 `contracts/websocket.md`를 모두 검사한다(004도 `## 클라이언트 → 서버`·`## 서버 → 클라이언트` 아래 `###` 절이라 같은 파서로 된다).
+- [X] T002 [P] `tests/core/protocol.test.ts`: 예시 수집을 문서 경로를 받는 함수로 바꾸고 001과 004 `contracts/websocket.md`를 모두 검사한다(004도 `## 클라이언트 → 서버`·`## 서버 → 클라이언트` 아래 `###` 절이라 같은 파서로 된다).
   004 클라이언트 예시 `t` = `move, hold, skill, guard, roll, air, block, match_start`, 서버 예시 = `welcome, swing, launch, landed, knocked_out, respawned, block, arena_reset, match`가 모두 파싱되고,
   서버 메시지 종류마다 001 또는 004에 예시가 있다. 경계 검사: `skill.nonce` 32자 초과 거부, `move.d` 길이 > 1 거부, `block.h`는 `-1 | 0 | 1`만, `block.kind`는 `place`일 때만(`dirt | stone`),
   2KB 넘는 메시지 거부(기존 `MAX_MESSAGE_BYTES`), `join.v`가 1이면 `unsupported_version`. 지금 코드에서 실패 확인.
-- [ ] T003 [P] `specs/001-realtime-room-board/contracts/websocket.md`: `join`(`"v": 1`)과 `welcome`(`"v": 1`) 예시를 `"v": 2`로, welcome 예시에 v2 필수 필드
+  - 실패 확인: 001 welcome 예시(v2로 고침)가 `v: literal(1)`에 걸림, 004 예시 `hold` 등 모든 새 `t`가 스키마에 없음, `move.d` 길이 검사 없음(zod가 `d`를 버려 통과). `block` 거부 경우는 `t`가 없어서 통과했으므로 구현 뒤 다시 본다.
+- [X] T003 [P] `specs/001-realtime-room-board/contracts/websocket.md`: `join`(`"v": 1`)과 `welcome`(`"v": 1`) 예시를 `"v": 2`로, welcome 예시에 v2 필수 필드
   `"arena": { "blocks": [], "fighters": [], "match": null }`와 `"at"`을 더하고 "v2 추가 필드는 004 websocket.md" 한 줄로 링크한다(001 예시가 v2 스키마에서도 통과하도록).
-- [ ] T004 [P] `tests/core/brawl/tuning.test.ts`: `TUNING`의 키가 data-model "조정표"의 키 열과 하나씩 대응하고 값이 초기값과 같다(spec 기술 표, 강펀치 `damage` `[12, 22]`,
+- [X] T004 [P] `tests/core/brawl/tuning.test.ts`: `TUNING`의 키가 data-model "조정표"의 키 열과 하나씩 대응하고 값이 초기값과 같다(spec 기술 표, 강펀치 `damage` `[12, 22]`,
   `hitstunMaxMs` 300, `skills.jab1.cooldownMs` 350 등 R12). 잽 다시 쓰기 시간 + `hitstop.minMs` > `hitstunMaxMs`(FR-012, US1-7)를 검사한다. 지금은 파일이 없어 실패.
-- [ ] T005 [P] `tests/core/brawl/arena.test.ts`: 기본 경기장(`size` 24×12×24, 돌 한 겹 바닥, FR-016), 칸 ↔ 월드 좌표(`origin + cell × block.size`), 차이 적용(`changed`의 null = 부서진 기본 블록),
+- [X] T005 [P] `tests/core/brawl/arena.test.ts`: 기본 경기장(`size` 24×12×24, 돌 한 겹 바닥, FR-016), 칸 ↔ 월드 좌표(`origin + cell × block.size`), 차이 적용(`changed`의 null = 부서진 기본 블록),
   `inArena(p)`/평화 구역(R5), `starts`·`exit`, 테마마다 `arenaEntrance`가 테마 범위 안이고 경기장 `bounds`가 모든 테마 범위와 겹치지 않음, `koY` = 바닥 − `koDepth`. 실패 확인.
-- [ ] T006 [P] `tests/core/movement.test.ts`·`tests/core/room-session.test.ts`에 더함: 이동 검사가 테마 범위 또는 경기장 범위 안이면 통과하고 두 영역 사이의 걷기 이동은 거부,
+  - 실패 확인: `src/core/brawl/arena.ts`·`tuning.ts`가 없어 모듈을 찾지 못함(T004·T005 모두).
+- [X] T006 [P] `tests/core/movement.test.ts`·`tests/core/room-session.test.ts`에 더함: 이동 검사가 테마 범위 또는 경기장 범위 안이면 통과하고 두 영역 사이의 걷기 이동은 거부,
   입구 칸에 들어선 `move` → 나에게 `correction`(경기장 시작 지점), 남에게 `peer_moved`, 출구 칸 → 방 시작 지점(R5). 날아가는 중·경직 중의 출구 칸은 동작하지 않음(FR-014). 실패 확인.
+  - 실패 확인: `validateMove`가 영역 목록을 받지 않아 `TypeError`, room-session은 `arena.ts`가 없어 실패. 날아가는 중·경직 중의 출구 칸은 궤적·경직이 생기는 US1에서 확인한다(T015로 옮김).
 
 ### Implementation
 
-- [ ] T007 `src/core/brawl/tuning.ts`: `TUNING` 상수(`as const`)와 `Tuning` 타입. data-model 표의 모든 키 + 위 린트 대상 키. T004 통과.
-- [ ] T008 `src/core/protocol.ts`: `PROTOCOL_VERSION = 2`, 004 websocket.md의 클라이언트·서버 메시지 스키마(제약을 그대로: `nonce` ≤ 32자, `d` 길이 ≤ 1, `h` ∈ `-1 | 0 | 1`,
+- [X] T007 `src/core/brawl/tuning.ts`: `TUNING` 상수(`as const`)와 `Tuning` 타입. data-model 표의 모든 키 + 위 린트 대상 키. T004 통과.
+- [X] T008 `src/core/protocol.ts`: `PROTOCOL_VERSION = 2`, 004 websocket.md의 클라이언트·서버 메시지 스키마(제약을 그대로: `nonce` ≤ 32자, `d` 길이 ≤ 1, `h` ∈ `-1 | 0 | 1`,
   `launch.p` 소수 2자리·`v`·`s` 3자리, `rate_limited.scope`에 `block`), welcome의 `arena`·`at`. T002·T003 통과. 클라이언트(`src/client/net/`)는 상수를 쓰므로 그대로 v2를 보낸다.
-- [ ] T009 `src/core/brawl/arena.ts`·`src/core/themes.ts`(`arenaEntrance`)·`src/core/movement.ts`·`src/core/room-session.ts`: 경기장 상수·칸 도우미·평화 구역, 두 영역 이동 검사, 입구·출구 순간이동. T005·T006 통과.
-- [ ] T010 `src/core/brawl/brawl-session.ts` 뼈대: 채널 하나의 난투 상태(참가자 `Fighter` 맵, 블록 차이, 판), `handle(peerId, msg, now) → Outbox`, `nextEventAt()`, `runEvents(now) → Outbox`(지난 사건 따라잡기, R2).
-  `room-session.ts`가 채널마다 `BrawlSession`을 갖고 난투 메시지를 넘긴다. `src/worker/room-do.ts` `onAlarm`이 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각 계산에 넣는다.
-  welcome에 `arena`(차이·경기장 사람·판)를 넣는다. 기존 worker·core 테스트 전부 통과.
-- [ ] T011 `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
+- [X] T009 `src/core/brawl/arena.ts`·`src/core/themes.ts`(`arenaEntrance`)·`src/core/movement.ts`·`src/core/room-session.ts`: 경기장 상수·칸 도우미·평화 구역, 두 영역 이동 검사, 입구·출구 순간이동. T005·T006 통과.
+- [X] T010 `src/core/brawl/brawl-session.ts` 뼈대: 채널 하나의 블록 차이(`changed`), `nextEventAt()`, `runEvents()`, welcome용 `view()`(차이·경기장 사람·판 null).
+  `room-session.ts`가 채널마다 `BrawlSession`을 갖는다(난투 메시지는 아직 무시). `src/worker/room-do.ts` `onAlarm`이 `runEvents` 결과를 보내고 `nextEventAt()`을 다음 시각 계산에 넣으며,
+  D1 `online_count`는 값이 바뀔 때만 쓴다. welcome에 `arena`·`at`을 넣는다. 기존 worker·core 테스트 전부 통과.
+  `handle(me, msg, members, now)`, 참가자 상태(`Fighter`, 참가자 attachment에), `runEvents(now)`는 T021에서 더한다(PR #83 리뷰).
+  - 결과: `nextEventAt()`은 아직 null. `handle`은 처음 쓰는 T021에서 더한다(쓰지 않는 인자 린트). online_count 규칙은 `online-count.test.ts`의 "같은 값이면 쓰지 않음" 테스트가 지킨다(PR #83 리뷰, 매번 쓰는 코드에서 실패 확인: 99 대신 2).
+    `npx vitest run` 614개 통과(`room-do`·`online-count` 포함), `npm run typecheck`·`npx eslint .` 통과.
+- [ ] T011 (US1 화면 PR (4)로 옮김: 재생할 `stepFlight`가 T019에서 생긴다) `src/client/brawl/store.ts`(+ `tests/client/brawl-store.test.ts` 먼저): 서버 시계 어림 = 받은 시각 − `at`의 최솟값(R3), `launch`를 core `stepFlight`로 재생해 지금 위치를 내고,
   늦게 받은 궤적은 지금 위치로 짧게 보간(Edge Cases). `src/client/test-hooks.ts`에 난투 상태 읽기(피해 %, 위치, 블록 차이, 판)를 더한다(개발 빌드 전용).
 
 **Checkpoint**: 기존 E2E(us1~us7·a11y·perf) 통과, v1 클라이언트는 4002를 받는다.
+
+**배포 금지(PR #83 리뷰)**: Phase 2가 머지되면 서버의 입구 칸이 동작하지만 3D 경기장 바닥은 T024에서 생긴다. T024·T026이 머지될 때까지 main을 배포하지 않는다
+(배포는 수동 `deploy.yml`). 급한 수정을 배포해야 하면 그 전에 US1 화면 PR을 먼저 머지하거나 입구 칸을 테마 범위 밖으로 옮기는 임시 PR을 낸다.
 
 ---
 
@@ -104,7 +114,7 @@
 - [ ] T019 [P] [US1] `src/core/brawl/flight.ts`: `Launch`·`FlightEnd`(data-model), `stepFlight(launch, grid, tuning)`(덧셈·곱셈만, 3D DDA, 미끄러짐, 착지, 넉아웃). T013 통과.
 - [ ] T020 [US1] `src/core/brawl/fighter.ts`: `Fighter`(data-model 필드 그대로: `damage` 0~999 정수, `stamina` 0~max + `staminaAt`, `stunUntil`, `invulnUntil`, `cooldownUntil`, `jabStep`·`jabAt`,
   `holdAt`, `guarding`·`guardPressedAt`, `inputDir`, `airJumps`·`airRecovers`, `flight`, `knockedOutAt`) 허용 검사와 상태 전이. T014 통과.
-- [ ] T021 [US1] `src/core/brawl/brawl-session.ts`: `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
+- [ ] T021 [US1] `src/core/brawl/brawl-session.ts`: `handle(me, msg, members, now) → Outbox`, `runEvents(now)`(지난 사건 따라잡기, R2), `room-session.ts`가 난투 메시지를 넘김, `hold`·`skill`·`guard`·`roll`·`move.d` 처리, 판정 → `swing`, 사건 목록(착지·넉아웃·재시작), welcome의 `fighters`. T015 통과.
 - [ ] T022 [US1] `src/worker/room-do.ts`: `Fighter`를 attachment에 쓰기(보낸 사람·맞은 사람), alarm 사건 처리. T016 통과.
 - [ ] T023 [P] [US1] `src/client/brawl/input.ts`: PC 키(잽·강펀치 누름/뗌·던지기·방어·구르기)와 `move.d`, 다시 쓰기 시간 중 누른 잽을 들고 있다가 어림한 서버 시계로 `readyAt`이 지난 뒤
   보냄(R2), 경직으로 거부되면 버림. 때린 사람 화면은 서버를 기다리지 않고 이펙트를 먼저 보여 주고 `nonce`로 `swing`과 맞춰 보정(FR-032).
@@ -251,6 +261,6 @@ T012 knockback.test ∥ T013 flight.test ∥ T014 fighter.test ∥ T015 brawl-se
 ## Implementation Strategy
 
 - MVP는 US1(+ 같은 P1인 US2). US1만으로 경기장에서 밀어 떨어뜨리는 놀이가 되므로 US1 PR이 머지되면 미리보기로 운영자 확인을 받는다.
-- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T011, (3) US1 core(T012~T015·T018~T021), (4) US1 worker·화면(T016·T017·T022~T026), (5) US2, (6) US3,
+- PR 단위: (1) T001(린트, 운영자 머지), (2) T002~T010, (3) US1 core(T012~T015·T018~T021), (4) US1 worker·화면(T011·T016·T017·T022~T026), (5) US2, (6) US3,
   (7) US4, (8) US5, (9) T054~T058, (10) T059~T060. `scripts/`·설정을 바꾸는 PR은 운영자 머지다.
 - 각 PR은 테스트 실패 확인 → 구현 → 통과를 항목 끝에 적고, 머지되면 이 파일의 체크를 갱신한다.

@@ -7,12 +7,13 @@ const room = { id: 'seedroom01', title: '시드 방', description: '', roomData:
 const peer = (peerId: string, p: [number, number, number] = [0, 0, 4]) => ({ peerId, nickname: `닉 ${peerId}`, avatarId: 'char-01', p, r: 0, a: 'idle' as const });
 const welcome: ServerMessage = {
   t: 'welcome',
-  v: 1,
+  v: 2,
   you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' },
   channel: 2,
   room,
   peers: [peer('a')],
   spawn: [0, 0, 4],
+  arena: { blocks: [], fighters: [], match: null }, at: 0,
 };
 
 let seq = 0;

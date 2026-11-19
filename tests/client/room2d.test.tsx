@@ -14,12 +14,13 @@ function store() {
   const s = new RoomStore();
   s.apply({
     t: 'welcome',
-    v: 1,
+    v: 2,
     you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' },
     channel: 2,
     room,
     peers: [{ peerId: 'a', nickname: '용감한 여우', avatarId: 'char-01', p: [0, 0, -5], r: 0, a: 'walk' }],
     spawn: [0, 0, 4],
+    arena: { blocks: [], fighters: [], match: null }, at: 0,
   });
   return s;
 }

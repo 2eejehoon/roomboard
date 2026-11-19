@@ -6,12 +6,13 @@ import { createRoomData } from '../../src/core/room-data.ts';
 const KEY = '6f1c2a3b-4d5e-4f60-8a7b-9c0d1e2f3a4b';
 const welcome = JSON.stringify({
   t: 'welcome',
-  v: 1,
+  v: 2,
   you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' },
   channel: 1,
   room: { id: 'seedroom01', title: '시드 방', description: '', roomData: createRoomData('cafe') },
   peers: [],
   spawn: [0, 0, 4],
+  arena: { blocks: [], fighters: [], match: null }, at: 0,
 });
 
 class FakeSocket {
@@ -67,7 +68,7 @@ describe('openRoomSocket', () => {
     const { store } = start();
     expect(store.getState().connection).toBe('connecting');
     last().open();
-    expect(JSON.parse(last().sent[0])).toEqual({ t: 'join', v: 1, deviceKey: KEY });
+    expect(JSON.parse(last().sent[0])).toEqual({ t: 'join', v: 2, deviceKey: KEY });
     last().receive(welcome);
     expect(store.getState()).toMatchObject({ connection: 'open', you: { nickname: '느긋한 수달' } });
   });

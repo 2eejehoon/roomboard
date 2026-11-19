@@ -6,11 +6,13 @@ import { createRoomData } from '../../src/core/room-data.ts';
 import { RoomSession, type ChatFields, type Outbox } from '../../src/core/room-session.ts';
 import { CHANNEL_CAPACITY } from '../../src/core/channels.ts';
 import { THEMES } from '../../src/core/themes.ts';
+import { makeArena, startPoint } from '../../src/core/brawl/arena.ts';
+import { TUNING } from '../../src/core/brawl/tuning.ts';
 
 const room = { id: 'seedroom01', title: '시드 방', description: '', roomData: createRoomData('cafe') };
 const spawn = THEMES.cafe.spawn;
 const key = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
-const join = (n = 1) => JSON.stringify({ t: 'join', v: 1, deviceKey: key(n) });
+const join = (n = 1) => JSON.stringify({ t: 'join', v: 2, deviceKey: key(n) });
 const move = (p: number[], r = 0, a = 'walk') => JSON.stringify({ t: 'move', p, r, a });
 const chat = (text: string, nonce?: string) => JSON.stringify({ t: 'chat', text, nonce });
 const to = (out: Outbox, peerId: string) => out.send.filter((s) => s.to === peerId).map((s) => s.msg);
@@ -41,7 +43,7 @@ describe('RoomSession join', () => {
     const out = await s.receive('b', join(2), 100);
     const welcome = only(out, 'b', 'welcome');
     expect(welcome).toMatchObject({
-      v: 1,
+      v: 2,
       you: { peerId: 'b', nickname: nicknameFor(key(2)), avatarId: avatarFor(key(2)) },
       channel: 1,
       room,
@@ -72,7 +74,7 @@ describe('RoomSession join', () => {
   it('closes with 4002 on an unsupported protocol version', async () => {
     const s = session();
     s.connect('a');
-    const out = await s.receive('a', JSON.stringify({ t: 'join', v: 2, deviceKey: key(1) }), 0);
+    const out = await s.receive('a', JSON.stringify({ t: 'join', v: 1, deviceKey: key(1) }), 0);
     expect(only(out, 'a', 'error')).toEqual({ t: 'error', code: 'unsupported_version' });
     expect(out.close).toEqual({ to: 'a', code: CLOSE.unsupportedVersion });
   });
@@ -248,5 +250,58 @@ describe('RoomSession update', () => {
     await s.receive('a', move([1, 0, 4]), 1000);
     s.update({ ...room, title: '새 제목' }, false, 2000);
     expect(s.participant('a')?.pose.p).toEqual([1, 0, 4]);
+  });
+});
+
+// 004 R5: the entrance cell in the room and the exit cell in the arena are teleports; the arena is a second walkable area.
+describe('RoomSession arena entrance and exit', () => {
+  const arena = makeArena(TUNING);
+  const [ex, , ez] = THEMES.cafe.arenaEntrance;
+  const onEntrance = [ex + 0.5, 0, ez + 0.5];
+  const arenaStart = startPoint(arena, 0);
+  const exit = [arena.origin[0] + arena.exit[0] + 0.5, arena.origin[1] + arena.exit[1], arena.origin[2] + arena.exit[2] + 0.5];
+
+  async function inArena() {
+    const s = await joined('a', 'b');
+    const out = await s.receive('a', move(onEntrance), 2000);
+    return { s, out };
+  }
+
+  it('welcomes with v2, an empty arena diff, nobody fighting and the server time', async () => {
+    const s = await joined('a');
+    s.connect('b');
+    const welcome = only(await s.receive('b', join(2), 1234), 'b', 'welcome');
+    expect(welcome).toMatchObject({ v: 2, arena: { blocks: [], fighters: [], match: null }, at: 1234 });
+  });
+
+  it('stepping on the entrance moves me to an arena start: a correction to me, peer_moved to the others', async () => {
+    const { s, out } = await inArena();
+    expect(only(out, 'a', 'correction')).toEqual({ t: 'correction', p: arenaStart, r: 0 });
+    expect(only(out, 'b', 'peer_moved')).toEqual({ t: 'peer_moved', peerId: 'a', p: arenaStart, r: 0, a: 'idle' });
+    expect(s.participant('a')).toMatchObject({ pose: { p: arenaStart }, lastMoveAt: 2000 });
+  });
+
+  it('a newcomer sees who is in the arena as fighters', async () => {
+    const { s } = await inArena();
+    s.connect('c');
+    const welcome = only(await s.receive('c', join(3), 2100), 'c', 'welcome');
+    expect(welcome.arena.fighters).toEqual([{ peerId: 'a', damage: 0, launch: null, stocks: null }]);
+  });
+
+  it('walks inside the arena from the start point, and the exit cell takes me back to the room spawn', async () => {
+    const { s } = await inArena();
+    const step = [arenaStart[0] - 0.5, 1, arenaStart[2]];
+    expect(only(await s.receive('a', move(step), 2200), 'b', 'peer_moved')).toMatchObject({ p: step });
+    // From the start, walk to the exit at walking speed.
+    const dist = Math.hypot(exit[0] - step[0], exit[2] - step[2]);
+    const out = await s.receive('a', move(exit), 2200 + Math.ceil((dist / 8) * 1000) + 10);
+    expect(only(out, 'a', 'correction')).toEqual({ t: 'correction', p: THEMES.cafe.spawn, r: 0 });
+    expect(only(out, 'b', 'peer_moved')).toMatchObject({ p: THEMES.cafe.spawn });
+  });
+
+  it('walking straight from the room to the arena is corrected, not a teleport', async () => {
+    const s = await joined('a', 'b');
+    const out = await s.receive('a', move([arena.origin[0] + 1, 1, 4]), 60_000);
+    expect(only(out, 'a', 'correction')).toEqual({ t: 'correction', p: spawn, r: 0 });
   });
 });

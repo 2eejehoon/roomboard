@@ -5,6 +5,11 @@ import { validateMove } from './movement.ts';
 import { CLOSE, parseClientMessage, PROTOCOL_VERSION, type ClientMessage, type ServerMessage } from './protocol.ts';
 import { CHAT_RATE, MOVE_RATE, RateBucket } from './rate-bucket.ts';
 import { THEMES, type Vec3 } from './themes.ts';
+import { cellOf, inArena, makeArena, sameCell, startPoint } from './brawl/arena.ts';
+import { BrawlSession, type BrawlMessage } from './brawl/brawl-session.ts';
+import { TUNING } from './brawl/tuning.ts';
+
+const ARENA = makeArena(TUNING);
 
 export type RoomInfo = Extract<ServerMessage, { t: 'welcome' }>['room'];
 export type Pose = { p: Vec3; r: number; a: 'idle' | 'walk' | 'run' | 'jump' };
@@ -30,6 +35,8 @@ export class RoomSession {
   private room: RoomInfo;
   private readonly deps: SessionDeps;
   private chatSeq = 0;
+  // One brawl per channel (004 FR-018), made on first use.
+  private readonly brawls = new Map<number, BrawlSession>();
 
   constructor(room: RoomInfo, deps: SessionDeps) {
     this.room = room;
@@ -62,7 +69,19 @@ export class RoomSession {
     const me = conn.participant;
     if (!me) return { send: [{ to: peerId, msg: { t: 'error', code: 'not_joined' } }] };
     if (msg.t === 'move') return this.move(me, conn, msg, now);
-    return this.chat(me, conn, msg, now);
+    if (msg.t === 'chat') return this.chat(me, conn, msg, now);
+    msg satisfies BrawlMessage;
+    return { send: [] }; // brawl messages reach BrawlSession.handle from US1 on
+  }
+
+  // The soonest brawl event in any channel, for the DO's one alarm (004 R2).
+  nextEventAt(): number | null {
+    const times = [...this.brawls.values()].flatMap((b) => b.nextEventAt() ?? []);
+    return times.length ? Math.min(...times) : null;
+  }
+
+  runEvents(): Outbox {
+    return { send: [...this.brawls.values()].flatMap((b) => b.runEvents().send) };
   }
 
   // The owner's edit (T083), to every channel. respawn: the theme changed, so old poses mean nothing in the new bounds. The
@@ -105,6 +124,8 @@ export class RoomSession {
       room: this.room,
       peers: peers.map(peerView),
       spawn,
+      arena: this.brawl(me.channel).view(peers.filter((p) => inArena(ARENA, p.pose.p)).map((p) => p.peerId)),
+      at: now,
     };
     return { send: [{ to: peerId, msg: welcome }, ...this.toChannel(me, { t: 'peer_joined', peer: peerView(me) }).send] };
   }
@@ -112,12 +133,29 @@ export class RoomSession {
   private move(me: Participant, conn: Conn, msg: Extract<ClientMessage, { t: 'move' }>, now: number): Outbox {
     if (!conn.moves.take(now).ok) return { send: [] };
     const p = msg.p.map(round) as Vec3;
-    if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, THEMES[this.room.roomData.themeId].bounds)) {
+    const theme = THEMES[this.room.roomData.themeId];
+    if (!validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, [theme.bounds, ARENA.bounds])) {
       return { send: [{ to: me.peerId, msg: { t: 'correction', p: me.pose.p, r: me.pose.r } }] };
     }
     me.pose = { p, r: round(msg.r), a: msg.a };
     me.lastMoveAt = now;
+    // The entrance and exit cells teleport (004 R5): a correction to me, peer_moved to the others.
+    const fighters = this.joined().filter((o) => o.channel === me.channel && o !== me && inArena(ARENA, o.pose.p)).length;
+    if (!inArena(ARENA, p) && sameCell(p.map(Math.floor), theme.arenaEntrance)) return this.teleport(me, startPoint(ARENA, fighters), now);
+    if (inArena(ARENA, p) && sameCell(cellOf(ARENA, p), ARENA.exit)) return this.teleport(me, theme.spawn, now);
     return this.toChannel(me, { t: 'peer_moved', peerId: me.peerId, ...me.pose });
+  }
+
+  private teleport(me: Participant, p: Vec3, now: number): Outbox {
+    me.pose = { p, r: 0, a: 'idle' };
+    me.lastMoveAt = now;
+    return { send: [{ to: me.peerId, msg: { t: 'correction', p, r: 0 } }, ...this.toChannel(me, { t: 'peer_moved', peerId: me.peerId, ...me.pose }).send] };
+  }
+
+  private brawl(channel: number): BrawlSession {
+    let b = this.brawls.get(channel);
+    if (!b) this.brawls.set(channel, (b = new BrawlSession()));
+    return b;
   }
 
   // The bucket is taken before the await, so a message arriving meanwhile cannot spend the same token.

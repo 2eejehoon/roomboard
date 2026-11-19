@@ -7,7 +7,7 @@ import { createRoomData } from '../../src/core/room-data.ts';
 // T073: screens.md S3 채팅 패널 (판례 2026-11-09-chat-panel, 2026-11-09-chat-live-text).
 function store() {
   const s = new RoomStore();
-  s.apply({ t: 'welcome', v: 1, you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' }, channel: 1, room: { id: 'seedroom01', title: '시드 방', description: '', roomData: createRoomData('cafe') }, peers: [], spawn: [0, 0, 4] });
+  s.apply({ t: 'welcome', v: 2, you: { peerId: 'me', nickname: '느긋한 수달', avatarId: 'char-03' }, channel: 1, room: { id: 'seedroom01', title: '시드 방', description: '', roomData: createRoomData('cafe') }, peers: [], spawn: [0, 0, 4], arena: { blocks: [], fighters: [], match: null }, at: 0 });
   s.apply({ t: 'chat', messageId: 'm_1', peerId: 'a', nickname: '용감한 여우', text: '<b>안녕</b>', sentAt: 1, channel: 1, sig: 's' });
   return s;
 }

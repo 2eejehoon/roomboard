@@ -28,4 +28,24 @@ describe('rooms.online_count', () => {
     expect(await runDurableObjectAlarm(stub)).toBe(true);
     expect(await onlineCount(roomId)).toBe(1);
   });
+
+  // 004: brawl events share this alarm, so an alarm with an unchanged count must not write D1 again.
+  it('an alarm with the same count writes nothing; a changed count is written', async () => {
+    const roomId = await insertRoom();
+    const stub = env.ROOM.getByName(roomId);
+    const a = await joinRoom(roomId, 1);
+    await joinRoom(roomId, 2);
+    await a.next(); // peer_joined
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect(await onlineCount(roomId)).toBe(2);
+    // A marker the DO would overwrite if it wrote again.
+    await env.DB.prepare('UPDATE rooms SET online_count = 99 WHERE id = ?').bind(roomId).run();
+    await runInDurableObject(stub, (_o, state) => state.storage.setAlarm(Date.now() + 60_000));
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect(await onlineCount(roomId), 'same count, no write').toBe(99);
+    a.ws.close(1000);
+    await expect.poll(() => alarmAt(stub)).not.toBeNull();
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect(await onlineCount(roomId)).toBe(1);
+  });
 });
