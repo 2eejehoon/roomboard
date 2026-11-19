@@ -14,7 +14,7 @@ import type { Pose } from '../../../core/room-session.ts';
 import { THEMES, type Bounds, type Look, type RoomObject, type Vec3 } from '../../../core/themes.ts';
 import { t } from '../../i18n/t.ts';
 import type { RoomStore } from '../../state/room-store.ts';
-import { createBrawlInput, type BrawlInput } from '../../brawl/input.ts';
+import { BLOCK_KINDS, createBrawlInput, cycle, HEIGHTS, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
 import { flightPosition, serverNow, shakeOffset, stopped } from '../../brawl/store.ts';
 import { readShake } from '../../device.ts';
@@ -26,7 +26,11 @@ import { TouchControls } from './TouchControls.tsx';
 
 type Move = (p: Vec3, r: number, a: Pose['a'], d?: [number, number]) => void;
 type Brawl = (msg: BrawlMessage) => void;
-type Control = 'forward' | 'backward' | 'leftward' | 'rightward' | 'jump' | 'run' | Skill;
+type Control = 'forward' | 'backward' | 'leftward' | 'rightward' | 'jump' | 'run' | Skill | Build;
+// 004 US3 (FR-015a): block keys, also the touch buttons' ids.
+type Build = 'place' | 'break' | 'kind' | 'height';
+const BUILDS: Build[] = ['place', 'break', 'kind', 'height'];
+export type BuildChoice = { kind: (typeof BLOCK_KINDS)[number]; h: (typeof HEIGHTS)[number] };
 // 004 T023: skill keys, also the touch buttons' ids (TouchControls).
 type Skill = 'jab' | 'smash' | 'throw' | 'guard' | 'roll';
 const SKILLS: Skill[] = ['jab', 'smash', 'throw', 'guard', 'roll'];
@@ -43,6 +47,10 @@ const KEYS: { name: Control; keys: string[] }[] = [
   { name: 'throw', keys: ['KeyL'] },
   { name: 'guard', keys: ['KeyI'] },
   { name: 'roll', keys: ['KeyU'] },
+  { name: 'place', keys: ['KeyF'] },
+  { name: 'break', keys: ['KeyR'] },
+  { name: 'kind', keys: ['KeyT'] },
+  { name: 'height', keys: ['KeyG'] },
 ];
 // Ecctrl's body origin is the capsule centre: half height 0.3 + radius 0.3 + float height 0.2 (its defaults) above the feet.
 // The protocol's p is the feet.
@@ -75,6 +83,7 @@ export default memo(function Scene({ store, move, brawl }: { store: RoomStore; m
   const fighters = useSyncExternalStore(store.subscribe, () => store.getState().brawl.fighters);
   const diff = useSyncExternalStore(store.subscribe, () => store.getState().brawl.blocks);
   const armed = useSyncExternalStore(store.subscribe, () => !!store.getState().you && inArena(ARENA, store.getState().you!.p));
+  const [build, setBuild] = useState<BuildChoice>({ kind: 'dirt', h: 0 });
   if (!room || !avatarId) return null;
   const { themeId, objects } = room.roomData;
   const { look, bounds } = THEMES[themeId];
@@ -97,7 +106,7 @@ export default memo(function Scene({ store, move, brawl }: { store: RoomStore; m
               <Furniture key={o.id} object={o} />
             ))}
             <KeyboardControls map={KEYS}>
-              <Me store={store} move={move} brawl={brawl} avatarId={avatarId} />
+              <Me store={store} move={move} brawl={brawl} avatarId={avatarId} build={build} setBuild={setBuild} />
             </KeyboardControls>
           </Physics>
           {peers.map((p) => (
@@ -111,16 +120,27 @@ export default memo(function Scene({ store, move, brawl }: { store: RoomStore; m
           ))}
           {Object.entries(fighters).map(([peerId, f]) =>
             f?.launch ? (
-              <Trail key={peerId} launch={f.launch} at={() => Math.round((serverNow(store.getState().brawl, Date.now()) - f.launch!.t) / TUNING.stepMs)} />
+              <Trail key={peerId} launch={f.launch} blocks={diff} at={() => Math.round((serverNow(store.getState().brawl, Date.now()) - f.launch!.t) / TUNING.stepMs)} />
             ) : null,
           )}
         </Suspense>
       </Canvas>
       <Progress />
-      <TouchControls armed={armed} />
+      <TouchControls armed={armed} build={build} />
+      {/* Touch screens show the choice on the kind and height buttons. */}
+      {armed && !matchMedia('(pointer: coarse)').matches && <BuildLabel build={build} />}
     </>
   );
 });
+
+// What F places and R breaks (FR-015a), in the corner the centred chat leaves free, on the same light surface.
+function BuildLabel({ build }: { build: BuildChoice }) {
+  return (
+    <p style={{ position: 'fixed', right: 16, bottom: 16, margin: 0, padding: '4px 12px', borderRadius: 8, background: 'rgb(255 255 255 / 0.85)' }}>
+      {t('brawl.kind', { kind: t(`brawl.kind.${build.kind}`) })} · {t('brawl.height', { h: t(`brawl.height.${build.h}`) })}
+    </p>
+  );
+}
 
 function Progress() {
   const { active, progress } = useProgress();
@@ -212,11 +232,16 @@ function facing(v: { x: number; z: number }): [number, number] | null {
   return n > 0.1 ? [v.x / n, v.z / n] : null;
 }
 
-function Me({ store, move, brawl, avatarId }: { store: RoomStore; move: Move; brawl: Brawl; avatarId: string }) {
+type MeProps = { store: RoomStore; move: Move; brawl: Brawl; avatarId: string; build: BuildChoice; setBuild: (b: BuildChoice) => void };
+function Me({ store, move, brawl, avatarId, build, setBuild }: MeProps) {
+  const choice = useRef(build);
+  useEffect(() => {
+    choice.current = build;
+  });
   const ecctrl = useRef<EcctrlHandle>(null);
   const flash = useRef<Mesh>(null);
   const swungAt = useRef(-Infinity);
-  const pressed = useRef<Partial<Record<Skill, boolean>>>({});
+  const pressed = useRef<Partial<Record<Skill | Build, boolean>>>({});
   const input = useRef<BrawlInput | null>(null);
   useEffect(() => {
     const i = createBrawlInput({
@@ -283,6 +308,16 @@ function Me({ store, move, brawl, avatarId }: { store: RoomStore; move: Move; br
           if (down) i.roll(facing(h.currLinVel) ?? [0, 0]);
         } else if (down) i.press(k);
         else if (k === 'smash') i.release(k);
+      }
+      for (const k of BUILDS) {
+        const down = !!keys[k] || !!touch[k];
+        if (down === !!pressed.current[k]) continue;
+        pressed.current[k] = down;
+        if (!down) continue;
+        const { kind, h } = choice.current;
+        if (k === 'place') brawl({ t: 'block', op: 'place', kind, h });
+        else if (k === 'break') brawl({ t: 'block', op: 'break', h });
+        else setBuild(k === 'kind' ? { kind: cycle(BLOCK_KINDS, kind), h } : { kind, h: cycle(HEIGHTS, h) });
       }
     }
     if (you && you !== own.current) {

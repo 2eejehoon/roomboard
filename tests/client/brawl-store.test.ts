@@ -1,7 +1,7 @@
 // T011: the screen's brawl state (R3): server clock estimate, replaying launches with the core flight, late catch-up.
 import { describe, expect, it } from 'vitest';
 import { LOOKS } from '../../src/client/brawl/looks.ts';
-import { feel, flightPosition, serverNow, shakeOffset, stopped } from '../../src/client/brawl/store.ts';
+import { feel, flightOf, flightPosition, serverNow, shakeOffset, stopped } from '../../src/client/brawl/store.ts';
 import { RoomStore } from '../../src/client/state/room-store.ts';
 import { buildGrid, makeArena } from '../../src/core/brawl/arena.ts';
 import { positionAt, simulate, type Launch } from '../../src/core/brawl/flight.ts';
@@ -159,5 +159,38 @@ describe('brawl store: feel (US2, FR-020~024)', () => {
     s.apply({ t: 'peer_left', peerId: 'b' }, 20_100);
     expect(s.getState().brawl.fighters.b).toBeUndefined();
     expect(feel(s.getState().brawl, 'b').trail).toBe(false);
+  });
+});
+
+describe('brawl store: blocks (US3, T043)', () => {
+  it('applies block messages to the diff: place, hit, a placed block gone, a default block gone', () => {
+    const s = store();
+    s.apply({ t: 'block', cell: [11, 1, 4], kind: 'dirt', hp: 1, at: 20_000 }, 20_050);
+    s.apply({ t: 'block', cell: [11, 0, 4], kind: 'stone', hp: 3, at: 20_100 }, 20_150);
+    expect(s.getState().brawl.blocks).toEqual([
+      [[11, 1, 4], 'dirt', 1],
+      [[11, 0, 4], 'stone', 3],
+    ]);
+    s.apply({ t: 'block', cell: [11, 1, 4], kind: null, hp: 0, at: 20_200 }, 20_250);
+    s.apply({ t: 'block', cell: [11, 0, 4], kind: null, hp: 0, at: 20_300 }, 20_350);
+    expect(s.getState().brawl.blocks).toEqual([[[11, 0, 4], null, 0]]);
+  });
+
+  it('arena_reset goes back to the default arena', () => {
+    const s = store();
+    s.apply({ t: 'block', cell: [11, 1, 4], kind: 'dirt', hp: 1, at: 20_000 }, 20_050);
+    s.apply({ t: 'arena_reset', at: 21_000 }, 21_050);
+    expect(s.getState().brawl.blocks).toEqual([]);
+  });
+
+  it('replays a flight over the channel blocks, and a wall launch carries the new damage', () => {
+    const s = store();
+    s.apply({ t: 'block', cell: [13, 1, 4], kind: 'stone', hp: 4, at: 19_000 }, 19_050);
+    const flat: Launch = { t: 20_035, p: [32.5, 1.9, 4.5], v: [6, 0, 0], s: 10, cause: 'hit' };
+    s.apply(swing(20_000, flat), 20_050);
+    const b = s.getState().brawl;
+    expect(flightOf(flat, b.blocks).end).toMatchObject({ kind: 'wall', cell: [13, 1, 4] });
+    s.apply({ t: 'launch', peerId: 'b', at: 20_300, launch: { ...flat, t: 20_300, p: [33, 1.4, 4.5], v: [-3, 0, 0], s: 5, cause: 'wall' }, wall: { result: 'bounce', damage: 15, cell: [13, 1, 4] } }, 20_350);
+    expect(s.getState().brawl.fighters.b.damage).toBe(15);
   });
 });

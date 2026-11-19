@@ -17,6 +17,7 @@
 - 새 화면 문구는 `src/client/i18n/ko.ts` 키(FR-036). E2E용 상태 읽기는 `src/client/test-hooks.ts`의 개발 빌드 전용 훅으로만(헌법 IV).
 - 특정 기존 게임의 이름·캐릭터·아트·맵·화면 느낌을 따르지 않고, 코드·문서·에셋 이름에 그런 게임 이름을 쓰지 않는다. 스펙에 없는 기능은 넣지 않는다.
 - 새 데이터(피해 %·블록·판·흔들림 설정)는 개인정보가 아니다. 이런 필드를 더하는 PR 본문에 "개인정보 아님"을 적는다(헌법 II).
+- 운영자가 화면을 봐야 하는 PR(화면·손맛)은 `claude/`로 시작하는 브랜치로 연다. PR 미리보기 워크플로가 그 브랜치만 배포한다.
 - 방 DO의 alarm은 하나다(001 R6). 난투 사건(벽·착지·넉아웃 시각), 재시작, 판 제한 시간, 블록 쓰기(2초), 정리(10분)는 모두 `onAlarm`의 다음 시각 계산 하나에
   들어가고 `schedule()`은 가장 이른 시각을 지킨다. 기존 join 마감·`online_count` 테스트(`tests/worker/room-do.test.ts`·`online-count.test.ts`)가 계속 통과해야 한다.
 
@@ -208,8 +209,10 @@
 - [X] T036 [P] [US3] `tests/worker/admin.test.ts`에 더함(FR-040, contracts/openapi.yaml): `POST /api/admin/rooms/{roomId}/arena-reset` 토큰 없음·틀림 401, 없는 방 404, 삭제된 방 410,
   토큰 실패 횟수 제한 429(001과 같음), 성공 204(사람 없어도 204) → 모든 채널의 `arena:*` 삭제, 경기장 사람에게 `arena_reset` 뒤 `respawned`(시작 지점, 피해 0%), 평화 구역 사람은 그대로, 신고 상태는 그대로.
   - 실패 확인: 라우트가 없어 2개 실패. 판 취소(`cancelled`)는 US4(T045).
-- [ ] T037 [P] [US3] `tests/e2e/us3-brawl-blocks.spec.ts`(브라우저 2개, US3-1·2): 한쪽이 흙 블록을 놓으면 다른 쪽 같은 칸에 보이고, 2D 화면 버튼(놓기·부수기·종류·높이)으로 놓아도 같다,
+- [X] T037 [P] [US3] `tests/e2e/us3-brawl-blocks.spec.ts`(브라우저 2개, US3-1·2): 한쪽이 흙 블록을 놓으면 다른 쪽 같은 칸에 보이고, 2D 화면 버튼(놓기·부수기·종류·높이)으로 놓아도 같다,
   흙은 한 번·돌은 네 번 쳐서 부서짐. `tests/e2e/us7-admin-states.spec.ts` 또는 새 파일: 관리자 화면에서 신고된 방의 "경기장 되돌리기" → 다른 브라우저의 지은 블록이 사라짐. 실패 확인.
+  - 실패 확인: 2D "놓기" 버튼·3D F 키·관리자 "경기장 되돌리기"가 없어 main에서 실패(새 화면이라 구현과 함께 썼다). 테스트는 2D 버튼으로 흙 놓기·한 번에 부수기, 돌 놓기·네 번에 부수기를
+    3D 화면 상태로 확인하고, 3D F 키로 놓은 블록이 2D에 보이는지, 신고된 방의 관리자 되돌리기 뒤 두 화면의 블록이 비는지 본다. 로컬 데스크톱·모바일 통과.
 
 ### Implementation
 
@@ -227,9 +230,12 @@
     저장된 경기장을 읽다 실패해도 `loading`을 비워 다음에 다시 만든다.
 - [X] T042 [US3] `src/worker/admin.ts`·`src/worker/index.ts`: `app.post('/admin/rooms/:roomId/arena-reset', ...)`(기존 `adminAuth`와 `adminDeleteRoom`의 방 조회·410 처리를 그대로), DO `resetArenas()` 호출. T036 통과.
   - 결과: T036 통과. `adminResetArena`(`requireRoom`의 404·410 그대로). `npx vitest run` 711개, typecheck·lint 통과.
-- [ ] T043 [US3] `src/client/`: 블록 그리기(`LOOKS.blocks`, instanced mesh + 걷기용 콜라이더 갱신), PC 키·휴대폰 버튼(놓기·부수기·종류·높이 `-1|0|1`, 44px), 2D 옆 그림의 블록 칸과 같은 버튼,
+- [X] T043 [US3] `src/client/`: 블록 그리기(`LOOKS.blocks`, instanced mesh + 걷기용 콜라이더 갱신), PC 키·휴대폰 버튼(놓기·부수기·종류·높이 `-1|0|1`, 44px), 2D 옆 그림의 블록 칸과 같은 버튼,
   `src/client/admin/AdminPage.tsx` 신고된 방 줄에 "경기장 되돌리기" 버튼(확인 뒤 호출, 문구 i18n). T037 통과.
   - (6a 리뷰에서 넘김) store: `block`·`arena_reset`을 `blocks`에 적용하고 `flightOf`에 채널 블록을 넘김(shortcut 해소), `launch.wall.damage`로 피해 % 갱신.
+  - 결과: store가 `block`·`arena_reset`을 차이에 적용하고 `launch.wall.damage`로 %를 갱신, `flightOf(launch, blocks)`가 채널 블록으로 궤적을 다시 냄(shortcut 해소, 실패 확인 2개).
+    키 F 놓기·R 부수기·T 종류·G 높이, 휴대폰은 같은 id 버튼 4개(56px, 채팅 막대 위 줄), PC는 오른쪽 아래에 고른 종류·높이. 2D는 같은 네 버튼(종류·높이는 지금 값을 이름에).
+    관리자 화면의 신고 줄마다 확인 뒤 `arena-reset`. 블록 그리기·걷기 콜라이더는 T024의 `Arena`가 차이로 이미 갱신한다. 확인: `npx vitest run` 729개, us3·us1·us2·a11y·us7-admin 로컬 데스크톱·모바일 32개 통과, 휴대폰 화면 캡처로 버튼이 채팅 막대·머리 영역과 겹치지 않음을 봄.
 
 ---
 

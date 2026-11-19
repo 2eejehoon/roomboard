@@ -110,6 +110,8 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
     [key],
   );
   const [deleting, setDeleting] = useState<Report | null>(null);
+  // 004 FR-040: back to the default arena, after a confirm like the delete.
+  const [resetting, setResetting] = useState<Report | null>(null);
   // A failed resolve or delete keeps the list and says so above it, with a retry that sends the same action (PR #39 review).
   // retry: the next page's cursor, or the action's path and method.
   // key: the tab and attempt it failed in, like loads, so a late failure never shows on another tab (PR #39 review).
@@ -210,8 +212,10 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
                     }
                     endContent={
                       status === 'open' && (
-                        <Stack direction="horizontal" gap={2} wrap="wrap">
+                        // Stacked: three buttons side by side squeezed the room link below a tap target on a phone.
+                        <Stack gap={2}>
                           <Button label={t('admin.deleteRoom')} variant="destructive" onClick={() => setDeleting(r)} />
+                          <Button label={t('admin.resetArena')} variant="secondary" onClick={() => setResetting(r)} />
                           <Button label={t('admin.resolve')} onClick={() => void act(`reports/${r.id}/resolve`, 'POST')} />
                         </Stack>
                       )
@@ -234,6 +238,18 @@ function Reports({ token, onUnauthorized }: { token: string; onUnauthorized: (re
         onAction={() => {
           if (deleting) void act(`rooms/${deleting.roomId}`, 'DELETE');
           setDeleting(null);
+        }}
+      />
+      <AlertDialog
+        isOpen={resetting !== null}
+        onOpenChange={(open) => !open && setResetting(null)}
+        title={t('admin.resetArena')}
+        description={t('admin.confirmReset')}
+        actionLabel={t('admin.resetArena')}
+        cancelLabel={t('admin.cancel')}
+        onAction={() => {
+          if (resetting) void act(`rooms/${resetting.roomId}/arena-reset`, 'POST');
+          setResetting(null);
         }}
       />
     </Stack>
