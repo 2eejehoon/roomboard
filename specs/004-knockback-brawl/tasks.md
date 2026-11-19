@@ -162,10 +162,10 @@
   타격 정지 구간에 때린 사람·맞은 사람이 멈춤(US2-1 약 0.03초, US2-2 마무리 0.15초를 `swing.hitstopMs`로 확인).
 - [ ] T028 [P] [US2] `tests/client/shake.test.ts`: 흔들림 설정은 localStorage `roomboard.shake = "off"`로 기기에 남고, 꺼져 있으면 강한 타격에도 흔들지 않음(타격 정지·꼬리는 남음, US2-5). 접근이 막힌 localStorage에서도 오류 없음.
 - [ ] T029 [P] [US2] `tests/e2e/us2-brawl-feel.spec.ts`(브라우저 2개): 잽을 맞힌 뒤 테스트 훅으로 두 화면의 타격 정지 시간·꼬리 표시 여부·숫자 색이 같음(FR-024), 흔들림 끄기 버튼 뒤 새로고침해도 꺼져 있음.
+  - (PR #88 리뷰에서 넘김) 2D 방어 버튼을 누른 채 버튼 밖에서 떼면 방어가 끝나는지 E2E(그 뒤 정면 잽이 줄지 않음). 강펀치 경로는 us1-brawl이 확인한다.
 
 ### Implementation
 
-  - (PR #88 리뷰에서 넘김) 2D 방어 버튼을 누른 채 버튼 밖에서 떼면 방어가 끝나는지 E2E(그 뒤 정면 잽이 줄지 않음). 강펀치 경로는 us1-brawl이 확인한다.
 - [ ] T030 [US2] `src/core/brawl/feel.ts`(`damageColor`) + `src/client/brawl/looks.ts`의 `trail`·`damageText`·`shake`·`sfx`. T027 통과.
 - [ ] T031 [US2] `src/client/room/room3d/`: 타격 정지 동안 두 아바타 멈춤, 꼬리(`LOOKS.trail`), 숫자 색, 화면 흔들림(설정 존중), 효과음. 2D는 글 기록과 숫자 색으로 같은 정보(FR-033). T028·T029 통과.
   - (PR #88 리뷰에서 넘김) 2D: 동·서쪽 가장자리 밖으로 떨어지거나 넉아웃된 사람(나 포함)도 옆 그림·참가자 목록에서 "싸우는 중"으로 보이게(Room2D의 판정을 같이 쓰고 점을 viewBox 안으로).
