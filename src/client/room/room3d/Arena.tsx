@@ -1,7 +1,7 @@
 // 004 T024: the arena island (FR-014, FR-016): blocks as one instanced mesh per kind with fixed colliders to walk on, the exit
 // cell and the edge drawn in LOOKS.arena colours. The room's entrance cell is drawn by Entrance.
 import { CuboidCollider, RigidBody } from '@react-three/rapier';
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useLayoutEffect, useMemo, useRef } from 'react';
 import { Matrix4, type InstancedMesh } from 'three';
 import { buildGrid, cellKey, makeArena, worldOf, type Block, type BlockKind, type Cell } from '../../../core/brawl/arena.ts';
 import { TUNING } from '../../../core/brawl/tuning.ts';
@@ -28,7 +28,8 @@ function Blocks({ kind, blocks }: { kind: BlockKind; blocks: Block[] }) {
   );
 }
 
-export function Arena({ diff }: { diff: BrawlState['blocks'] }) {
+// memo: Scene re-renders on every peer move; 576 block colliders must not re-render with it (us1-move T046 long-frame check).
+export const Arena = memo(function Arena({ diff }: { diff: BrawlState['blocks'] }) {
   const blocks = useMemo(
     () => [...buildGrid(ARENA, new Map(diff.map(([cell, kind, hp]) => [cellKey(cell), kind ? { cell, kind, hp } : null]))).values()],
     [diff],
@@ -66,7 +67,7 @@ export function Arena({ diff }: { diff: BrawlState['blocks'] }) {
       ))}
     </group>
   );
-}
+});
 
 export function Entrance({ cell }: { cell: Vec3 }) {
   return (
