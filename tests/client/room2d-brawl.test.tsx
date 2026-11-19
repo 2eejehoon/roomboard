@@ -57,6 +57,8 @@ describe('Room2D brawl (FR-033)', () => {
     const html = text(render(s));
     expect(html).not.toContain('경기장으로 가기');
     expect(html).toContain('잽');
+    // Before knocked_out arrives the fall alone keeps the arena view: only a fighter can be below the room floor.
+    expect(text(render(store([44.5, -10, 4.5])))).not.toContain('경기장으로 가기');
   });
 
   it('logs hits and knock-outs with names and % in the live region', () => {
