@@ -151,7 +151,9 @@ export class RoomSession {
     const theme = THEMES[this.room.roomData.themeId];
     // A fighter falls freely, but never into the room: that way is only the exit (R5).
     const intoRoom = !!me.fighter && validateMove({ p, at: now }, p, now, [theme.bounds]);
-    if (intoRoom || !validateMove({ p: me.pose.p, at: me.lastMoveAt }, p, now, me.fighter ? [FALL] : [theme.bounds, ARENA.bounds])) {
+    // A fighter's fall is not walking: the speed check counts only the sideways and upward part (free fall passes 8 m/s, R4).
+    const from: Vec3 = me.fighter && p[1] < me.pose.p[1] ? [me.pose.p[0], p[1], me.pose.p[2]] : me.pose.p;
+    if (intoRoom || !validateMove({ p: from, at: me.lastMoveAt }, p, now, me.fighter ? [FALL] : [theme.bounds, ARENA.bounds])) {
       return { send: [{ to: me.peerId, msg: { t: 'correction', p: me.pose.p, r: me.pose.r } }] };
     }
     me.pose = { p, r: round(msg.r), a: msg.a };
