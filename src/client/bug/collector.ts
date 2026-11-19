@@ -43,10 +43,16 @@ export const setRoomView = (view: View | null) => {
   roomView = view;
 };
 
-let recent: string[] = [];
+// Ordered by when each report was made (seq), not when its hash finished: digests resolve in any order.
+let recent: { fp: string; seq: number }[] = [];
+let seq = 0;
 /** US3: fingerprints of the last 5 distinct reports sent, newest first, for the user's bug report context. The Worker computes the
  * same one for frames in the deployed build: it keeps those file names and redacts nothing a clipped report still has. */
-export const recentFingerprints = () => recent;
+export const recentFingerprints = () => recent.map((r) => r.fp);
+function remember(fp: string, at: number) {
+  const same = recent.find((r) => r.fp === fp);
+  recent = [...recent.filter((r) => r.fp !== fp), { fp, seq: Math.max(at, same?.seq ?? 0) }].sort((a, b) => b.seq - a.seq).slice(0, 5);
+}
 const sha256 = (text: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
 
 const bucket = new RateBucket({ capacity: 10, windowMs: 60_000 }); // per tab, same count as the Worker's per-IP limit
@@ -58,7 +64,8 @@ export function reportError(err: unknown, now = Date.now()): void {
     const view = location.pathname === '/admin' ? 'admin' : (roomView ?? 'board');
     const report = toReport(err, view, navigator.userAgent);
     const body = JSON.stringify(report);
-    fingerprint(report.errorName, report.frames, sha256).then((fp) => void (recent = [fp, ...recent.filter((f) => f !== fp)].slice(0, 5)), () => {});
+    const at = ++seq;
+    fingerprint(report.errorName, report.frames, sha256).then((fp) => remember(fp, at), () => {});
     // A failed send must not become another unhandled rejection.
     fetch('/api/bug-reports', { method: 'POST', headers: { 'content-type': 'application/json' }, body, keepalive: true }).catch(() => {});
   } catch {
