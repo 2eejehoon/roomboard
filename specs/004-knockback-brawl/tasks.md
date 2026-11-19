@@ -214,6 +214,7 @@
     내구만 줄면 다시 계산하지 않는다. `BLOCK_RATE`는 `TUNING.blockRate`에서. core 테스트 8개 더함(실패 확인: 8개 모두 실패).
 - [X] T041 [US3] `src/worker/room-do.ts`: `arena:<채널>` 2초 묶어 쓰기, 비면 삭제, 깨어날 때 정리, 10분 정리 alarm(모두 alarm 하나로), `resetArenas()` RPC(R10). T035 통과.
   - 결과: T035 통과. 쓰기 예정 시각은 메모리(`arenaDue`), 정리 alarm은 alarm마다 키 목록을 보고 다시 건다. 채널의 마지막 사람이 나가면 core가 그 채널 경기장을 버리고 DO가 키를 지운다.
+    (PR #91 리뷰) 쓰기 전에 방이 삭제돼 세션이 없으면 지난 `arenaDue`가 alarm을 끝없이 다시 울렸다. 세션이 없어도 기한이 지나면 지운다(테스트 먼저 실패 확인).
 - [X] T042 [US3] `src/worker/admin.ts`·`src/worker/index.ts`: `app.post('/admin/rooms/:roomId/arena-reset', ...)`(기존 `adminAuth`와 `adminDeleteRoom`의 방 조회·410 처리를 그대로), DO `resetArenas()` 호출. T036 통과.
   - 결과: T036 통과. `adminResetArena`(`requireRoom`의 404·410 그대로). `npx vitest run` 711개, typecheck·lint 통과.
 - [ ] T043 [US3] `src/client/`: 블록 그리기(`LOOKS.blocks`, instanced mesh + 걷기용 콜라이더 갱신), PC 키·휴대폰 버튼(놓기·부수기·종류·높이 `-1|0|1`, 44px), 2D 옆 그림의 블록 칸과 같은 버튼,

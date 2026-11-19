@@ -143,9 +143,10 @@ export class RoomDurableObject extends DurableObject<Env> {
   // R6: writes the changed channels (an empty diff deletes the key) and drops the keys of channels nobody is in. Returns the
   // cleanup alarm time while any key is left.
   private async keepArenas(session: RoomSession | null, now: number): Promise<number> {
-    if (session && this.arenaDue !== null && this.arenaDue <= now) {
+    // Due with no session (a deleted room, D1 down): nothing to write, and a past due time would ring the alarm forever (PR #91 review).
+    if (this.arenaDue !== null && this.arenaDue <= now) {
       this.arenaDue = null;
-      for (const { channel, blocks } of session.takeDirtyArenas()) {
+      for (const { channel, blocks } of session?.takeDirtyArenas() ?? []) {
         if (blocks.length) await this.ctx.storage.put(`${ARENA}${channel}`, { blocks } satisfies ArenaRecord);
         else await this.ctx.storage.delete(`${ARENA}${channel}`);
       }

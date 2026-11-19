@@ -73,6 +73,16 @@ describe('room DO arena storage (R6, FR-018)', { timeout: 20_000 }, () => {
     expect(await alarmAt(roomId)).toBeNull();
   });
 
+  it('a room deleted before its blocks are written does not keep the alarm ringing (PR #91 review)', async () => {
+    const { roomId, a, b } = await builder();
+    a.send({ t: 'block', op: 'place', kind: 'dirt', h: 0 });
+    await nextOf(b, 'block');
+    await env.ROOM.getByName(roomId).roomDeleted('owner');
+    await wait(3000);
+    expect(await alarmAt(roomId)).toBeNull();
+    expect(await stored(roomId)).toBeUndefined();
+  });
+
   it('a block request over 4 a second is rate_limited {scope: block}', async () => {
     const { a } = await builder();
     for (let i = 0; i < 5; i++) a.send({ t: 'block', op: 'break', h: -1 });
