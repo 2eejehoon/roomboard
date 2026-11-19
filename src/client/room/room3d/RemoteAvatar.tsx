@@ -97,7 +97,8 @@ export function RemoteAvatar({ peer, damage, fly, stopped }: { peer: Peer; damag
     const g = group.current;
     if (!g) return;
     const flying = fly();
-    if (stopped()) {
+    // A target's flight already holds launch.p through the hitstop; only the attacker stops where it is (PR #90 review).
+    if (!flying && stopped()) {
       from.current = { p: g.position.clone(), r: g.rotation.y, at: performance.now() };
       return;
     }
