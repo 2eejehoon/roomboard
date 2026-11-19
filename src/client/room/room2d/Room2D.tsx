@@ -9,7 +9,7 @@ import type { BrawlMessage } from '../../../core/brawl/brawl-session.ts';
 import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Pose, RoomInfo } from '../../../core/room-session.ts';
 import { THEMES, zoneAt, type Vec3 } from '../../../core/themes.ts';
-import { ArenaSide, BrawlLog } from './ArenaSide.tsx';
+import { ArenaSide, BrawlLog, entranceWalk } from './ArenaSide.tsx';
 import { t } from '../../i18n/t.ts';
 import type { RoomState } from '../../state/room-store.ts';
 
@@ -27,7 +27,10 @@ export function Room2D({ room, state, move, brawl }: Props) {
   const people = state.you ? [state.you, ...state.peers] : state.peers;
   const fighting = !!state.you && inArena(ARENA, state.you.p);
   const name = (id: string) => people.find((p) => p.peerId === id)?.nickname ?? '';
-  const [ex, , ez] = THEMES[themeId].arenaEntrance;
+  const enter = (send: NonNullable<Props['move']>) => {
+    const { to, waitMs } = entranceWalk(state.you!.p, THEMES[themeId].arenaEntrance);
+    setTimeout(() => send(to, 0, 'walk'), waitMs);
+  };
   return (
     <Stack as="section" gap={3} padding={4}>
       <Heading level={1}>{room.title}</Heading>
@@ -46,7 +49,7 @@ export function Room2D({ room, state, move, brawl }: Props) {
           />
         ))}
       </List>
-      {move && brawl && state.you && (fighting ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} onClick={() => move([ex + 0.5, 0, ez + 0.5], 0, 'walk')} />)}
+      {move && brawl && state.you && (fighting ? <ArenaSide state={state} move={move} brawl={brawl} /> : <Button label={t('brawl.enter')} onClick={() => enter(move)} />)}
       <BrawlLog brawl={state.brawl} name={name} />
       <div aria-live="polite">
         {state.notices.map((n) => (

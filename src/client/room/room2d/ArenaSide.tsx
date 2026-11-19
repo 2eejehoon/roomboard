@@ -4,7 +4,8 @@ import { Button } from '@astryxdesign/core/Button';
 import { Stack } from '@astryxdesign/core/Stack';
 import { useEffect, useMemo, useRef } from 'react';
 import type { BrawlMessage } from '../../../core/brawl/brawl-session.ts';
-import { buildGrid, cellKey, cellOf, makeArena } from '../../../core/brawl/arena.ts';
+import { buildGrid, cellKey, cellOf, makeArena, type Grid } from '../../../core/brawl/arena.ts';
+import { MAX_SPEED } from '../../../core/movement.ts';
 import { TUNING } from '../../../core/brawl/tuning.ts';
 import type { Pose } from '../../../core/room-session.ts';
 import type { Vec3 } from '../../../core/themes.ts';
@@ -36,12 +37,9 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
   }, [brawl]);
 
   const [cx, cy, row] = cellOf(ARENA, you.p);
-  // One cell along x or z. Off the edge (no block under) the client falls, which the server reads as a knock-out (R4).
   const step = (dx: number, dz: number, r: number) => {
-    const next = [you.p[0] + dx * ARENA.cellSize, you.p[1], you.p[2] + dz * ARENA.cellSize] as Vec3;
-    const [x, y, z] = cellOf(ARENA, next);
-    if (grid.has(cellKey([x, y, z]))) return move(you.p, r, 'idle');
-    move(grid.has(cellKey([x, y - 1, z])) ? next : [next[0], ARENA.koY - ARENA.cellSize, next[2]], r, 'walk');
+    const to = stepTo(grid, you.p, dx, dz);
+    move(to ?? you.p, r, to ? 'walk' : 'idle');
   };
   const people = [you, ...state.peers].filter((p) => p.p[0] >= ARENA.bounds.min[0] && p.p[0] <= ARENA.bounds.max[0]);
   const sx = (x: number) => (x - ARENA.origin[0]) / ARENA.cellSize;
@@ -137,4 +135,18 @@ export function BrawlLog({ brawl, name }: { brawl: BrawlState; name: (peerId: st
   );
 }
 
-export const arenaEntranceCentre = (cell: Vec3): Vec3 => [cell[0] + 0.5, 0, cell[2] + 0.5];
+// One cell along x or z, or null when a block fills it. Off the edge (no block under) the client falls, which the server reads
+// as a knock-out (R4).
+export function stepTo(grid: Grid, p: Vec3, dx: number, dz: number): Vec3 | null {
+  const next: Vec3 = [p[0] + dx * ARENA.cellSize, p[1], p[2] + dz * ARENA.cellSize];
+  const [x, y, z] = cellOf(ARENA, next);
+  if (grid.has(cellKey([x, y, z]))) return null;
+  return grid.has(cellKey([x, y - 1, z])) ? next : [next[0], ARENA.koY - ARENA.cellSize, next[2]];
+}
+
+// The 2D way into the arena: one move to the entrance cell's middle, sent once walking there at MAX_SPEED would be allowed
+// (validateMove counts from my last move; the 2D screen sends none before this, so from now is enough).
+export function entranceWalk(from: Vec3, cell: Vec3) {
+  const to: Vec3 = [cell[0] + 0.5, 0, cell[2] + 0.5];
+  return { to, waitMs: Math.ceil((Math.hypot(to[0] - from[0], to[1] - from[1], to[2] - from[2]) / MAX_SPEED) * 1000) };
+}
