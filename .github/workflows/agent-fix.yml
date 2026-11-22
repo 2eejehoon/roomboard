@@ -25,7 +25,7 @@ jobs:
       issues: write
       id-token: write
     outputs:
-      run: ${{ steps.gate.outputs.run }}
+      run: ${{ steps.resolve.outputs.run }}
       issue: ${{ steps.gate.outputs.issue }}
       attempt: ${{ steps.gate.outputs.attempt }}
       kind: ${{ steps.gate.outputs.kind }}
@@ -45,10 +45,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: node scripts/agent-gate.mjs
-      - if: steps.gate.outputs.run == 'true'
+      # T038, research R5, FR-015: a client issue runs only if its stack resolves with the deployed build's public source maps.
+      # Before npm ci, the attempt label and the model call, so a forged stack costs nothing. Other issues pass (run=true).
+      - id: resolve
+        if: steps.gate.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ steps.gate.outputs.issue }}
+          PROD_ORIGIN: https://roomboard.2eejehoon.workers.dev
+        run: node scripts/resolve-stack.mjs
+      - if: steps.resolve.outputs.run == 'true'
         run: npm ci
       - id: prepare
-        if: steps.gate.outputs.run == 'true'
+        if: steps.resolve.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -58,15 +67,17 @@ jobs:
           gh issue edit "$ISSUE" --add-label "agent:working,agent:attempt-$ATTEMPT" --remove-label agent:queued
           # The agent reads the issue from this file (untrusted data) instead of holding a workflow token.
           mkdir -p .agent && gh issue view "$ISSUE" --json title,body --jq '"# " + .title + "\n\n" + .body' > .agent/issue.md
+          # Source lines from the resolve step (client issues only).
+          [ ! -f .agent/stack.md ] || { echo; cat .agent/stack.md; } >> .agent/issue.md
           # This issue's agent branches before the agent runs, so job 2 can tell a fresh push from a stale branch.
           # A plain assignment makes bash -e stop the step if the API call fails (fail closed).
           refs=$(gh api "repos/$GH_REPO/git/matching-refs/heads/agent/issue-$ISSUE-" --jq 'map({(.ref): .object.sha}) | add // {}')
           echo "before=$(jq -c . <<<"$refs")" >> "$GITHUB_OUTPUT"
       # The subprocess sandbox (secret scrub + isolation) needs these; without them no command runs (T020 first trial).
-      - if: steps.gate.outputs.run == 'true'
+      - if: steps.resolve.outputs.run == 'true'
         run: sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap socat
       - id: claude
-        if: steps.gate.outputs.run == 'true'
+        if: steps.resolve.outputs.run == 'true'
         # The agent holds only the action's short-lived App token (written into .git/config so it can push its branch,
         # revoked when the action ends; main is protected by the ruleset).
         env:

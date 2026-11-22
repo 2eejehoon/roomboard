@@ -55,6 +55,7 @@ describe('scripts/merge-gate.mjs (FR-066)', () => {
     'src/core/doc-rules.ts',
     'src/core/agent-gate.ts',
     'src/core/mistake-tally.ts',
+    'src/core/resolve-stack.ts',
     'package.json',
     'package-lock.json',
     'vitest.config.ts',
