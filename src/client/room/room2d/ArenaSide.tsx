@@ -39,6 +39,15 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
   const [h, setH] = useState<(typeof HEIGHTS)[number]>(0);
   const [steer, setSteer] = useState<(typeof STEERS)[number]>(null);
   const held = (s: typeof steer): [number, number] | undefined => (s ? [...STEER_D[s]] : undefined);
+  // A respawn (or an arena reset) makes a new fighter on the server with no held direction: send mine again (PR #101 review).
+  const respawned = state.brawl.log.filter((e) => e.kind === 'respawn' && e.peerId === you.peerId).at(-1)?.id;
+  const resend = useRef<() => void>(() => {});
+  useEffect(() => {
+    resend.current = () => steer && move(you.p, you.r, you.a, held(steer));
+  });
+  useEffect(() => {
+    if (respawned !== undefined) resend.current();
+  }, [respawned]);
   const live = useRef(state.brawl);
   useEffect(() => {
     live.current = state.brawl;

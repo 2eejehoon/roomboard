@@ -4,9 +4,10 @@ import { expect, type Page } from '@playwright/test';
 import { ko } from '../../src/client/i18n/ko.ts';
 import { enter, move, newPage, test, withoutWebGL } from './helpers.ts';
 
-type Fighters = Record<string, { launch: { v: number[] } | null }>;
-const launchOf = (page: Page, id: string) =>
-  page.evaluate((id) => (window as unknown as { __roomboard: { state(): { brawl: { fighters: Fighters } } } }).__roomboard.state().brawl.fighters[id]?.launch?.v ?? null, id);
+type Fighters = Record<string, { launch: { v: number[]; t: number } | null; knockedOut: boolean }>;
+type Look = { you: { p: number[] }; peers: { peerId: string; p: number[] }[]; brawl: { fighters: Fighters } };
+const look = (page: Page) => page.evaluate(() => (window as unknown as { __roomboard: { state(): Look } }).__roomboard.state());
+const launchOf = async (page: Page, id: string) => (await look(page)).brawl.fighters[id]?.launch?.v ?? null;
 
 test('US5 2D: "방향 잡기" set to the front row bends a sideways jab toward it (FR-028)', async ({ browser }) => {
   test.setTimeout(120_000);
@@ -33,4 +34,17 @@ test('US5 2D: "방향 잡기" set to the front row bends a sideways jab toward i
   for (const page of [a, b]) await expect.poll(async () => (await launchOf(page, them.peerId))?.[2] ?? 0).toBeLessThan(0);
   const [vx, , vz] = (await launchOf(a, them.peerId))!;
   expect(Math.atan2(-vz!, vx!)).toBeLessThanOrEqual((15 * Math.PI) / 180 + 1e-3);
+
+  // The server makes a new fighter on respawn (and on an arena reset), held direction none: the screen sends it again (PR #101 review).
+  await b.waitForTimeout(2000);
+  await move(b, [34, -12, 15.5]); // below koY: knocked out, respawned 3 s later
+  await expect.poll(async () => (await look(a)).brawl.fighters[them.peerId]?.knockedOut).toBe(true);
+  await expect.poll(async () => (await look(a)).brawl.fighters[them.peerId]?.knockedOut, { timeout: 10_000 }).toBe(false);
+  await expect(steer).toHaveText('방향 잡기: 앞 줄');
+  const at = (await look(a)).peers.find((p) => p.peerId === them.peerId)!.p;
+  await a.waitForTimeout(2500); // a walks over under 8 m/s
+  await move(a, [at[0]! - 1, at[1]!, at[2]!], Math.PI / 2);
+  await a.waitForTimeout(300);
+  await a.getByRole('button', { name: ko['brawl.jab'] }).click();
+  await expect.poll(async () => (await launchOf(a, them.peerId))?.[2] ?? 0).toBeLessThan(0);
 });
