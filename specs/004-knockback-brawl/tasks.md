@@ -321,14 +321,18 @@
 - [ ] T055 R1 다시 재기(quickstart 4, 새 스크립트라 머지 뒤 한 번 실제로 돌려 결과를 여기와 PR에 남긴다): (1) 로컬 `npm run build` 뒤 `vite preview`의 실제 Worker(개발 서버는 모듈을 풀어 보내 느리다: 같은 배치 p95 55ms), (2) PR 미리보기 배포(배포마다 운영자 승인, 판례 2026-11-10-preview-environment), 각각 N = 2·4·8·12·20 모임과 12·20 흩어짐, 20초 × 3회.
   기준: 마지막 상대 도착 p95 ≤ 50ms, p99 ≤ 100ms, 클라이언트당 ≤ 50KB/s. 넘으면 새 판례(`docs/precedents/`)로 상한을 낮추고 spec SC-006·research R1을 고치며, 경기장 입장 제한 규칙을 스펙부터 더한다.
   미리보기에서 한 방 두 채널 20명씩도 재고, 넘으면 채널마다 DO로 나누는 방안(001 R6 변경)을 PushNotification으로 운영자에게 묻는다.
+  - (1) 로컬 결과(2026-11-24, research R1 표): 한 채널 N=20 흩어짐 p95 38.8~48.1·p99 50.2~62.0ms, 17KB/s로 기준 안. N=12 흩어짐 한 회 p99 137.9ms 초과 → 3회 더 재서 모두 기준 안(28.2·16.9·38.1ms). 두 채널 동시 흩어짐 p95 60.6·78.6·p99 108.9ms로 받아들인 한계(p95 51~58, p99 기준 안)보다 나쁨.
+    처음 한 번은 E2E와 CPU를 나눠 써서 버렸다(측정 중에는 다른 일을 돌리지 않는다). (2) 미리보기는 배포 승인·카페 방 id 대기.
 - [X] T056 SC-002 측정 `tests/bench/perf-brawl/perf-brawl.spec.ts`(따로 실행: `npx playwright test -c tests/bench/perf-brawl --project mobile --trace off`, `T056_FAKES=0`이면 기준선):
   Playwright 모바일 페이지 1개(Fast 4G 프리셋, 판례 2026-11-09-perf-4g) + T054 가짜 클라이언트 19명(같은 채널, 흩어짐)에서 잽 키 → 내 3D 화면 번쩍임(개발 빌드 훅 `swingsShown`)을 24회 재 p95 ≤ 100ms.
   - 결과: 소프트웨어 WebGL(컨테이너·CI)은 아무도 없어도 휴대폰 화면 한 프레임이 약 135ms라 0.1초를 판정할 수 없어 PR마다 도는 `tests/e2e` 밖에 두었다. SC-002 판정은 T060 실제 휴대폰.
     기준선(0명): 24회 모두 보임, p50 142.8·p95 176.8ms(한 프레임). 19명: 프레임 약 180ms, 페이지 응답이 몇 초씩 밀려 7분 안에 24회를 못 끝냄(같은 4코어에 workerd·가짜 클라이언트).
   - 찾은 결함: 번쩍임은 누른 뒤 120ms 동안만 켜져 프레임이 120ms보다 길면 안 보였고, 같은 프레임 안에서 누른 시각이 프레임 시각과 같아 놓쳤다(24회 중 6~9회만 보임).
     `flashTimer`(input.ts)로 "다음 프레임에 한 번은 켬". `tests/client/brawl-input.test.ts` 먼저 실패 확인(`flashTimer` 없음) 뒤 통과.
-- [ ] T057 [P] 기존 E2E 전체·a11y.spec·perf.spec(SC-007: 4G 10초, 첫 3D 에셋 3MB)·`check:bundle`·문서 검사(`tasks.md` 등 400줄) 통과 확인, 결과를 여기에 적는다.
+- [X] T057 [P] 기존 E2E 전체·a11y.spec·perf.spec(SC-007: 4G 10초, 첫 3D 에셋 3MB)·`check:bundle`·문서 검사(`tasks.md` 등 400줄) 통과 확인, 결과를 여기에 적는다.
+  - 결과(2026-11-24, main #101 뒤, 로컬): E2E 120 통과·2 건너뜀(데스크톱의 perf.spec과 터치 전용 us1-move, 원래 모바일 전용), a11y 데스크톱·모바일 통과, perf.spec 모바일 5.5초, `check:bundle` ok, check-docs 통과.
 - [ ] T058 [P] quickstart 1~4 실행 기록, README에 난투 한 줄(필요하면). `rm -rf tests/bench/brawl-load/.wrangler`.
+  - 결과: quickstart 1 `tests/core/brawl` 94 통과, 2 `tests/worker/brawl` 12 통과, 3은 T057, 4는 T055(미리보기가 남아 T055가 닫힐 때 같이 닫는다). README 첫 줄에 난투 한 줄. `.wrangler`는 없음(실제 서버 측정은 측정용 DO를 쓰지 않음).
 - [ ] T059 `/ponytail:ponytail-review`로 과잉 구현을 걷어낸 뒤 커밋(사용자 규칙). 스펙에 없는 기능이 들어갔으면 지운다.
 - [ ] T060 운영자 판정(quickstart 5, US2 손맛·SC-001, SC-002: 경기장에 여러 명 있을 때 잽 → 번쩍임이 바로인지): 미리보기를 휴대폰·PC로 보고 R11 조정 후보를 함께 본다. 값을 바꾸면 조정표·스펙·판례를 함께 고친다. 판정이 끝날 때까지 그 PR은 머지하지 않는다.
 
