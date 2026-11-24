@@ -140,6 +140,8 @@ export const ko = {
   'brawl.shakeOn': '화면 흔들림 켜기',
   'brawl.place': '놓기',
   'brawl.break': '부수기',
+  'brawl.steer': '방향 잡기: {dir}',
+  'brawl.steer.none': '없음',
   'brawl.kind': '블록: {kind}',
   'brawl.kind.dirt': '흙',
   'brawl.kind.stone': '돌',

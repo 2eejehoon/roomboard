@@ -16,7 +16,7 @@ type Props = {
   room: Pick<RoomInfo, 'title' | 'description' | 'roomData'>;
   state: RoomState;
   // 004 (FR-033): without these the 2D screen only shows the room (US2 fallback before joining).
-  move?: (p: Vec3, r: number, a: Pose['a']) => void;
+  move?: (p: Vec3, r: number, a: Pose['a'], d?: [number, number]) => void;
   brawl?: (msg: BrawlMessage) => void;
 };
 
