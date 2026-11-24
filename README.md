@@ -1,5 +1,5 @@
 # roomboard
-게시글 하나가 실시간 3D 방이 되는 게시판 (WebGL 메타버스)
+게시글 하나가 실시간 3D 방이 되는 게시판 (WebGL 메타버스). 방마다 옆에 넉백 난투 경기장이 있다([004 quickstart](specs/004-knockback-brawl/quickstart.md)).
 
 ## 작업 환경
 
