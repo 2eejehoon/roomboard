@@ -331,8 +331,8 @@
     `flashTimer`(input.ts)로 "다음 프레임에 한 번은 켬". `tests/client/brawl-input.test.ts` 먼저 실패 확인(`flashTimer` 없음) 뒤 통과.
 - [X] T057 [P] 기존 E2E 전체·a11y.spec·perf.spec(SC-007: 4G 10초, 첫 3D 에셋 3MB)·`check:bundle`·문서 검사(`tasks.md` 등 400줄) 통과 확인, 결과를 여기에 적는다.
   - 결과(2026-11-24, main #101 뒤, 로컬): E2E 120 통과·2 건너뜀(데스크톱의 perf.spec과 터치 전용 us1-move, 원래 모바일 전용), a11y 데스크톱·모바일 통과, perf.spec 모바일 5.5초, `check:bundle` ok, check-docs 통과.
-- [X] T058 [P] quickstart 1~4 실행 기록, README에 난투 한 줄(필요하면). `rm -rf tests/bench/brawl-load/.wrangler`.
-  - 결과: quickstart 1 `tests/core/brawl` 94 통과, 2 `tests/worker/brawl` 12 통과, 3은 T057, 4는 T055. README 첫 줄에 난투 한 줄. `.wrangler`는 없음(실제 서버 측정은 측정용 DO를 쓰지 않음).
+- [ ] T058 [P] quickstart 1~4 실행 기록, README에 난투 한 줄(필요하면). `rm -rf tests/bench/brawl-load/.wrangler`.
+  - 결과: quickstart 1 `tests/core/brawl` 94 통과, 2 `tests/worker/brawl` 12 통과, 3은 T057, 4는 T055(미리보기가 남아 T055가 닫힐 때 같이 닫는다). README 첫 줄에 난투 한 줄. `.wrangler`는 없음(실제 서버 측정은 측정용 DO를 쓰지 않음).
 - [ ] T059 `/ponytail:ponytail-review`로 과잉 구현을 걷어낸 뒤 커밋(사용자 규칙). 스펙에 없는 기능이 들어갔으면 지운다.
 - [ ] T060 운영자 판정(quickstart 5, US2 손맛·SC-001, SC-002: 경기장에 여러 명 있을 때 잽 → 번쩍임이 바로인지): 미리보기를 휴대폰·PC로 보고 R11 조정 후보를 함께 본다. 값을 바꾸면 조정표·스펙·판례를 함께 고친다. 판정이 끝날 때까지 그 PR은 머지하지 않는다.
 
