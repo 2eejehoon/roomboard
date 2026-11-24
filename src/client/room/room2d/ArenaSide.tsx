@@ -21,7 +21,10 @@ const [W, H] = ARENA.size;
 const FAINT = 0.4;
 // Facing for each button: r = 0, ±π/2, π (R8); the side view looks along -z, so right is +x.
 const FACE = { left: -Math.PI / 2, right: Math.PI / 2, front: Math.PI, back: 0 } as const;
-type Move = (p: Vec3, r: number, a: Pose['a']) => void;
+type Move = (p: Vec3, r: number, a: Pose['a'], d?: [number, number]) => void;
+// The held direction (FR-028, precedent 2026-11-24-2d-held-direction): [x, z] in the side view's terms, cycled by one button.
+const STEERS = [null, 'left', 'right', 'front', 'back'] as const;
+const STEER_D = { left: [-1, 0], right: [1, 0], front: [0, -1], back: [0, 1] } as const;
 
 // In the arena, or falling off it or knocked out below it until the respawn. Only a fighter can be below the room floor
 // (PR #88 review), so the 2D screen's controls, side view and list all use this.
@@ -34,6 +37,17 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
   const input = useRef<BrawlInput | null>(null);
   const [kind, setKind] = useState<(typeof BLOCK_KINDS)[number]>('dirt');
   const [h, setH] = useState<(typeof HEIGHTS)[number]>(0);
+  const [steer, setSteer] = useState<(typeof STEERS)[number]>(null);
+  const held = (s: typeof steer): [number, number] | undefined => (s ? [...STEER_D[s]] : undefined);
+  // A respawn (or an arena reset) makes a new fighter on the server with no held direction: send mine again (PR #101 review).
+  const respawned = state.brawl.log.filter((e) => e.kind === 'respawn' && e.peerId === you.peerId).at(-1)?.id;
+  const resend = useRef<() => void>(() => {});
+  useEffect(() => {
+    resend.current = () => steer && move(you.p, you.r, you.a, held(steer));
+  });
+  useEffect(() => {
+    if (respawned !== undefined) resend.current();
+  }, [respawned]);
   const live = useRef(state.brawl);
   useEffect(() => {
     live.current = state.brawl;
@@ -47,7 +61,7 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
   const [cx, cy, row] = cellOf(ARENA, you.p);
   const step = (dx: number, dz: number, r: number) => {
     const to = stepTo(grid, you.p, dx, dz);
-    move(to ?? you.p, r, to ? 'walk' : 'idle');
+    move(to ?? you.p, r, to ? 'walk' : 'idle', held(steer));
   };
   const people = [you, ...state.peers].filter((p) => fighting(state.brawl, p));
   // Off the edge or below the island a dot stays on the view's border (PR #88 review).
@@ -94,6 +108,15 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
         <Button label={t('brawl.right')} onClick={() => step(1, 0, FACE.right)} />
         <Button label={t('brawl.front')} onClick={() => step(0, -1, FACE.front)} />
         <Button label={t('brawl.back')} onClick={() => step(0, 1, FACE.back)} />
+        <Button
+          label={t('brawl.steer', { dir: t(steer ? `brawl.${steer}` : 'brawl.steer.none') })}
+          variant="secondary"
+          onClick={() => {
+            const next = cycle(STEERS, steer);
+            setSteer(next);
+            move(you.p, you.r, you.a, held(next)); // in place: only the held direction changes
+          }}
+        />
       </Stack>
       <Stack direction="horizontal" gap={2} wrap="wrap">
         <Button label={t('brawl.jab')} onClick={() => input.current?.press('jab')} />
