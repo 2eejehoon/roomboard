@@ -14,7 +14,7 @@ import type { Pose } from '../../../core/room-session.ts';
 import { THEMES, type Bounds, type Look, type RoomObject, type Vec3 } from '../../../core/themes.ts';
 import { t } from '../../i18n/t.ts';
 import type { RoomStore } from '../../state/room-store.ts';
-import { BLOCK_KINDS, createBrawlInput, cycle, HEIGHTS, type BrawlInput } from '../../brawl/input.ts';
+import { BLOCK_KINDS, createBrawlInput, cycle, flashTimer, HEIGHTS, type BrawlInput } from '../../brawl/input.ts';
 import { LOOKS } from '../../brawl/looks.ts';
 import { flightPosition, serverNow, shakeOffset, stopped } from '../../brawl/store.ts';
 import { readShake } from '../../device.ts';
@@ -23,6 +23,7 @@ import { Arena, ARENA, Entrance } from './Arena.tsx';
 import { feetY, nextSend, onStorePose } from '../send-rule.ts';
 import { Avatar, DamageLabel, RemoteAvatar, shadowed, Trail } from './RemoteAvatar.tsx';
 import { TouchControls } from './TouchControls.tsx';
+import { swingsShown } from '../../test-hooks.ts';
 
 type Move = (p: Vec3, r: number, a: Pose['a'], d?: [number, number]) => void;
 type Brawl = (msg: BrawlMessage) => void;
@@ -242,7 +243,7 @@ function Me({ store, move, brawl, avatarId, build, setBuild }: MeProps) {
   });
   const ecctrl = useRef<EcctrlHandle>(null);
   const flash = useRef<Mesh>(null);
-  const swungAt = useRef(-Infinity);
+  const [swing] = useState(() => flashTimer(LOOKS.swing.durationMs));
   const pressed = useRef<Partial<Record<Skill | Build | 'jump' | 'recover', boolean>>>({});
   const input = useRef<BrawlInput | null>(null);
   useEffect(() => {
@@ -250,11 +251,11 @@ function Me({ store, move, brawl, avatarId, build, setBuild }: MeProps) {
       send: brawl,
       serverNow: () => serverNow(store.getState().brawl, Date.now()),
       readyAt: () => store.getState().brawl.readyAt,
-      show: () => (swungAt.current = performance.now()),
+      show: () => swing.show(performance.now()),
     });
     input.current = i;
     return () => i.dispose();
-  }, [store, brawl]);
+  }, [store, brawl, swing]);
   const damage = useSyncExternalStore(store.subscribe, () => {
     const { you, brawl: b } = store.getState();
     return you && inArena(ARENA, you.p) ? (b.fighters[you.peerId]?.damage ?? 0) : null;
@@ -279,7 +280,11 @@ function Me({ store, move, brawl, avatarId, build, setBuild }: MeProps) {
     const shake = shakeOffset(store.getState().brawl, Date.now(), readShake());
     const jolt = () => (Math.random() * 2 - 1) * shake;
     camera.current.moveTo(h.currPos.x + jolt(), h.currPos.y + 0.6 + jolt(), h.currPos.z + jolt(), false);
-    if (flash.current) flash.current.visible = performance.now() - swungAt.current < LOOKS.swing.durationMs;
+    if (flash.current) {
+      const on = swing.visible(performance.now());
+      if (import.meta.env.DEV && on && !flash.current.visible) swingsShown.push(performance.now());
+      flash.current.visible = on;
+    }
 
     const you = store.getState().you;
     // 004: while I fly the server owns my position and the store replays it (FR-031); knocked out, I just fall.

@@ -1,6 +1,6 @@
 // T023: skill input (R2, FR-012, FR-032): a jab pressed during the cooldown is held and sent once readyAt has passed.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createBrawlInput } from '../../src/client/brawl/input.ts';
+import { createBrawlInput, flashTimer } from '../../src/client/brawl/input.ts';
 
 let server = 0;
 let readyAt = 0;
@@ -82,5 +82,20 @@ describe('brawl input', () => {
     server = 2000;
     vi.advanceTimersByTime(1000);
     expect(sent).toEqual([]);
+  });
+});
+
+// T056: frames longer than the flash (120 ms on a slow phone) skipped it entirely, and a press handled after the frame's flash check
+// read the same performance.now() as that frame.
+describe('swing flash', () => {
+  it('stays on for its duration, and on at least the next frame however long frames take', () => {
+    const f = flashTimer(120);
+    f.show(1000);
+    expect(f.visible(1000)).toBe(true); // the same instant as the press
+    expect(f.visible(1100)).toBe(true);
+    expect(f.visible(1130)).toBe(false);
+    f.show(2000);
+    expect(f.visible(2150)).toBe(true); // a 150 ms frame
+    expect(f.visible(2300)).toBe(false);
   });
 });

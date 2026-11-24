@@ -4,6 +4,9 @@ import type { RoomSocket } from './net/room-socket.ts';
 import type { RoomStore } from './state/room-store.ts';
 import { feel, flightPosition } from './brawl/store.ts';
 
+// SC-002 (T056): performance.now() of each frame that first shows my swing flash, pushed by the 3D scene in dev builds only.
+export const swingsShown: number[] = [];
+
 export function installTestHooks(store: RoomStore, socket: RoomSocket): void {
   if (import.meta.env.DEV) {
     (window as unknown as Record<string, unknown>).__roomboard = {
@@ -13,6 +16,7 @@ export function installTestHooks(store: RoomStore, socket: RoomSocket): void {
       flight: (peerId: string) => flightPosition(store.getState().brawl, peerId, Date.now()),
       // US2: the hitstop end, trail and % colour this screen derives from the server values (FR-024).
       feel: (peerId: string) => feel(store.getState().brawl, peerId),
+      swingsShown: () => swingsShown,
     };
   }
 }

@@ -50,3 +50,20 @@ export type BrawlInput = ReturnType<typeof createBrawlInput>;
 export const BLOCK_KINDS = ['dirt', 'stone'] as const;
 export const HEIGHTS = [0, 1, -1] as const;
 export const cycle = <T,>(list: readonly T[], v: T): T => list[(list.indexOf(v) + 1) % list.length];
+
+// FR-032: my swing flash, from show() for durationMs and on at least the next frame, however long frames take (T056).
+export function flashTimer(durationMs: number) {
+  let at = -Infinity;
+  let pending = false;
+  return {
+    show(now: number) {
+      [at, pending] = [now, true];
+    },
+    // Once per frame.
+    visible(now: number) {
+      const on = pending || now - at < durationMs;
+      pending = false;
+      return on;
+    },
+  };
+}

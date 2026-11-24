@@ -46,10 +46,12 @@ for n in 12 20; do SPREAD=1 node tests/bench/brawl-load/clients.mjs $n 20; done 
 
 - 끝나면 `rm -rf tests/bench/brawl-load/.wrangler`(wrangler가 만든 번들, 린트가 읽는다).
 - 합격: N=20에서 마지막 상대 도착 p95 ≤ 50ms, p99 ≤ 100ms, 클라이언트당 ≤ 50KB/s.
-- 구현 뒤에는 같은 시나리오를 실제 서버와 PR 미리보기 배포에 대해 다시 잰다. SC-002는 Playwright 모바일 페이지 1개 + 가짜 클라이언트 19명으로
-  입력 → 이펙트 0.1초를 잰다(둘 다 tasks에서 정한다).
+- 실제 서버(tasks T054·T055): `npm run build` 뒤 `npx vite preview --port 4173`을 띄우고
+  `node tests/bench/brawl-load/real.mjs http://localhost:4173 - <N> 20`(`-`는 방을 새로 만듦, 방 만들기는 분당 3개라 같은 배치는 방 id를 다시 쓴다). PR 미리보기는 운영자가 만든 방 id로.
+- SC-002(T056): `npx playwright test -c tests/bench/perf-brawl --project mobile --trace off`. 소프트웨어 WebGL은 한 프레임이 0.1초보다 길어 기록만 하고, 판정은 5의 실제 휴대폰.
 
 ## 5. 사람이 보는 확인
 
 - PR 미리보기를 휴대폰과 PC로 열어 손맛(타격 정지, 꼬리, 숫자 색, 흔들림 끄기)을 운영자가 본다(spec US2).
 - SC-001: 운영자와 지인 3명이 설명 없이 1분 안에 잽으로 밀어내고 평화 구역으로 돌아가는지 본다. 이때 research R11 조정 후보를 함께 본다.
+- SC-002: 경기장에 여러 명이 있을 때 휴대폰에서 잽을 누르면 번쩍임이 바로(0.1초 안) 보이는지 본다(소프트웨어 WebGL로는 판정할 수 없음, tasks T056).
