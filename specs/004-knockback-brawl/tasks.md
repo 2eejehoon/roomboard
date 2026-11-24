@@ -310,18 +310,24 @@
 
 ## Phase 8: Polish — 측정과 확인
 
-- [ ] T054 `tests/bench/brawl-load/real.mjs`: 실제 서버 프로토콜(v2 `join`, 기기 키마다 랜덤 UUID, 입구 칸으로 경기장 입장)로 R1과 같은 시나리오(모임·`SPREAD=1` 흩어짐, `move` 초당 10, 기술 초당 3, 처음 3초 버림)를
+- [X] T054 `tests/bench/brawl-load/real.mjs`: 실제 서버 프로토콜(v2 `join`, 기기 키마다 랜덤 UUID, 입구 칸으로 경기장 입장)로 R1과 같은 시나리오(모임·`SPREAD=1` 흩어짐, `move` 초당 10, 기술 초당 3, 처음 3초 버림)를
   재는 가짜 클라이언트 N명. 인자: 기준 URL·방 id·N·초. 방은 로컬에서는 `tests/e2e/helpers.ts` `createRoom`처럼 Turnstile 테스트 토큰으로 만들고, 미리보기에서는 운영자가 브라우저로 만든 방 id를 받는다
   (미리보기는 실제 Turnstile 비밀 키). WebSocket 입장에는 엣지 요청 제한이 없지만(`wrangler.jsonc` `ratelimits`는 방 만들기·비밀번호·신고만) 입장은 100ms 간격으로 나눈다. 같은 결과 형식(p50·p95·p99, 메시지/초, KB/초).
-- [ ] T055 R1 다시 재기(quickstart 4, 새 스크립트라 머지 뒤 한 번 실제로 돌려 결과를 여기와 PR에 남긴다): (1) 로컬 `wrangler dev`의 실제 Worker, (2) PR 미리보기 배포(배포마다 운영자 승인, 판례 2026-11-10-preview-environment), 각각 N = 2·4·8·12·20 모임과 12·20 흩어짐, 20초 × 3회.
+  - 결과: 경로는 `/api/rooms/<id>/ws`, 채널은 서버가 정하므로 두 채널은 같은 방에 프로세스 2개. 상대 도착은 `swing`의 (때린 사람, `at`)으로 맞춘다(nonce는 때린 사람 것에만).
+    경기장에 못 들어간 클라이언트가 있거나 돌아온 `swing`이 0이면 exit 1(자체 검사), `corrections` 수도 찍는다. 미리 돌려 봄(로컬 `vite preview` 프로덕션 빌드, 20초 1회): 흩어짐 N=20 상대 p95 38.6·p99 45.3ms, 15.6KB/s.
+- [ ] T055 R1 다시 재기(quickstart 4, 새 스크립트라 머지 뒤 한 번 실제로 돌려 결과를 여기와 PR에 남긴다): (1) 로컬 `npm run build` 뒤 `vite preview`의 실제 Worker(개발 서버는 모듈을 풀어 보내 느리다: 같은 배치 p95 55ms), (2) PR 미리보기 배포(배포마다 운영자 승인, 판례 2026-11-10-preview-environment), 각각 N = 2·4·8·12·20 모임과 12·20 흩어짐, 20초 × 3회.
   기준: 마지막 상대 도착 p95 ≤ 50ms, p99 ≤ 100ms, 클라이언트당 ≤ 50KB/s. 넘으면 새 판례(`docs/precedents/`)로 상한을 낮추고 spec SC-006·research R1을 고치며, 경기장 입장 제한 규칙을 스펙부터 더한다.
   미리보기에서 한 방 두 채널 20명씩도 재고, 넘으면 채널마다 DO로 나누는 방안(001 R6 변경)을 PushNotification으로 운영자에게 묻는다.
-- [ ] T056 SC-002 측정 `tests/e2e/perf-brawl.spec.ts`(+ T054 스크립트 재사용): Playwright 모바일 페이지 1개(Fast 4G 프리셋, 판례 2026-11-09-perf-4g) + 가짜 클라이언트 19명(같은 채널, 흩어짐 배치)에서
-  잽 입력 → 내 화면 타격 이펙트까지 ≤ 100ms를 20회 이상 재 p95로 확인. 넘으면 원인(렌더링·메시지 처리)을 기록하고 고친다. 새 측정이라 머지 뒤 한 번 돌려 결과를 여기와 PR에 남긴다.
+- [X] T056 SC-002 측정 `tests/bench/perf-brawl/perf-brawl.spec.ts`(따로 실행: `npx playwright test -c tests/bench/perf-brawl --project mobile --trace off`, `T056_FAKES=0`이면 기준선):
+  Playwright 모바일 페이지 1개(Fast 4G 프리셋, 판례 2026-11-09-perf-4g) + T054 가짜 클라이언트 19명(같은 채널, 흩어짐)에서 잽 키 → 내 3D 화면 번쩍임(개발 빌드 훅 `swingsShown`)을 24회 재 p95 ≤ 100ms.
+  - 결과: 소프트웨어 WebGL(컨테이너·CI)은 아무도 없어도 휴대폰 화면 한 프레임이 약 135ms라 0.1초를 판정할 수 없어 PR마다 도는 `tests/e2e` 밖에 두었다. SC-002 판정은 T060 실제 휴대폰.
+    기준선(0명): 24회 모두 보임, p50 142.8·p95 176.8ms(한 프레임). 19명: 프레임 약 180ms, 페이지 응답이 몇 초씩 밀려 7분 안에 24회를 못 끝냄(같은 4코어에 workerd·가짜 클라이언트).
+  - 찾은 결함: 번쩍임은 누른 뒤 120ms 동안만 켜져 프레임이 120ms보다 길면 안 보였고, 같은 프레임 안에서 누른 시각이 프레임 시각과 같아 놓쳤다(24회 중 6~9회만 보임).
+    `flashTimer`(input.ts)로 "다음 프레임에 한 번은 켬". `tests/client/brawl-input.test.ts` 먼저 실패 확인(`flashTimer` 없음) 뒤 통과.
 - [ ] T057 [P] 기존 E2E 전체·a11y.spec·perf.spec(SC-007: 4G 10초, 첫 3D 에셋 3MB)·`check:bundle`·문서 검사(`tasks.md` 등 400줄) 통과 확인, 결과를 여기에 적는다.
 - [ ] T058 [P] quickstart 1~4 실행 기록, README에 난투 한 줄(필요하면). `rm -rf tests/bench/brawl-load/.wrangler`.
 - [ ] T059 `/ponytail:ponytail-review`로 과잉 구현을 걷어낸 뒤 커밋(사용자 규칙). 스펙에 없는 기능이 들어갔으면 지운다.
-- [ ] T060 운영자 판정(quickstart 5, US2 손맛·SC-001): 미리보기를 휴대폰·PC로 보고 R11 조정 후보를 함께 본다. 값을 바꾸면 조정표·스펙·판례를 함께 고친다. 판정이 끝날 때까지 그 PR은 머지하지 않는다.
+- [ ] T060 운영자 판정(quickstart 5, US2 손맛·SC-001, SC-002: 경기장에 여러 명 있을 때 잽 → 번쩍임이 바로인지): 미리보기를 휴대폰·PC로 보고 R11 조정 후보를 함께 본다. 값을 바꾸면 조정표·스펙·판례를 함께 고친다. 판정이 끝날 때까지 그 PR은 머지하지 않는다.
 
 ---
 
