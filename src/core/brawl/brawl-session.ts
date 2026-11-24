@@ -6,7 +6,7 @@ import type { Vec3 } from '../themes.ts';
 import { buildGrid, canPlace, cellKey, hitBlock, inArena, placeBlock, removeBlock, startPoint, targetCell, type Arena, type Block, type Cell, type Changes, type Grid } from './arena.ts';
 import { canAct, commitSkill, facesFront, holdSmash, inReach, isGuarding, newFighter, setGuard, takeHit, tryRoll, trySkill, type Fighter } from './fighter.ts';
 import { crosses, hitWall, positionAt, simulate, type Flight, type Launch } from './flight.ts';
-import { facingDir, launchVector, resolveHit, roundTo } from './knockback.ts';
+import { facingDir, launchVector, resolveHit, roundTo, steer } from './knockback.ts';
 import { isOver, playing, ranks, startMatch, type Match } from './match.ts';
 import type { Tuning } from './tuning.ts';
 
@@ -88,6 +88,7 @@ export class BrawlSession {
     else if (msg.t === 'skill') return this.swing(me, msg.k, msg.nonce, members, now);
     else if (msg.t === 'block') return this.block(me, msg, members, now);
     else if (msg.t === 'match_start') return this.start(members, now);
+    else if (msg.t === 'air') return this.air(me, msg.k, members, now);
     return none;
   }
 
@@ -228,6 +229,7 @@ export class BrawlSession {
 
   private stand(me: Armed, p: Vec3, end: 'land' | 'tech', at: number, members: Participant[]): Outbox {
     [me.pose, me.lastMoveAt] = [{ ...me.pose, p, a: 'idle' }, at];
+    [me.fighter.airJumps, me.fighter.airRecovers] = [this.tuning.air.jumps, this.tuning.air.recovers];
     return everyone(members, { t: 'landed', peerId: me.peerId, p, end, at });
   }
 
@@ -252,6 +254,27 @@ export class BrawlSession {
     return { send: [...everyone(members, { t: 'block', ...hit!, at: now }).send, ...relaunched.send] };
   }
 
+  // Where a flight is now and how fast it goes, rounded as a launch start (R3).
+  private here(l: Launch, now: number): Pick<Launch, 'p' | 'v'> {
+    const t = this.tuning;
+    const { points, vels } = this.flight(l);
+    const i = Math.min(vels.length - 1, Math.max(0, Math.round((now - l.t) / t.stepMs)));
+    return { p: points[i].map((v) => roundTo(v, t.precision.p)) as Vec3, v: vels[i].map((v) => roundTo(v, t.precision.v) + 0) as Vec3 };
+  }
+
+  // FR-029: once each before landing, while flying out of hitstun: a new launch upward, the sideways speed kept (data-model).
+  private air(me: Armed, k: 'jump' | 'recover', members: Participant[], now: number): Outbox {
+    const f = me.fighter;
+    const l = f.flight;
+    if (!l || !canAct(f, now) || now <= l.t || !(k === 'jump' ? f.airJumps : f.airRecovers)) return none;
+    if (k === 'jump') f.airJumps--;
+    else f.airRecovers--;
+    const { p, v } = this.here(l, now);
+    const up = k === 'jump' ? this.tuning.air.jumpSpeed : this.tuning.air.recoverSpeed;
+    f.flight = { t: now, p, v: [v[0], up, v[2]], s: l.s, cause: k === 'jump' ? 'air' : 'recover' };
+    return everyone(members, { t: 'launch', peerId: me.peerId, at: now, launch: f.flight });
+  }
+
   // Applies a change at cell, then relaunches every flight (but skip's) whose rest goes through it, from where it is now.
   private changedAt(cell: Cell, change: () => void, members: Participant[], now: number, skip?: Participant): Outbox {
     const t = this.tuning;
@@ -264,12 +287,7 @@ export class BrawlSession {
     const send: Outbox['send'] = [];
     for (const o of hit) {
       const l = o.fighter.flight!;
-      const { points, vels } = this.flight(l);
-      const i = Math.min(vels.length - 1, Math.max(0, Math.round((now - l.t) / t.stepMs)));
-      const launch: Launch =
-        now <= l.t
-          ? { ...l, cause: 'block' }
-          : { t: now, p: points[i].map((v) => roundTo(v, t.precision.p)) as Vec3, v: vels[i].map((v) => roundTo(v, t.precision.v) + 0) as Vec3, s: l.s, cause: 'block' };
+      const launch: Launch = now <= l.t ? { ...l, cause: 'block' } : { t: now, ...this.here(l, now), s: l.s, cause: 'block' };
       o.fighter.flight = launch;
       send.push(...everyone(members, { t: 'launch', peerId: o.peerId, at: now, launch }).send);
     }
@@ -323,7 +341,7 @@ export class BrawlSession {
       const launch: Launch = {
         t: now + r.hitstopMs,
         p: at.map((v) => roundTo(v, t.precision.p)) as Vec3,
-        v: launchVector(t.skills[used.id].angleDeg, dir, s, t),
+        v: steer(launchVector(t.skills[used.id].angleDeg, dir, s, t), o.fighter.inputDir, t),
         s,
         cause: 'hit',
       };

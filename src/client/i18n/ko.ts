@@ -150,6 +150,8 @@ export const ko = {
   'brawl.log.matchStart': '판이 시작됐어요',
   'brawl.log.matchEnd': '판이 끝났어요: {ranks}',
   'brawl.log.matchCancel': '판이 취소됐어요',
+  'brawl.airJump': '공중 점프',
+  'brawl.recover': '복귀기',
   'match.start': '판 시작',
   'match.time': '남은 시간 {m}:{s}',
   'match.stocks': '{name} 목숨 {n}',

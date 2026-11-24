@@ -11,6 +11,8 @@ const SKILLS = [
   { id: 'throw', label: 'brawl.throw', right: 104, bottom: 64 },
   { id: 'guard', label: 'brawl.guard', right: 176, bottom: 64 },
   { id: 'roll', label: 'brawl.roll', right: 176, bottom: 150 },
+  // US5: the jump button is the air jump while flying.
+  { id: 'recover', label: 'brawl.recover', right: 248, bottom: 150 },
 ] as const;
 
 // 004 US3: block buttons, a row above the skills and the chat bar (bottom 232); kind and height show what is chosen.

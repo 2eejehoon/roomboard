@@ -185,7 +185,8 @@ export class RoomSession {
   private move(me: Participant, conn: Conn, msg: Extract<ClientMessage, { t: 'move' }>, now: number): Outbox {
     if (!conn.moves.take(now).ok) return { send: [] };
     const brawl = this.brawl(me.channel);
-    if (me.fighter && msg.d) me.fighter.inputDir = msg.d;
+    // The direction held now (FR-028): a move without d lets go, so an old walk direction does not steer or aim a throw.
+    if (me.fighter) me.fighter.inputDir = msg.d ?? null;
     // Flying, in hitstun or knocked out: the server owns the position and only d counts (004 R4).
     if (brawl.locked(me, now)) return { send: [] };
     const fell = brawl.fell(me, msg.p[1], this.members(me.channel), now);

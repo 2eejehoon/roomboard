@@ -26,7 +26,7 @@ import { TouchControls } from './TouchControls.tsx';
 
 type Move = (p: Vec3, r: number, a: Pose['a'], d?: [number, number]) => void;
 type Brawl = (msg: BrawlMessage) => void;
-type Control = 'forward' | 'backward' | 'leftward' | 'rightward' | 'jump' | 'run' | Skill | Build;
+type Control = 'forward' | 'backward' | 'leftward' | 'rightward' | 'jump' | 'run' | 'recover' | Skill | Build;
 // 004 US3 (FR-015a): block keys, also the touch buttons' ids.
 type Build = 'place' | 'break' | 'kind' | 'height';
 const BUILDS: Build[] = ['place', 'break', 'kind', 'height'];
@@ -42,6 +42,8 @@ const KEYS: { name: Control; keys: string[] }[] = [
   { name: 'rightward', keys: ['ArrowRight', 'KeyD'] },
   { name: 'jump', keys: ['Space'] },
   { name: 'run', keys: ['Shift'] },
+  // US5 (FR-029): while flying, jump is the air jump and E the recovery.
+  { name: 'recover', keys: ['KeyE'] },
   { name: 'jab', keys: ['KeyJ'] },
   { name: 'smash', keys: ['KeyK'] },
   { name: 'throw', keys: ['KeyL'] },
@@ -241,7 +243,7 @@ function Me({ store, move, brawl, avatarId, build, setBuild }: MeProps) {
   const ecctrl = useRef<EcctrlHandle>(null);
   const flash = useRef<Mesh>(null);
   const swungAt = useRef(-Infinity);
-  const pressed = useRef<Partial<Record<Skill | Build, boolean>>>({});
+  const pressed = useRef<Partial<Record<Skill | Build | 'jump' | 'recover', boolean>>>({});
   const input = useRef<BrawlInput | null>(null);
   useEffect(() => {
     const i = createBrawlInput({
@@ -290,6 +292,11 @@ function Me({ store, move, brawl, avatarId, build, setBuild }: MeProps) {
       h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
     if (fly) {
+      for (const k of ['jump', 'recover'] as const) {
+        const down = k === 'jump' ? jump : !!keys.recover || !!useButtonStore.getState().buttons.recover;
+        if (down && !pressed.current[k]) brawl({ t: 'air', k });
+        pressed.current[k] = down;
+      }
       h.body.setTranslation({ x: fly[0], y: fly[1] + FEET, z: fly[2] }, true);
       h.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
       own.current = you;
