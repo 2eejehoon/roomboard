@@ -40,3 +40,19 @@ export function launchVector(angleDeg: number, [dx, dz]: [number, number], stren
   const flat = Math.cos(a) * speed;
   return [dx * flat, Math.sin(a) * speed, dz * flat].map((v) => roundTo(v, t.precision.v) + 0) as Vec3;
 }
+
+// FR-028: v turned toward the held horizontal direction d by at most steerMaxDeg, in the plane of v and d, at the same speed.
+// Straight along or against d there is no plane, so no turn. A flat launch stays flat (R3).
+export function steer(v: Vec3, d: [number, number] | null, t: Tuning): Vec3 {
+  const speed = Math.hypot(...v);
+  const n = d ? Math.hypot(d[0], d[1]) : 0;
+  if (!d || !n || !speed) return v;
+  const u = v.map((x) => x / speed);
+  const w = [d[0] / n, 0, d[1] / n];
+  const cos = u[0] * w[0] + u[2] * w[2];
+  const perp = w.map((x, i) => x - cos * u[i]);
+  const pn = Math.hypot(...perp);
+  if (!pn) return v;
+  const a = Math.min((t.steerMaxDeg * Math.PI) / t.degPerHalfTurn, Math.acos(Math.max(-1, Math.min(1, cos))));
+  return u.map((x, i) => roundTo((Math.cos(a) * x + (Math.sin(a) * perp[i]) / pn) * speed, t.precision.v) + 0) as Vec3;
+}

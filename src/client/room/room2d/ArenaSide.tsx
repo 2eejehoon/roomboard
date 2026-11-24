@@ -127,6 +127,9 @@ export function ArenaSide({ state, move, brawl }: { state: RoomState; move: Move
           onBlur={() => input.current?.guard(false)}
         />
         <Button label={t('brawl.roll')} onClick={() => input.current?.roll(dir)} />
+        {/* US5 (FR-029): the server takes them only while I fly, once each until I land. */}
+        <Button label={t('brawl.airJump')} onClick={() => brawl({ t: 'air', k: 'jump' })} />
+        <Button label={t('brawl.recover')} onClick={() => brawl({ t: 'air', k: 'recover' })} />
       </Stack>
       {/* US3 (FR-015a): the cell in front at the chosen height; the server picks it from my pose. */}
       <Stack direction="horizontal" gap={2} wrap="wrap">

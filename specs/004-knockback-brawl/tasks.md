@@ -287,14 +287,20 @@
 
 ### Tests (먼저 작성, 실패 확인)
 
-- [ ] T050 [P] [US5] `tests/core/brawl/steer.test.ts`(FR-028·029, US5-1·2): 판정 순간의 마지막 `d`로 궤도가 최대 15° 꺾임(방향 틀기 없이/있이 각도 차이 ≤ 15°), 땅에서 0°로 시작한 궤적은 수평으로만 꺾임(R3),
+- [X] T050 [P] [US5] `tests/core/brawl/steer.test.ts`(FR-028·029, US5-1·2): 판정 순간의 마지막 `d`로 궤도가 최대 15° 꺾임(방향 틀기 없이/있이 각도 차이 ≤ 15°), 땅에서 0°로 시작한 궤적은 수평으로만 꺾임(R3),
+  - 실패 확인: `steer`가 없고 `air`를 처리하지 않아 5개 실패(경직 중·걷는 중 거부 검사는 처리가 없어도 통과해 구현 뒤 다시 봄). 꺾기 기하(u·w 평면, 같거나 정반대면 그대로)와
+    공중 동작 궤적 모양(지금 수평 속도 유지, 위로 jumpSpeed·recoverSpeed, 날아가는 중에만)은 data-model에 먼저 적었다.
+    더한 검사: `d` 없는 move가 잡고 있던 방향을 놓음(지난 걷기 방향이 방향 틀기·던지기 방향으로 남지 않게). 구현 전 실패 확인.
   날아가는 도중 `d`가 바뀌어도 궤적 그대로, 공중 점프(위로 8 m/s)·복귀기(위로 12 m/s)는 각각 땅에 닿기 전 한 번만이고 새 `launch {cause: "air" | "recover"}`, 착지하면 다시 참, 경직 중 거부.
-- [ ] T051 [P] [US5] `tests/e2e/us5-brawl-air.spec.ts`(브라우저 2개): 맞고 날아가는 중 점프를 두 번 누르면 상대 화면에서도 한 번만 뜀(테스트 훅으로 `launch` 수). 실패 확인.
+- [X] T051 [P] [US5] `tests/e2e/us5-brawl-air.spec.ts`(브라우저 2개): 맞고 날아가는 중 점프를 두 번 누르면 상대 화면에서도 한 번만 뜀(테스트 훅으로 `launch` 수). 실패 확인.
+  - 실패 확인: 2D "공중 점프" 버튼이 없어 실패(b가 날아가는 것까지는 통과). 테스트 훅을 더하지 않고 a 소켓이 받은 `launch`를 원인별로 센다.
 
 ### Implementation
 
-- [ ] T052 [US5] `src/core/brawl/knockback.ts`(방향 틀기)·`fighter.ts`·`brawl-session.ts`(`air`). T050 통과.
-- [ ] T053 [US5] `src/client/brawl/input.ts`·`TouchControls.tsx`·2D 버튼: 공중 점프·복귀기 입력(44px). T051 통과.
+- [X] T052 [US5] `src/core/brawl/knockback.ts`(방향 틀기)·`fighter.ts`·`brawl-session.ts`(`air`). T050 통과.
+  - 결과: `steer(v, d, tuning)`(knockback.ts), 세션 `air()`·착지(`stand`) 때 횟수 채움, 블록 다시 계산과 같이 쓰는 `here()`. room-session은 `move.d ?? null`. T050 통과.
+- [X] T053 [US5] `src/client/brawl/input.ts`·`TouchControls.tsx`·2D 버튼: 공중 점프·복귀기 입력(44px). T051 통과.
+  - 결과: 2D 기술 줄에 "공중 점프"·"복귀기", 3D는 날아가는 중 점프 키(Space·점프 버튼)가 공중 점프, E 키·휴대폰 "복귀기" 버튼(56px)이 복귀기. T051 통과.
 
 ---
 
