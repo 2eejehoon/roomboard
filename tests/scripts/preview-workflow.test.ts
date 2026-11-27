@@ -6,13 +6,19 @@ import { expect, it } from 'vitest';
 const ROOT = join(import.meta.dirname, '../..');
 const read = (name: string) => readFileSync(join(ROOT, '.github/workflows', name), 'utf8');
 
-it.each(['preview.yml', 'preview-cleanup.yml'])('%s runs on pull_request (never _target) and skips what the environment rule would refuse', (name) => {
+// Precedent 2026-11-27-operator-delegation: no approval, so the guard must be where PR code cannot reach. pull_request_target runs
+// main's definition under the base ref, which the preview environment's main-only branch rule admits; a workflow a PR adds runs
+// under refs/pull/N/merge and is refused. The trusted `if` picks the session branches (the ruleset keeps claude/* the operator's).
+it.each(['preview.yml', 'preview-cleanup.yml'])('%s runs main\'s definition (pull_request_target) for this repo\'s claude/ branches only', (name) => {
   const wf = read(name);
-  expect(wf).toMatch(/^on:\n {2}pull_request:\n/m);
-  expect(wf).not.toContain('pull_request_target');
-  // Same branches as the preview environment's rule, and no forks: those would otherwise end red, not skipped (PR #43 review).
+  expect(wf).toMatch(/^on:\n {2}pull_request_target:\n/m);
+  expect(wf).not.toMatch(/^ {2}pull_request:$/m);
   expect(wf).toContain("if: ${{ startsWith(github.head_ref, 'claude/') && github.event.pull_request.head.repo.full_name == github.repository }}");
   expect(wf).toContain('concurrency:\n  group: preview-${{ github.event.pull_request.number }}');
+});
+
+it('preview.yml builds the PR head, without leaving the token in git config', () => {
+  expect(read('preview.yml')).toContain('uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          persist-credentials: false');
 });
 
 it('without the token both workflows skip instead of failing', () => {

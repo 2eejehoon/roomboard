@@ -1,10 +1,11 @@
 name: preview
 # research R3 (T097): every PR gets its own Worker and D1, roomboard-pr-<number>; the URL goes on the PR.
-# pull_request, never its _target variant (that would run PR code with secrets). Only session branches (claude/*) of this repo
-# deploy; the `if` below only skips the rest cleanly. It is PR code and can be edited away, so the guard is the session-branch
-# ruleset: only the operator's account creates claude/* branches, the fix agent pushes agent/** only (precedent 2026-11-27-operator-delegation).
+# pull_request_target: this definition comes from main, never from the PR, and runs under the base ref, which the preview
+# environment's main-only branch rule admits (a workflow a PR adds runs under refs/pull/N/merge and is refused). The `if` below is
+# therefore trusted: only this repo's claude/* branches deploy, and the session-branch ruleset keeps those the operator's (the fix
+# agent pushes agent/** only). Their code still runs npm ci and the build next to the secrets (precedent 2026-11-27-operator-delegation).
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened]
 permissions:
   contents: read
@@ -29,6 +30,9 @@ jobs:
           if [ "$HAS_TOKEN" = true ]; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "::notice::CLOUDFLARE_API_TOKEN 없음: 미리보기 배포를 건너뜁니다(README Secrets)."; fi
       - if: steps.gate.outputs.run
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
       - if: steps.gate.outputs.run
         uses: actions/setup-node@v4
         with:

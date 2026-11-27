@@ -1,7 +1,7 @@
 name: preview-cleanup
-# research R3 (T097): a closed PR's Worker and D1 go away. Same branch and token gates as preview.yml.
+# research R3 (T097): a closed PR's Worker and D1 go away. Same trigger, branch and token gates as preview.yml (it runs no PR code).
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
 permissions:
   contents: read
