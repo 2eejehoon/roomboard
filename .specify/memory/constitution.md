@@ -93,7 +93,11 @@
 
 - 기술 스택: Vite + React + React Three Fiber, Rapier, Cloudflare Workers + Durable Objects(방 1개 =
   DO 1개, WebSocket), Cloudflare D1. 스택 변경은 plan 단계에서 근거와 함께 기록한다.
-- 3D 에셋은 CC0 라이선스만 사용한다 (MUST). 출처를 저장소에 기록한다.
+- 3D 에셋·그림·효과음은 CC0이거나, 우리가 직접 만들어 권리를 가진 것(자체 제작)만 쓴다 (MUST). 자체 제작은 저장소에 둔
+  생성 스크립트(예: 헤드리스 Blender Python, 코드로 만든 지오메트리·절차적 텍스처)로 다시 만들 수 있어야 한다 (MUST).
+  CC BY 등 다른 라이선스, 생성 AI 서비스의 결과물, 권리가 불분명한 것은 쓰지 MUST NOT.
+- 모든 에셋 파일은 `public/assets/CREDITS.md`에 한 행씩 출처를 기록한다 (MUST). CC0는 원본 주소와 가공 방법, 자체 제작은 생성 스크립트 경로와
+  다시 만드는 명령을 적는다. 자체 제작 에셋도 특정 기존 작품(게임·캐릭터·브랜드)의 이름·생김새를 흉내 내지 MUST NOT.
 - 화면 문구는 처음부터 i18n 구조로 작성한다 (MUST). 하드코딩된 사용자 노출 문자열을 금지한다.
   첫 언어는 한국어다.
 - PC(키보드)와 모바일(가상 조이스틱) 입력을 모두 지원한다 (MUST).
@@ -151,4 +155,4 @@
 - 모든 PR 리뷰는 이 헌법 준수 여부를 확인한다. plan의 Constitution Check에서 위반이 있으면 근거를
   기록하거나 설계를 바꾼다.
 
-**Version**: 2.0.0 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-27
+**Version**: 2.1.0 | **Ratified**: 2026-11-06 | **Last Amended**: 2026-11-27
