@@ -125,6 +125,9 @@ test('007 R1: scene cost per view', async ({ browser }, info) => {
         await exited;
         // The block changes each client received a second: 19 × 4 when every place and break lands.
         console.log(`${name}: real.mjs ${out.trim()}`);
+        // The standing control always exits 1 (no blocks), so the rate, not the exit code, proves the building row built: a refused
+        // block message would make it equal the control.
+        if (rate === '4') expect(JSON.parse(out.trim().split('\n').at(-1)!).blockChangesPerClientPerSec).toBeGreaterThanOrEqual(19 * 2);
         await expect.poll(async () => (await state(page)).peers.length, { timeout: 30_000 }).toBe(0);
       }
     }
