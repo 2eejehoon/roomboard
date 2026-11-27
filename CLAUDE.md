@@ -6,6 +6,7 @@
   npm 11은 패키지 설치 스크립트를 기본으로 막는다. 새 버전이 들어오면 `npx npm@11 install-scripts ls`로 확인하고,
   자기 바이너리만 받는 패키지(esbuild, workerd 등)만 `install-scripts approve`한다.
 - 머지(헌법 VII, FR-066): PR을 열면 `subscribe_pr_activity`로 지켜보고 `enable_pr_auto_merge`(SQUASH)를 건다.
-  `merge-gate`가 실패하는 PR(허용 경로 `src/`·`tests/`·`docs/`·`specs/` 등 밖을 바꾼 PR)은 운영자에게 머지를 요청한다. 직접 머지나 보호 규칙 우회는 하지 않는다.
+  헌법·스펙·워크플로·스크립트·설정 변경과 미리보기·운영 배포도 세션이 한다(판례 2026-11-27-operator-delegation). `merge-gate`가 실패하는 것은
+  수정 에이전트 PR(`agent/`)뿐이고 운영자가 머지한다. 스펙 내용(운영자가 정한 초기값 포함)도 묻지 않고 판단해 고치고, 바꾼 것을 알린다. 직접 머지나 보호 규칙 우회는 하지 않는다. 운영 배포 뒤에는 운영 사이트를 열어 확인한다.
   `ai-review` 차단 지적은 고친 뒤 push한다(auto-merge는 새 head의 검사를 다시 기다린다). 머지가 확인되면 tasks.md를 기준으로
   다음 작업이 있는지 보고, 열린 작업이 없을 때 새 세션(`create_session`)에 이 파일·헌법·판례 목록·해당 tasks.md를 읽게 하고 넘긴다.

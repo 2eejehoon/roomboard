@@ -1,5 +1,5 @@
-# T108, research R3: production deploy. Run by hand from main (Actions → deploy → Run workflow); the production environment's
-# required reviewer approves each run, and its secrets are separate from preview's.
+# T108, research R3: production deploy from main (Actions → deploy → Run workflow). A session the operator started may run it
+# (precedent 2026-11-27-operator-delegation); only main deploys, and its secrets are separate from preview's.
 name: deploy
 on:
   workflow_dispatch:

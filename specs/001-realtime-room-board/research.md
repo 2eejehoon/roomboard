@@ -70,12 +70,12 @@
   마이그레이션을 적용한다(PR끼리 스키마가 달라도 충돌 없음, 무료 DB 10개 한도 안에서 열린 PR 8개까지).
   PR이 닫히면 `wrangler delete --name roomboard-pr-<번호>`와 `wrangler d1 delete`로 정리한다. DO 클래스를 가진
   Worker도 `wrangler delete`로 지워진다(#45 정리 run 42925740045에서 Worker·D1 `roomboard-pr-45` 삭제 성공. Container 확인 권한 경고가 나오지만 삭제에는 영향 없음). 배포 URL은 PR 댓글로 남긴다.
-- **운영 배포**(T108): `deploy.yml`을 main에서 손으로 실행한다. Environment `production`(운영자 승인, 배포 브랜치 `main`)에
+- **운영 배포**(T108): `deploy.yml`을 main에서 손으로 실행한다. Environment `production`(배포 브랜치 `main`, 승인 없음: 판례 2026-11-27-operator-delegation)에
   미리보기와 같은 이름의 Secrets 6개를 따로 두고(`ADMIN_TOKEN`·`SERVER_SECRET`은 새 값), Worker·D1 `roomboard`에 배포한다.
 - **Alternatives**: 앞단 Worker + DO 전용 Worker 분리(앞단만 미리보기 URL) — 미리보기가 운영 DO를
   같이 써서 데이터가 섞이므로 기각.
 - **사용자 작업 필요**: 저장소 Secrets `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ADMIN_TOKEN`, `SERVER_SECRET`,
-  `TURNSTILE_SECRET`, `TURNSTILE_SITEKEY`를 Environment `preview`(배포마다 운영자 승인, 판례 2026-11-10-preview-environment)에 등록. 등록 전까지 미리보기 배포 워크플로는 건너뛴다(헌법의 미리보기 MUST는 이 의존성이
+  `TURNSTILE_SECRET`, `TURNSTILE_SITEKEY`를 Environment `preview`(판례 2026-11-10-preview-environment, 승인은 판례 2026-11-27-operator-delegation로 없앰)에 등록. 등록 전까지 미리보기 배포 워크플로는 건너뛴다(헌법의 미리보기 MUST는 이 의존성이
   풀릴 때까지 미충족 상태로 추적).
 
 ## R4. 이동 동기화 방식

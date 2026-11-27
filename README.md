@@ -24,8 +24,8 @@ npm run check:docs
 
 ## GitHub Secrets
 
-미리보기용 여섯 개는 저장소 Secrets가 아니라 Environment `preview`(배포마다 운영자 승인, 배포 브랜치 제한 없음)의 Secrets에 둔다.
-운영 배포(`deploy.yml`, Actions에서 main으로 Run workflow)는 같은 이름의 여섯 개를 Environment `production`(운영자 승인, 배포 브랜치 `main`)에 따로 둔다.
+미리보기용 여섯 개는 저장소 Secrets가 아니라 Environment `preview`(승인 없음, 배포 브랜치 `main`만: 미리보기 워크플로는 `pull_request_target`, 판례 2026-11-27-operator-delegation)의 Secrets에 둔다.
+운영 배포(`deploy.yml`, Actions에서 main으로 Run workflow)는 같은 이름의 여섯 개를 Environment `production`(승인 없음, 배포 브랜치 `main`)에 따로 둔다.
 `ADMIN_TOKEN`·`SERVER_SECRET`은 미리보기와 다른 새 값으로, Turnstile 위젯 호스트에는 `roomboard.<계정>.workers.dev`가 들어 있어야 한다.
 
 | 이름 | 쓰는 곳 |
@@ -43,7 +43,7 @@ npm run check:docs
 
 - **브랜치 Ruleset** 두 개(Settings → Rules → Rulesets)
   - 기본 브랜치: PR 필수(승인 0명), 필수 검사 `ci`·`test-first`·`doc-checks`·`ai-review`·`merge-gate`, force push·삭제 차단, 우회는 Repository admin.
-    Settings → General에서 "Allow auto-merge"를 켠다. `merge-gate`가 실패하는 PR(워크플로·스크립트·설정 등 허용 경로 밖)은 운영자가 머지한다.
+    Settings → General에서 "Allow auto-merge"를 켠다. `merge-gate`가 실패하는 PR(수정 에이전트의 `agent/`)은 운영자가 머지한다(판례 2026-11-27-operator-delegation).
   - 세션 브랜치(`refs/heads/**`, 기본 브랜치·`agent/**` 제외): 갱신·생성·삭제 제한, 우회는 Repository admin. 수정 에이전트는 `agent/**`에만 push한다.
 - **Secrets**: 위 표.
 - **라벨 동기화**: `.github/labels.json`을 바꾸면 Actions에서 `labels-sync`를 수동 실행(Run workflow)한다.
