@@ -60,11 +60,12 @@
 | [2026-11-18-mistake-tag-at-end](2026-11-18-mistake-tag-at-end.md) | 리뷰 실수 태그는 댓글 끝의 것만 센다, 대기열 실행은 봇 허용 | 유효 |
 | [2026-11-18-knockback-brawl-spec](2026-11-18-knockback-brawl-spec.md) | 004는 넉백 난투 스펙: 방 옆 경기장, 경기장 저장 안 함, 목숨제, 2D는 옆에서 본 그림 | 유효 |
 | [2026-11-18-brawl-plan-load](2026-11-18-brawl-plan-load.md) | 004 plan: 한 판 상한 20명(측정), 사건 방식 서버, 같은 궤적 함수, 잠들기 대비 DO 저장소 | 유효 |
-| [2026-11-18-hitstun-cap](2026-11-18-hitstun-cap.md) | 004 경직 상한 0.3초: 빠른 타격감, 맞는 중에도 반격 | 유효 |
+| [2026-11-18-hitstun-cap](2026-11-18-hitstun-cap.md) | 004 경직 상한 0.3초: 빠른 타격감, 맞는 중에도 반격 | 일부 대체됨(시나리오 7) |
 | [2026-11-19-arena-hover-ko](2026-11-19-arena-hover-ko.md) | 004 경기장 상자 밖에 3초 넘게 머물면 넉아웃 | 유효 |
 | [2026-11-24-2d-held-direction](2026-11-24-2d-held-direction.md) | 004 2D 방향 틀기는 "방향 잡기" 순환 버튼 | 유효 |
 | [2026-11-27-operator-delegation](2026-11-27-operator-delegation.md) | 운영자 위임: 세션이 헌법·스펙·설정 변경과 배포까지 (헌법 2.0.0) | 유효 |
 | [2026-11-27-self-made-map-spec](2026-11-27-self-made-map-spec.md) | 007 자체 제작 맵 스펙: 성능 예산을 먼저, clarify 답은 세션이 정함 | 유효 |
+| [2026-11-27-skills-combos-spec](2026-11-27-skills-combos-spec.md) | 006 스킬 구성과 콤보: 방향 + 네 버튼, 콤보 창 안에서만 경직 상한 0.6초 | 유효 |
 
 ## 판례 쓰는 법
 
