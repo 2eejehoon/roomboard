@@ -325,6 +325,7 @@
     처음 한 번은 E2E와 CPU를 나눠 써서 버렸다(측정 중에는 다른 일을 돌리지 않는다).
   - (2) 미리보기: 세션은 workers.dev에 닿지 못해 GitHub 러너에서 잰다. `bench-preview.yml`(수동 실행, 입력: 미리보기 URL·카페 방 id, 비밀값 없음)이
     위 배치 3회와 두 채널 20명씩을 돌려 요약·아티팩트에 남긴다(`tests/scripts/bench-preview-workflow.test.ts`). 방은 미리보기 Turnstile 때문에 브라우저로 만든다.
+    PR #106 머지(검사 모두 통과, 독립 리뷰 차단 0). 측정은 결과 PR의 미리보기에서 돌린다(머지하면 그 미리보기가 지워진다).
 - [X] T056 SC-002 측정 `tests/bench/perf-brawl/perf-brawl.spec.ts`(따로 실행: `npx playwright test -c tests/bench/perf-brawl --project mobile --trace off`, `T056_FAKES=0`이면 기준선):
   Playwright 모바일 페이지 1개(Fast 4G 프리셋, 판례 2026-11-09-perf-4g) + T054 가짜 클라이언트 19명(같은 채널, 흩어짐)에서 잽 키 → 내 3D 화면 번쩍임(개발 빌드 훅 `swingsShown`)을 24회 재 p95 ≤ 100ms.
   - 결과: 소프트웨어 WebGL(컨테이너·CI)은 아무도 없어도 휴대폰 화면 한 프레임이 약 135ms라 0.1초를 판정할 수 없어 PR마다 도는 `tests/e2e` 밖에 두었다. SC-002 판정은 T060 실제 휴대폰.
