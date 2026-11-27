@@ -1,6 +1,7 @@
 # 3D 에셋 출처
 
-파일마다 라이선스는 그 행(또는 팩 절)에 적는다. 지금 있는 파일은 모두 CC0 1.0 (퍼블릭 도메인, https://creativecommons.org/publicdomain/zero/1.0/)이다.
+파일마다 라이선스는 그 행(또는 절)에 적는다. 외부에서 받은 파일은 모두 CC0 1.0 (퍼블릭 도메인, https://creativecommons.org/publicdomain/zero/1.0/)이고,
+`previews/`는 우리가 스크립트로 만든 자체 제작 파일이다(아래 "테마 미리보기").
 자체 제작 파일은 헌법 제품·품질 제약에 따라 생성 스크립트 경로와 다시 만드는 명령을 함께 적는다.
 `bash scripts/fetch-assets.sh`가 아래 원본을 내려받아 이 폴더를 다시 만든다. 가공 방법은 그 스크립트에 있다.
 
@@ -53,7 +54,15 @@
 
 ## 테마 미리보기
 
-`previews/<테마>.jpg`는 위 에셋으로 그린 우리 3D 방을 `scripts/theme-previews.ts`로 찍은 것이다(새 출처 없음).
+`previews/<테마>.jpg`는 위 에셋으로 그린 우리 3D 방을 `scripts/theme-previews.ts`로 찍은 자체 제작 파일이다.
+다시 만드는 명령: `npm run dev`를 띄운 채 `node scripts/theme-previews.ts`.
+
+| 파일 | 만드는 스크립트 |
+|---|---|
+| `previews/cafe.jpg` | `scripts/theme-previews.ts` |
+| `previews/library.jpg` | `scripts/theme-previews.ts` |
+| `previews/garden.jpg` | `scripts/theme-previews.ts` |
+
 렌더는 기계마다 조금씩 달라 `scripts/assets.sha256`에 넣지 않는다. 테마나 에셋이 바뀌면 다시 찍는다.
 
 ## 용량 (테마별 첫 로딩)
