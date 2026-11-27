@@ -29,7 +29,7 @@
 
 **Performance Goals**: SC-002(입력 → 내 화면 이펙트 0.1초, 미리 보이기로, 20명 방의 휴대폰에서 따로 잼), 서버 몫 지연 p95 ≤ 50ms·p99 ≤ 100ms(N=20, R1), 클라이언트당 내려받기 ≤ 50KB/s
 
-**Constraints**: 001 SC-001(4G 10초) 유지(SC-007), 경기장 그림은 CC0·첫 로딩 에셋 상한 안, 메시지 2KB(클라이언트 → 서버), i18n 키, 2D 대체 화면
+**Constraints**: 001 SC-001(4G 10초) 유지(SC-007), 경기장 그림은 헌법 에셋 규칙(CC0 또는 자체 제작)·첫 로딩 에셋 상한 안, 메시지 2KB(클라이언트 → 서버), i18n 키, 2D 대체 화면
 
 **Scale/Scope**: 채널당 최대 20명이 한 경기장(SC-006 = 20), 기술 4종(잽 3연타·강펀치·던지기 + 방어·구르기), 블록 2종, 판 1모드
 
@@ -87,7 +87,7 @@ src/client/room/room3d/      # 경기장 블록, 꼬리, 머리 위 %, 기술 �
 src/client/room/room2d/      # 옆 그림(SVG), 깊이 줄, 기술·블록 버튼, 글 기록
 src/client/admin/            # 신고된 방의 "경기장 되돌리기" 버튼
 src/client/i18n/ko.ts        # 새 문구 키
-public/assets/               # CC0 블록·효과음(있으면), CREDITS.md
+public/assets/               # 블록·효과음(있으면, CC0 또는 자체 제작), CREDITS.md
 tests/core/brawl/            # 공식·궤적·경기장·Fighter·판 단위 테스트
 tests/worker/brawl*.test.ts  # 방 DO 난투·되돌리기
 tests/e2e/us*-brawl*.spec.ts # 브라우저 2~3개

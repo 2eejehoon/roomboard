@@ -1,6 +1,7 @@
 # 3D 에셋 출처
 
-모든 파일은 CC0 1.0 (퍼블릭 도메인, https://creativecommons.org/publicdomain/zero/1.0/)이다(헌법 제품·품질 제약, research R13).
+파일마다 라이선스는 그 행(또는 팩 절)에 적는다. 지금 있는 파일은 모두 CC0 1.0 (퍼블릭 도메인, https://creativecommons.org/publicdomain/zero/1.0/)이다.
+자체 제작 파일은 헌법 제품·품질 제약에 따라 생성 스크립트 경로와 다시 만드는 명령을 함께 적는다.
 `bash scripts/fetch-assets.sh`가 아래 원본을 내려받아 이 폴더를 다시 만든다. 가공 방법은 그 스크립트에 있다.
 
 ## Quaternius — Ultimate Animated Character Pack
