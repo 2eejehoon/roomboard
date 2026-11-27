@@ -31,6 +31,5 @@
 
 ## Notes
 
-- 질문 4개는 `/speckit-clarify`에서 답했고 판례 2026-11-27-knockback-brawl-spec에 옮겼다.
-- SC-006의 인원 상한은 plan 측정으로 정한다(spec "열린 질문").
-- "방의 서버 한 곳"(FR-031)은 설계 입력의 네트워크 원칙을 결과로 적은 것이다.
+- clarify 질문 5개의 답은 판례 2026-11-27-self-made-map-spec에 옮겼다.
+- 성능 예산 표는 측정 방법(`tests/bench/perf-scene`, `perf.spec`)을 적은 것이고, 구현 방식(인스턴싱·아틀라스 압축 형식)은 plan에서 정한다.
