@@ -64,7 +64,8 @@
 | [2026-11-19-arena-hover-ko](2026-11-19-arena-hover-ko.md) | 004 경기장 상자 밖에 3초 넘게 머물면 넉아웃 | 유효 |
 | [2026-11-24-2d-held-direction](2026-11-24-2d-held-direction.md) | 004 2D 방향 틀기는 "방향 잡기" 순환 버튼 | 유효 |
 | [2026-11-27-operator-delegation](2026-11-27-operator-delegation.md) | 운영자 위임: 세션이 헌법·스펙·설정 변경과 배포까지 (헌법 2.0.0) | 유효 |
-| [2026-11-27-skills-combos-spec](2026-11-27-skills-combos-spec.md) | 006 스킬 구성과 콤보: 방향 + 네 버튼, 콤보 창 안에서만 경직 상한 0.6초 | 유효 |
+| [2026-11-27-skills-combos-spec](2026-11-27-skills-combos-spec.md) | 006 스킬 구성과 콤보: 방향 + 네 버튼, 콤보 창 안에서만 경직 상한 0.6초 | 일부 대체됨(재포위) |
+| [2026-11-27-skills-combos-clarify](2026-11-27-skills-combos-clarify.md) | 006 clarify: 필살·초필살 1종 고정, 재포위 보호, 휴대폰 버튼 4개 | 유효 |
 
 ## 판례 쓰는 법
 

@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain — 3개(FR-004 휴대폰 버튼, FR-011 콤보 상한, FR-019 필살 종류)는 `/speckit-clarify` 대상
+- [x] No [NEEDS CLARIFICATION] markers remain (clarify 결과는 판례 2026-11-27-skills-combos-clarify)
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
