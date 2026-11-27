@@ -114,11 +114,17 @@ test('007 R1: scene cost per view', async ({ browser }, info) => {
       await walk(page, [40.5, 1, 20.5]);
       const base = new URL(page.url()).origin;
       for (const [name, rate] of [['cafe arena, 19 standing', '0.01'], ['cafe arena, 19 building', '4']] as const) {
-        fakes = spawn('node', ['tests/bench/brawl-load/real.mjs', base, roomId, '19', '30', rate], { env: { ...process.env, SPREAD: '1', BUILD: '1' }, stdio: 'inherit' });
+        // 17 s: real.mjs measures from 3 s after its clients joined, so its summary covers this page's 10 s sample (6 s in).
+        fakes = spawn('node', ['tests/bench/brawl-load/real.mjs', base, roomId, '19', '17', rate], { env: { ...process.env, SPREAD: '1', BUILD: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
+        let out = '';
+        fakes.stdout!.on('data', (d: Buffer) => (out += d));
+        const exited = new Promise((r) => fakes!.once('exit', r));
         await expect.poll(async () => (await state(page)).peers.length, { timeout: 30_000 }).toBe(19);
         await page.waitForTimeout(6000); // their walk to the grid and warmup
         rows[name] = await sample(page, 10_000);
-        fakes.kill();
+        await exited;
+        // The block changes each client received a second: 19 × 4 when every place and break lands.
+        console.log(`${name}: real.mjs ${out.trim()}`);
         await expect.poll(async () => (await state(page)).peers.length, { timeout: 30_000 }).toBe(0);
       }
     }

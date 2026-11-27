@@ -19,7 +19,8 @@ const WARMUP_MS = 3000;
 // The cafe theme (src/core/themes.ts) and the arena (src/core/brawl/tuning.ts): x 20..44, z 0..24, floor top y 1, exit cell at x 20, z 12.
 const ENTRANCE = [5.5, 0, 2.5];
 // Clustered: a home in a 2 m square. Spread: a 5-wide grid, 3 m apart.
-const home = (i) => (SPREAD ? [26 + (i % 5) * 3, 4 + Math.floor(i / 5) * 3] : [31 + Math.random() * 2, 11 + Math.random() * 2]);
+// Spread homes sit in the middle of a cell, so the ±0.1 wander keeps the cell, and BUILD places and breaks the same front cell.
+const home = (i) => (SPREAD ? [26.5 + (i % 5) * 3, 4.5 + Math.floor(i / 5) * 3] : [31 + Math.random() * 2, 11 + Math.random() * 2]);
 const STEP = 0.4; // m per 100 ms move plus 0.1 wander: 6 m/s, under MAX_SPEED 8 m/s even when a timer fires early
 
 async function roomId() {
