@@ -27,8 +27,8 @@ it('a failed deploy fails the job: pipefail before the tee, and no URL is an err
 });
 
 it.each(['preview.yml', 'preview-cleanup.yml'])('%s reads its secrets from the preview environment (PR #43 review)', (name) => {
-  // The workflow file comes from the PR, so only the preview environment's required reviewer (Settings) keeps the secrets
-  // from PR code; the job `if` only skips other branches (precedents 2026-11-10-preview-environment, 2026-11-10-preview-no-branch-rule).
+  // The workflow file comes from the PR: the secrets stay in the preview environment, and the session-branch ruleset keeps the
+  // claude/* branches the operator's (precedent 2026-11-27-operator-delegation); the job `if` only skips other branches.
   expect(read(name)).toMatch(/^ {4}environment: preview$/m);
 });
 

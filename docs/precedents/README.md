@@ -36,14 +36,14 @@
 | [2026-11-08-create-form-checks](2026-11-08-create-form-checks.md) | 방 만들기 양식은 서버와 같은 스키마로 먼저 검사한다 | 유효 |
 | [2026-11-09-chat-sig-separator](2026-11-09-chat-sig-separator.md) | 채팅 서명 검증은 본문 앞 필드에 구분자가 있으면 거부한다 | 유효 |
 | [2026-11-09-chat-panel](2026-11-09-chat-panel.md) | 채팅 패널: 읽어 주는 영역은 메시지 목록, 최근 100개만 둔다 | 일부 대체됨(읽어 주는 영역) |
-| [2026-11-09-session-auto-merge](2026-11-09-session-auto-merge.md) | 세션 PR은 독립 리뷰를 포함한 필수 검사를 통과하면 auto-merge | 유효 |
+| [2026-11-09-session-auto-merge](2026-11-09-session-auto-merge.md) | 세션 PR은 독립 리뷰를 포함한 필수 검사를 통과하면 auto-merge | 일부 대체됨(허용 경로) |
 | [2026-11-09-room-gone-check](2026-11-09-room-gone-check.md) | welcome 전에 닫히면 방을 조회, 테마가 바뀌면 서버도 스폰으로 | 유효 |
 | [2026-11-09-astryx-prebuilt](2026-11-09-astryx-prebuilt.md) | 화면 컴포넌트는 Astryx, 미리 빌드된 CSS로 | 유효 |
 | [2026-11-09-report-list-per-target](2026-11-09-report-list-per-target.md) | 관리자 신고 목록은 대상마다 한 줄, 처리 완료는 대상 단위 | 유효 |
 | [2026-11-09-chat-live-text](2026-11-09-chat-live-text.md) | 2D 채팅은 숨긴 목록이 닉네임·내용만 읽어 준다 | 유효 |
 | [2026-11-09-perf-4g](2026-11-09-perf-4g.md) | SC-001의 "일반 4G"는 Chrome Fast 4G 프리셋, 측정은 압축한 프로덕션 빌드로 | 유효 |
 | [2026-11-10-preview-environment](2026-11-10-preview-environment.md) | 미리보기 비밀값은 Environment `preview`, 배포마다 운영자 승인 | 일부 대체됨(배포 브랜치) |
-| [2026-11-10-preview-no-branch-rule](2026-11-10-preview-no-branch-rule.md) | 미리보기 Environment는 배포 브랜치 제한 없이, 승인만으로 | 유효 |
+| [2026-11-10-preview-no-branch-rule](2026-11-10-preview-no-branch-rule.md) | 미리보기 Environment는 배포 브랜치 제한 없이, 승인만으로 | 일부 대체됨(승인) |
 | [2026-11-11-visual-direction](2026-11-11-visual-direction.md) | 003 시각 품질: 3D는 아늑한 로우폴리, 화면은 전체를 고르게 | 유효 |
 | [2026-11-11-no-reflection-env](2026-11-11-no-reflection-env.md) | 003 3D 조명: HDRI·반사 환경 없이 해·반구광만, 첫 3D 에셋 상한 3MB | 유효 |
 | [2026-11-12-roadmap-after-v1](2026-11-12-roadmap-after-v1.md) | v1 다음 순서: 운영 배포 → 버그 자동 보고 → 상호작용·방꾸미기 | 일부 대체됨(004 범위) |
@@ -63,6 +63,7 @@
 | [2026-11-18-hitstun-cap](2026-11-18-hitstun-cap.md) | 004 경직 상한 0.3초: 빠른 타격감, 맞는 중에도 반격 | 유효 |
 | [2026-11-19-arena-hover-ko](2026-11-19-arena-hover-ko.md) | 004 경기장 상자 밖에 3초 넘게 머물면 넉아웃 | 유효 |
 | [2026-11-24-2d-held-direction](2026-11-24-2d-held-direction.md) | 004 2D 방향 틀기는 "방향 잡기" 순환 버튼 | 유효 |
+| [2026-11-27-operator-delegation](2026-11-27-operator-delegation.md) | 운영자 위임: 세션이 헌법·스펙·설정 변경과 배포까지 (헌법 2.0.0) | 유효 |
 
 ## 판례 쓰는 법
 

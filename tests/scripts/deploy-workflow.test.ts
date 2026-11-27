@@ -5,7 +5,7 @@ import { expect, it } from 'vitest';
 // T108, research R3, constitution VII: the production deploy holds the Cloudflare token and production secrets.
 const wf = () => readFileSync(join(import.meta.dirname, '../../.github/workflows/deploy.yml'), 'utf8');
 
-it('runs only by hand on main, behind the production environment (operator approval)', () => {
+it('runs only by hand on main, with the production environment\'s secrets', () => {
   const w = wf();
   expect(w).toMatch(/^on:\n {2}workflow_dispatch:\n/m);
   expect(w).not.toMatch(/^ {2}(push|pull_request|pull_request_target|schedule):/m);
