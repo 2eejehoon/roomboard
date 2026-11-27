@@ -47,7 +47,7 @@ for n in 12 20; do SPREAD=1 node tests/bench/brawl-load/clients.mjs $n 20; done 
 - 끝나면 `rm -rf tests/bench/brawl-load/.wrangler`(wrangler가 만든 번들, 린트가 읽는다).
 - 합격: N=20에서 마지막 상대 도착 p95 ≤ 50ms, p99 ≤ 100ms, 클라이언트당 ≤ 50KB/s.
 - 실제 서버(tasks T054·T055): `npm run build` 뒤 `npx vite preview --port 4173`을 띄우고
-  `node tests/bench/brawl-load/real.mjs http://localhost:4173 - <N> 20`(`-`는 방을 새로 만듦, 방 만들기는 분당 3개라 같은 배치는 방 id를 다시 쓴다). PR 미리보기는 운영자가 만든 방 id로.
+  `node tests/bench/brawl-load/real.mjs http://localhost:4173 - <N> 20`(`-`는 방을 새로 만듦, 방 만들기는 분당 3개라 같은 배치는 방 id를 다시 쓴다). PR 미리보기는 브라우저로 만든 카페 방 id로 `bench-preview` 워크플로를 수동 실행한다(세션은 workers.dev에 닿지 못함).
 - SC-002(T056): `npx playwright test -c tests/bench/perf-brawl --project mobile --trace off`. 소프트웨어 WebGL은 한 프레임이 0.1초보다 길어 기록만 하고, 판정은 5의 실제 휴대폰.
 
 ## 5. 사람이 보는 확인

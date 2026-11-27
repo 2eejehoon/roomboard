@@ -322,7 +322,9 @@
   기준: 마지막 상대 도착 p95 ≤ 50ms, p99 ≤ 100ms, 클라이언트당 ≤ 50KB/s. 넘으면 새 판례(`docs/precedents/`)로 상한을 낮추고 spec SC-006·research R1을 고치며, 경기장 입장 제한 규칙을 스펙부터 더한다.
   미리보기에서 한 방 두 채널 20명씩도 재고, 넘으면 채널마다 DO로 나누는 방안(001 R6 변경)을 PushNotification으로 운영자에게 묻는다.
   - (1) 로컬 결과(2026-11-24, research R1 표): 한 채널 N=20 흩어짐 p95 38.8~48.1·p99 50.2~62.0ms, 17KB/s로 기준 안. N=12 흩어짐 한 회 p99 137.9ms 초과 → 3회 더 재서 모두 기준 안(28.2·16.9·38.1ms). 두 채널 동시 흩어짐 p95 60.6·78.6·p99 108.9ms로 받아들인 한계(p95 51~58, p99 기준 안)보다 나쁨.
-    처음 한 번은 E2E와 CPU를 나눠 써서 버렸다(측정 중에는 다른 일을 돌리지 않는다). (2) 미리보기는 배포 승인·카페 방 id 대기.
+    처음 한 번은 E2E와 CPU를 나눠 써서 버렸다(측정 중에는 다른 일을 돌리지 않는다).
+  - (2) 미리보기: 세션은 workers.dev에 닿지 못해 GitHub 러너에서 잰다. `bench-preview.yml`(수동 실행, 입력: 미리보기 URL·카페 방 id, 비밀값 없음)이
+    위 배치 3회와 두 채널 20명씩을 돌려 요약·아티팩트에 남긴다(`tests/scripts/bench-preview-workflow.test.ts`). 방은 미리보기 Turnstile 때문에 브라우저로 만든다.
 - [X] T056 SC-002 측정 `tests/bench/perf-brawl/perf-brawl.spec.ts`(따로 실행: `npx playwright test -c tests/bench/perf-brawl --project mobile --trace off`, `T056_FAKES=0`이면 기준선):
   Playwright 모바일 페이지 1개(Fast 4G 프리셋, 판례 2026-11-09-perf-4g) + T054 가짜 클라이언트 19명(같은 채널, 흩어짐)에서 잽 키 → 내 3D 화면 번쩍임(개발 빌드 훅 `swingsShown`)을 24회 재 p95 ≤ 100ms.
   - 결과: 소프트웨어 WebGL(컨테이너·CI)은 아무도 없어도 휴대폰 화면 한 프레임이 약 135ms라 0.1초를 판정할 수 없어 PR마다 도는 `tests/e2e` 밖에 두었다. SC-002 판정은 T060 실제 휴대폰.

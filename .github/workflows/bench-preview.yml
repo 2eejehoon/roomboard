@@ -1,0 +1,63 @@
+name: bench-preview
+# 004 T055 (research R1, quickstart 4): rerun the real-server load batch against a PR preview. The session cannot reach
+# workers.dev, so a runner does it. Start by hand on main with the preview URL (the PR comment) and a cafe room id made in a
+# browser there (the preview has the real Turnstile key). It needs no secrets and runs no PR code: real.mjs comes from main.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Preview URL, https://roomboard-pr-<n>.<account>.workers.dev
+        required: true
+        type: string
+      room:
+        description: Cafe room id made in a browser on that preview
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: bench-preview
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      URL: ${{ inputs.url }}
+      ROOM: ${{ inputs.room }}
+    steps:
+      - name: Check inputs
+        run: |
+          [[ "$URL" =~ ^https://roomboard-pr-[0-9]+\.[a-z0-9-]+\.workers\.dev$ ]] || { echo "::error::미리보기 URL 형식이 아닙니다."; exit 1; }
+          [[ "$ROOM" =~ ^[A-Za-z0-9_-]{1,64}$ ]] || { echo "::error::방 id 형식이 아닙니다."; exit 1; }
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Measure (nothing else runs on this runner while it measures)
+        run: |
+          out="$RUNNER_TEMP/bench"; mkdir -p "$out"
+          # A failed run (exit 1: nobody reached the arena or no swing came back) is recorded, not fatal, so the rest still runs.
+          for run in 1 2 3; do
+            for n in 2 4 8 12 20; do
+              node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$n" 20 > "$out/cluster-$n-$run.json" || echo "::warning::cluster N=$n run $run 실패"
+            done
+            for n in 12 20; do
+              SPREAD=1 node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$n" 20 > "$out/spread-$n-$run.json" || echo "::warning::spread N=$n run $run 실패"
+            done
+            # Two channels of 20 in one room (the server fills channel 1 first, then 2).
+            SPREAD=1 node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" 20 20 > "$out/two-a-$run.json" &
+            sleep 3
+            SPREAD=1 node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" 20 20 > "$out/two-b-$run.json" || echo "::warning::two-b run $run 실패"
+            wait $! || echo "::warning::two-a run $run 실패"
+          done
+          {
+            echo '| 회차 | 결과 |'; echo '|---|---|'
+            for f in "$out"/*.json; do echo "| $(basename "$f" .json) | \`$(tr -d '\n' < "$f")\` |"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bench-preview
+          path: ${{ runner.temp }}/bench
