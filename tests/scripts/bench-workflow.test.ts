@@ -13,4 +13,7 @@ it('runs only by hand, with no secrets or environment, and reads inputs through 
   const run = w.slice(w.indexOf('run: |'));
   expect(run).not.toContain('${{');
   expect(run).toContain('node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" "$SECS"');
+  // A failed second channel (real.mjs exits 1) must fail the step: a bare wait always returns 0 (PR #105 review).
+  expect(run).toContain('wait "$bg"');
+  expect(run).not.toMatch(/^ *wait$/m);
 });

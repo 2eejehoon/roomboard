@@ -52,9 +52,9 @@ jobs:
         run: |
           for k in $(seq "$RUNS"); do
             if [ "$CHANNELS" = 2 ]; then
-              node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" 25 & sleep 3
+              node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" 25 & bg=$!; sleep 3
             fi
             node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" "$SECS"
-            wait
+            if [ -n "${bg:-}" ]; then wait "$bg"; unset bg; fi
             sleep 3
           done
