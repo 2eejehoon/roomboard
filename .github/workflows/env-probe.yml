@@ -1,0 +1,14 @@
+# Throwaway check for precedent 2026-11-27-operator-delegation: a workflow a PR adds must be refused by the preview
+# environment's main-only branch rule. Prints only whether a secret arrived, never its value. This PR is closed, not merged.
+name: env-probe
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    environment: preview
+    steps:
+      - env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: if [ -n "$T" ]; then echo HAS; else echo NONE; fi
