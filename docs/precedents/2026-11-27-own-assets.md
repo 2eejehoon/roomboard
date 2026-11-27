@@ -1,7 +1,7 @@
 # 에셋은 CC0 또는 생성 스크립트로 직접 만든 것 (헌법 2.1.0)
 
 - 날짜: 2026-11-27
-- 대상: 헌법 제품·품질 제약(에셋), specs/004-knockback-brawl/spec.md FR-038·Assumptions, specs/003-visual-quality/spec.md FR-010·Assumptions, `public/assets/CREDITS.md` 머리말
+- 대상: 헌법 제품·품질 제약(에셋), specs/004-knockback-brawl/spec.md FR-038·Assumptions, specs/006-skills-combos/spec.md FR-030, specs/003-visual-quality/spec.md FR-010·Assumptions, `public/assets/CREDITS.md` 머리말
 - 출처: 운영자 결정(2026-11-27, 005 캐릭터): "캐릭터를 완성도 있게 먼저, 디자인 퀄리티와 성능이 굉장히 중요하다. 시간이 걸려도 과감하게 자체 제작으로 간다."
   같은 날 정정: 유료 생성 도구(Meshy Pro)를 쓰지 않고 돈을 쓰지 않는 방법만 쓴다.
 - 대체한 판례: 없음(2026-11-07-assets-quaternius의 Quaternius 에셋은 CC0라 그대로 유효)
