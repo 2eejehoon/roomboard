@@ -7,7 +7,7 @@
 // Two processes on the same room fill two channels (the server assigns channels, 20 each). Latency: skill send → the attacker's
 // swing and → the last peer's swing, matched by (attacker, at) since only the attacker's copy carries the nonce. Exits 1 when a
 // client never reaches the arena or no swing came back, so a protocol mistake cannot print a plausible table.
-import { performance } from 'node:perf_hooks';
+import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 
 const [BASE, ROOM_ARG, N, SECONDS = 20, RATE = 3] = process.argv.slice(2).map((a, i) => (i < 2 ? a : Number(a)));
 if (!BASE || !ROOM_ARG || !(N > 0)) throw new Error('usage: real.mjs <baseUrl> <roomId|-> <N> [seconds] [skillsPerSec]');
@@ -33,6 +33,8 @@ const records = new Map(); // `${attacker}:${at}` -> { sent, arrivals }
 const toAttacker = [];
 const toLastPeer = [];
 let bytes = 0, msgs = 0, sentSkills = 0, corrections = 0, measuring = false;
+// A busy client reads frames late and inflates the max-of-peers tail: a large lag means the client, not the server, is measured.
+const lag = monitorEventLoopDelay({ resolution: 10 });
 
 function onSwing(c, m, now) {
   const key = `${m.peerId}:${m.at}`;
@@ -107,7 +109,10 @@ const timers = clients.flatMap((c) => [
 
 const start = performance.now();
 // The walk home from the start cells takes up to ~2 s, inside the warmup.
-setTimeout(() => (measuring = true), WARMUP_MS);
+setTimeout(() => {
+  measuring = true;
+  lag.enable();
+}, WARMUP_MS);
 setTimeout(() => {
   timers.forEach(clearInterval);
   const secs = (performance.now() - start - WARMUP_MS) / 1000;
@@ -121,6 +126,7 @@ setTimeout(() => {
     lastPeerMs: N > 1 ? row(toLastPeer) : '-',
     perClientMsgsPerSec: +(msgs / N / secs).toFixed(1),
     perClientKBPerSec: +(bytes / N / secs / 1024).toFixed(1),
+    clientLoopLagP99Ms: +(lag.percentile(99) / 1e6).toFixed(1),
   }));
   clients.forEach((c) => c.ws.close());
   process.exit(toAttacker.length ? 0 : 1);
