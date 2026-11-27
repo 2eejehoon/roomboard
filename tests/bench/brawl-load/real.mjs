@@ -4,6 +4,8 @@
 //   roomId "-" creates a cafe room with the Turnstile test token (local only). A preview needs a cafe room made in a browser:
 //   the clients walk onto the cafe's arena entrance.
 //   SPREAD=1 puts clients 3 m apart, out of reach: nobody flies, every move is relayed and every skill is an empty swing to all.
+//   BUILD=1 (007, with SPREAD=1): instead of skills each client faces +z and places then breaks a dirt block in front of it at
+//   skillsPerSec (at most TUNING.blockRate 4), so every page in the channel rebuilds its arena that often per client.
 // Two processes on the same room fill two channels (the server assigns channels, 20 each). Latency: skill send → the attacker's
 // swing and → the last peer's swing, matched by (attacker, at) since only the attacker's copy carries the nonce. Exits 1 when a
 // client never reaches the arena or no swing came back, so a protocol mistake cannot print a plausible table.
@@ -12,6 +14,7 @@ import { monitorEventLoopDelay, performance } from 'node:perf_hooks';
 const [BASE, ROOM_ARG, N, SECONDS = 20, RATE = 3] = process.argv.slice(2).map((a, i) => (i < 2 ? a : Number(a)));
 if (!BASE || !ROOM_ARG || !(N > 0)) throw new Error('usage: real.mjs <baseUrl> <roomId|-> <N> [seconds] [skillsPerSec]');
 const SPREAD = process.env.SPREAD === '1';
+const BUILD = process.env.BUILD === '1';
 const WARMUP_MS = 3000;
 // The cafe theme (src/core/themes.ts) and the arena (src/core/brawl/tuning.ts): x 20..44, z 0..24, floor top y 1, exit cell at x 20, z 12.
 const ENTRANCE = [5.5, 0, 2.5];
@@ -32,7 +35,7 @@ const wsUrl = `${BASE.replace(/^http/, 'ws')}/api/rooms/${room}/ws`;
 const records = new Map(); // `${attacker}:${at}` -> { sent, arrivals }
 const toAttacker = [];
 const toLastPeer = [];
-let bytes = 0, msgs = 0, sentSkills = 0, corrections = 0, measuring = false;
+let bytes = 0, msgs = 0, sentSkills = 0, corrections = 0, blocksBack = 0, measuring = false;
 // A busy client reads frames late and inflates the max-of-peers tail: a large lag means the client, not the server, is measured.
 const lag = monitorEventLoopDelay({ resolution: 10 });
 
@@ -79,6 +82,7 @@ function connect(i) {
         }
       } else if ((m.t === 'landed' || m.t === 'respawned') && m.peerId === c.peerId) c.p = m.p; // walk on from where the server put us
       else if (m.t === 'swing') onSwing(c, m, now);
+      else if (m.t === 'block' && measuring) blocksBack++;
     };
   });
 }
@@ -96,10 +100,15 @@ const toward = (v, target) => v + Math.max(-STEP, Math.min(STEP, target - v)) + 
 const timers = clients.flatMap((c) => [
   setInterval(() => {
     c.p = [toward(c.p[0], c.home[0]), 1, toward(c.p[2], c.home[1])];
-    c.r += (Math.random() - 0.5) * 0.6;
+    if (!BUILD) c.r += (Math.random() - 0.5) * 0.6;
     c.ws.send(JSON.stringify({ t: 'move', p: c.p.map((v) => Math.round(v * 100) / 100), r: Math.round(c.r * 100) / 100, a: 'walk' }));
   }, 100),
   setInterval(() => {
+    if (BUILD) {
+      if (measuring) sentSkills++;
+      c.ws.send(JSON.stringify(c.seq++ % 2 ? { t: 'block', op: 'break', h: 0 } : { t: 'block', op: 'place', kind: 'dirt', h: 0 }));
+      return;
+    }
     const nonce = `n${++c.seq}`;
     c.nonces.set(nonce, performance.now());
     if (measuring) sentSkills++;
@@ -120,8 +129,9 @@ setTimeout(() => {
   const row = (a) => `p50 ${pct(a, 0.5)} p95 ${pct(a, 0.95)} p99 ${pct(a, 0.99)} max ${pct(a, 1)} (n=${a.length})`;
   const channels = [...new Set(clients.map((c) => c.channel))];
   console.log(JSON.stringify({
-    N, spread: SPREAD, room, channels, seconds: SECONDS, skillsPerSec: RATE,
+    N, spread: SPREAD, build: BUILD, room, channels, seconds: SECONDS, skillsPerSec: RATE,
     skillsSent: sentSkills, swingsBack: toAttacker.length, corrections,
+    ...(BUILD && { blockChangesPerClientPerSec: +(blocksBack / N / secs).toFixed(1) }),
     attackerMs: row(toAttacker),
     lastPeerMs: N > 1 ? row(toLastPeer) : '-',
     perClientMsgsPerSec: +(msgs / N / secs).toFixed(1),
@@ -129,5 +139,5 @@ setTimeout(() => {
     clientLoopLagP99Ms: +(lag.percentile(99) / 1e6).toFixed(1),
   }));
   clients.forEach((c) => c.ws.close());
-  process.exit(toAttacker.length ? 0 : 1);
+  process.exit((BUILD ? blocksBack : toAttacker.length) ? 0 : 1);
 }, SECONDS * 1000);
