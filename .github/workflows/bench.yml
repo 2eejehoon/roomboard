@@ -21,7 +21,7 @@ on:
         options: ['0', '1']
         default: '0'
       channels:
-        description: 2 runs a second process into the same room at once (two channels of n)
+        description: 2 runs a second process into the same room at once (two full channels; needs n = 20)
         type: choice
         options: ['1', '2']
         default: '1'
@@ -50,6 +50,8 @@ jobs:
           RUNS: ${{ inputs.runs }}
           SECS: '20'
         run: |
+          # The server fills a channel to 20, so with fewer the second process joins the first channel (PR #105 review).
+          if [ "$CHANNELS" = 2 ] && [ "$N" != 20 ]; then echo "::error::channels=2 needs n=20"; exit 1; fi
           for k in $(seq "$RUNS"); do
             if [ "$CHANNELS" = 2 ]; then
               node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" 25 & bg=$!; sleep 3
