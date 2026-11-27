@@ -17,7 +17,8 @@ it.each(['preview.yml', 'preview-cleanup.yml'])('%s runs main\'s definition (pul
   expect(wf).toContain('concurrency:\n  group: preview-${{ github.event.pull_request.number }}');
 });
 
-it('preview.yml builds the PR head, without leaving the token in git config', () => {
+it('preview.yml builds the PR head, without leaving the token in git config or saving an npm cache main\'s deploy restores', () => {
+  expect(read('preview.yml')).not.toContain('cache: npm');
   expect(read('preview.yml')).toContain('uses: actions/checkout@v4\n        with:\n          ref: ${{ github.event.pull_request.head.sha }}\n          persist-credentials: false');
 });
 
@@ -33,8 +34,8 @@ it('a failed deploy fails the job: pipefail before the tee, and no URL is an err
 });
 
 it.each(['preview.yml', 'preview-cleanup.yml'])('%s reads its secrets from the preview environment (PR #43 review)', (name) => {
-  // The workflow file comes from the PR: the secrets stay in the preview environment, and the session-branch ruleset keeps the
-  // claude/* branches the operator's (precedent 2026-11-27-operator-delegation); the job `if` only skips other branches.
+  // The secrets live only in the preview environment, which admits main's definition (pull_request_target) and refuses a
+  // workflow a PR adds (main-only branch rule, precedent 2026-11-27-operator-delegation).
   expect(read(name)).toMatch(/^ {4}environment: preview$/m);
 });
 

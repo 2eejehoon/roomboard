@@ -37,7 +37,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          # No npm cache: PR code runs npm ci here, and under pull_request_target the cache is main's, which deploy.yml restores.
       - if: steps.gate.outputs.run
         run: npm ci
       - if: steps.gate.outputs.run

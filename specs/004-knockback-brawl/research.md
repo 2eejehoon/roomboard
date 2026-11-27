@@ -154,7 +154,7 @@ plan.md의 결정 근거. 수치 이름은 조정표(`src/core/brawl/tuning.ts`,
   (data-model.md). 서버 판정·화면·단위 테스트가 모두 이것을 import한다. 보이는 모습은 `src/client/brawl/looks.ts`의 `LOOKS` 하나(FR-030a):
   블록 모델·색, 꼬리 모양, 숫자 글꼴·색, 효과음. 화면 코드는 `LOOKS`만 읽고 색·모델 경로를 직접 쓰지 않는다.
 - 가드: `src/core/brawl/**`에서 조정표 밖의 숫자 상수를 막는 린트(`no-magic-numbers`, 0·1·-1·2만 허용, `tuning.ts`는 제외)를 둔다(SC-005, 헌법 VI).
-  `eslint.config.js` 변경이라 그 PR은 운영자 머지다(merge-gate).
+  `eslint.config.js` 변경 PR도 세션이 머지한다(판례 2026-11-27-operator-delegation).
 
 ## R8. 2D 옆 그림
 

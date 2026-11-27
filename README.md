@@ -43,7 +43,7 @@ npm run check:docs
 
 - **브랜치 Ruleset** 두 개(Settings → Rules → Rulesets)
   - 기본 브랜치: PR 필수(승인 0명), 필수 검사 `ci`·`test-first`·`doc-checks`·`ai-review`·`merge-gate`, force push·삭제 차단, 우회는 Repository admin.
-    Settings → General에서 "Allow auto-merge"를 켠다. `merge-gate`가 실패하는 PR(워크플로·스크립트·설정 등 허용 경로 밖)은 운영자가 머지한다.
+    Settings → General에서 "Allow auto-merge"를 켠다. `merge-gate`가 실패하는 PR(수정 에이전트의 `agent/`)은 운영자가 머지한다(판례 2026-11-27-operator-delegation).
   - 세션 브랜치(`refs/heads/**`, 기본 브랜치·`agent/**` 제외): 갱신·생성·삭제 제한, 우회는 Repository admin. 수정 에이전트는 `agent/**`에만 push한다.
 - **Secrets**: 위 표.
 - **라벨 동기화**: `.github/labels.json`을 바꾸면 Actions에서 `labels-sync`를 수동 실행(Run workflow)한다.
