@@ -1,0 +1,60 @@
+name: bench
+# T055 (research R1): tests/bench/brawl-load/real.mjs against a deployed preview from a GitHub runner, outside a session's agent
+# proxy (which bunched frames and inflated the tail). No secrets: the script only joins a room as fake clients.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: preview base URL (https://...workers.dev)
+        required: true
+        type: string
+      room:
+        description: room id (a cafe room)
+        required: true
+        type: string
+      n:
+        description: clients per channel
+        default: '20'
+        type: string
+      spread:
+        type: choice
+        options: ['0', '1']
+        default: '0'
+      channels:
+        description: 2 runs a second process into the same room at once (two channels of n)
+        type: choice
+        options: ['1', '2']
+        default: '1'
+      runs:
+        default: '3'
+        type: string
+permissions:
+  contents: read
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - env:
+          URL: ${{ inputs.url }}
+          ROOM: ${{ inputs.room }}
+          N: ${{ inputs.n }}
+          SPREAD: ${{ inputs.spread }}
+          CHANNELS: ${{ inputs.channels }}
+          RUNS: ${{ inputs.runs }}
+          SECS: '20'
+        run: |
+          for k in $(seq "$RUNS"); do
+            if [ "$CHANNELS" = 2 ]; then
+              node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" 25 & sleep 3
+            fi
+            node tests/bench/brawl-load/real.mjs "$URL" "$ROOM" "$N" "$SECS"
+            wait
+            sleep 3
+          done
